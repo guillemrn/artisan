@@ -1,0 +1,150 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Manrope", sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-light: var(--primary-light);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: var(--primary-light);
+  --color-accent-foreground: var(--primary);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text-primary);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--text-primary);
+  --color-secondary: var(--primary-light);
+  --color-secondary-foreground: var(--primary);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: #ffffff;
+  --color-input: var(--border);
+  --color-ring: var(--primary);
+  --color-ring-offset-background: var(--background);
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-badge: 99px;
+
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.04);
+  --shadow-fab: 0 4px 16px rgba(13, 74, 62, 0.3);
+}
+
+:root {
+  --background: #f6f7f5;
+  --foreground: #2f3437; /* Charcoal */
+  --surface: #ffffff;
+  --text-primary: #2f3437; /* Charcoal */
+  --text-secondary: #5c6266;
+  --text-muted: #8f969a;
+  --border: #e6e8e2; /* Divisores */
+
+  --primary: #2e7d5b; /* Artisan Green */
+  --primary-foreground: #ffffff;
+  --primary-light: #e8f5f0; /* Soft green tint */
+
+  --success: #2e7d5b;
+  --warning: #c9784a; /* Clay */
+  --danger: #ef4444;
+
+  --muted: #f1f3ee; /* Wheat */
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html,
+  body {
+    background-color: var(--background);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    font-weight: 700;
+  }
+}
+
+@utility card-surface {
+  background-color: var(--surface);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+}
+
+@utility grad-green {
+  background-image: linear-gradient(160deg, #ffffff 0%, #eef8f3 100%);
+}
+@utility grad-blue {
+  background-image: linear-gradient(160deg, #ffffff 0%, #eef4f7 100%);
+}
+@utility grad-purple {
+  background-image: linear-gradient(160deg, #ffffff 0%, #f4f0ea 100%);
+}
+@utility grad-yellow {
+  background-image: linear-gradient(160deg, #ffffff 0%, #fbf0e8 100%);
+}
+
+@utility page-shell {
+  padding-inline: 20px;
+  padding-top: 24px;
+}
+
+@utility soft-panel {
+  background-color: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(230, 232, 226, 0.9);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 18px 44px rgba(31, 43, 46, 0.06);
+  backdrop-filter: blur(14px);
+}
+
+@utility section-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--text-primary);
+}
+
+@utility input-modern {
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background-color: rgba(255, 255, 255, 0.9);
+  outline: none;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+@utility input-modern-focus {
+  border-color: color-mix(in srgb, var(--primary) 58%, white);
+  box-shadow: 0 0 0 4px rgba(46, 125, 91, 0.1);
+}
