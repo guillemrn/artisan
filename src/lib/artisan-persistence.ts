@@ -57,51 +57,7 @@ export async function fetchArtisanData(): Promise<ArtisanData> {
   const dbClients = clientsRes.data ?? [];
   const dbSales = salesRes.data ?? [];
 
-  // If the user is new and has absolutely no data, we seed the database with the default data
-  if (dbProducts.length === 0 && dbClients.length === 0 && dbSales.length === 0) {
-    const userId = session.user.id;
 
-    // Seed products
-    const productsToInsert = PRODUCTS.map(p => ({
-      id: p.id,
-      name: p.name,
-      cost: p.cost,
-      distributor_price: p.distributorPrice,
-      public_price: p.publicPrice,
-      stock: p.stock,
-      user_id: userId,
-    }));
-    await supabase.from("products").insert(productsToInsert);
-
-    // Seed clients
-    const clientsToInsert = CLIENTS.map(c => ({
-      id: c.id,
-      name: c.name,
-      channel: c.channel,
-      last_delivery: c.lastDelivery ?? null,
-      user_id: userId,
-    }));
-    await supabase.from("clients").insert(clientsToInsert);
-
-    // Seed sales
-    const salesToInsert = SEED_SALES.map(s => ({
-      id: s.id,
-      client_id: s.clientId,
-      client_name: s.clientName,
-      channel: s.channel,
-      items: s.items,
-      total: s.total,
-      cost: s.cost,
-      profit: s.profit,
-      payment: s.payment,
-      status: s.status,
-      created_at: s.createdAt,
-      user_id: userId,
-    }));
-    await supabase.from("sales").insert(salesToInsert);
-
-    return DEFAULT_DATA;
-  }
 
   // Map database models to client types
   const products: Product[] = dbProducts.map(p => ({

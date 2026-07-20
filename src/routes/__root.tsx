@@ -84,8 +84,8 @@ function AuthGate() {
   if (loading) return <SplashScreen />;
 
   if (!user) {
-    if (pathname === "/login") return <Outlet />;
-    return <LoginPage />;
+    if (pathname === "/" || pathname === "/login") return <Outlet />;
+    return <Navigate to="/" replace />;
   }
 
   if (pathname === "/login") {

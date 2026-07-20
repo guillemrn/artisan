@@ -24,13 +24,15 @@ function NuevaVenta() {
   const navigate = useNavigate();
 
   const items = useMemo(
-    () => buildSaleItems(draft.quantities, draft.priceMode, products),
-    [draft.quantities, draft.priceMode, products],
+    () => buildSaleItems(draft.quantities, draft.returns || {}, draft.priceMode, products),
+    [draft.quantities, draft.returns, draft.priceMode, products],
   );
   const subtotal = items.reduce((s, i) => s + i.unitPrice * i.qty, 0);
+  const returnsTotal = items.reduce((s, i) => s + i.unitPrice * (i.returnQty ?? 0), 0);
+  const netTotal = subtotal; // Do not deduct returns from payment total
   const cost = items.reduce((s, i) => s + i.cost * i.qty, 0);
-  const profit = subtotal - cost;
-  const margin = subtotal > 0 ? Math.round((profit / subtotal) * 100) : 0;
+  const profit = netTotal - cost;
+  const margin = netTotal > 0 ? Math.round((profit / netTotal) * 100) : 0;
 
   const canContinue1 = !!draft.client;
   const canContinue2 = items.length > 0;
@@ -58,7 +60,7 @@ function NuevaVenta() {
       clientName: draft.client.name,
       channel: draft.client.channel,
       items,
-      total: subtotal,
+      total: netTotal,
       cost,
       profit,
       payment: draft.payment,
@@ -125,6 +127,13 @@ function NuevaVenta() {
               quantities: { ...d.quantities, [id]: Math.max(0, qty) },
             }))
           }
+          returns={draft.returns || {}}
+          setReturnQty={(id, qty) =>
+            setDraft((d) => ({
+              ...d,
+              returns: { ...d.returns || {}, [id]: Math.max(0, qty) },
+            }))
+          }
         />
       )}
       {step === 3 && (
@@ -133,6 +142,7 @@ function NuevaVenta() {
           channel={draft.client!.channel}
           items={items}
           subtotal={subtotal}
+          returnsTotal={returnsTotal}
           cost={cost}
           profit={profit}
           margin={margin}
@@ -146,8 +156,15 @@ function NuevaVenta() {
         <div className="flex items-center gap-3 rounded-2xl border border-border bg-white p-3 shadow-[0_-2px_16px_rgba(15,23,42,0.08)] md:shadow-sm">
           {step === 2 && (
             <div className="flex-1">
-              <p className="text-[11px] text-text-muted">Subtotal</p>
-              <p className="text-[16px] font-bold">{formatMXN(subtotal)}</p>
+              <p className="text-[11px] text-text-muted">Total Venta</p>
+              <p className="text-[16px] font-bold">
+                {formatMXN(subtotal)}
+                {returnsTotal > 0 && (
+                  <span className="text-[11px] font-medium text-warning ml-1.5">
+                    ({items.reduce((acc, x) => acc + (x.returnQty ?? 0), 0)} cambios)
+                  </span>
+                )}
+              </p>
             </div>
           )}
           {step === 3 && (
@@ -264,12 +281,16 @@ function StepProducts({
   setPriceMode,
   quantities,
   setQty,
+  returns,
+  setReturnQty,
 }: {
   client: Client;
   priceMode: "distributor" | "public";
   setPriceMode: (m: "distributor" | "public") => void;
   quantities: Record<string, number>;
   setQty: (id: string, qty: number) => void;
+  returns: Record<string, number>;
+  setReturnQty: (id: string, qty: number) => void;
 }) {
   const { products } = useArtisan();
   return (
@@ -296,7 +317,8 @@ function StepProducts({
       <ul className="mt-3 grid gap-2 md:grid-cols-2">
         {products.map((p) => {
           const qty = quantities[p.id] ?? 0;
-          const active = qty > 0;
+          const retQty = returns[p.id] ?? 0;
+          const active = qty > 0 || retQty > 0;
           const price = priceMode === "distributor" ? p.distributorPrice : p.publicPrice;
           return (
             <li
@@ -314,24 +336,52 @@ function StepProducts({
                 </div>
                 <p className="text-[14px] font-bold text-text-primary">{formatMXN(price)}</p>
               </div>
-              <div className="mt-3 flex items-center justify-end gap-2">
-                <button
-                  onClick={() => setQty(p.id, qty - 1)}
-                  className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-white disabled:opacity-40"
-                  disabled={qty === 0}
-                  aria-label="Restar"
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-                <span className="min-w-[28px] text-center text-[14px] font-semibold">{qty}</span>
-                <button
-                  onClick={() => setQty(p.id, qty + 1)}
-                  disabled={qty >= p.stock}
-                  className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-white disabled:opacity-40"
-                  aria-label="Sumar"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
+
+              {/* Fresh Sales Row Controls */}
+              <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-2 text-[13px]">
+                <span className="text-text-muted font-medium">Entregar (Venta):</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setQty(p.id, qty - 1)}
+                    className="grid h-8 w-8 place-items-center rounded-lg border border-border bg-white disabled:opacity-40"
+                    disabled={qty === 0}
+                    aria-label="Restar venta"
+                  >
+                    <Minus className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="min-w-[20px] text-center font-bold">{qty}</span>
+                  <button
+                    onClick={() => setQty(p.id, qty + 1)}
+                    disabled={qty >= p.stock}
+                    className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-white disabled:opacity-40"
+                    aria-label="Sumar venta"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Product Exchange / Returns Row Controls */}
+              <div className="mt-2 flex items-center justify-between text-[13px]">
+                <span className="text-text-muted font-medium">Cambio (Merma):</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setReturnQty(p.id, retQty - 1)}
+                    className="grid h-8 w-8 place-items-center rounded-lg border border-border bg-white disabled:opacity-40"
+                    disabled={retQty === 0}
+                    aria-label="Restar devolución"
+                  >
+                    <Minus className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="min-w-[20px] text-center font-bold text-warning">{retQty}</span>
+                  <button
+                    onClick={() => setReturnQty(p.id, retQty + 1)}
+                    className="grid h-8 w-8 place-items-center rounded-lg bg-warning text-white"
+                    aria-label="Sumar devolución"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             </li>
           );
@@ -346,6 +396,7 @@ function StepConfirm({
   channel,
   items,
   subtotal,
+  returnsTotal,
   cost,
   profit,
   margin,
@@ -354,8 +405,9 @@ function StepConfirm({
 }: {
   clientName: string;
   channel: "PDV" | "Público";
-  items: { productName: string; qty: number; unitPrice: number }[];
+  items: { productName: string; qty: number; returnQty?: number; unitPrice: number }[];
   subtotal: number;
+  returnsTotal: number;
   cost: number;
   profit: number;
   margin: number;
@@ -377,29 +429,58 @@ function StepConfirm({
           <thead>
             <tr className="text-text-muted text-[11px] uppercase">
               <th className="text-left font-semibold pb-2">Producto</th>
-              <th className="text-center font-semibold pb-2">Cant.</th>
+              <th className="text-center font-semibold pb-2">Movimiento</th>
               <th className="text-right font-semibold pb-2">Subtotal</th>
             </tr>
           </thead>
           <tbody>
-            {items.map((i) => (
-              <tr key={i.productName} className="border-t border-border/80">
-                <td className="py-2">
-                  <p className="font-medium">{i.productName}</p>
-                  <p className="text-[11px] text-text-muted">{formatMXNc(i.unitPrice)} c/u</p>
-                </td>
-                <td className="text-center">{i.qty}</td>
-                <td className="text-right font-semibold">{formatMXN(i.unitPrice * i.qty)}</td>
-              </tr>
-            ))}
+            {items.map((i) => {
+              const itemSubtotal = i.qty * i.unitPrice;
+              const itemReturnCredit = (i.returnQty ?? 0) * i.unitPrice;
+              return (
+                <tr key={i.productName} className="border-t border-border/80">
+                  <td className="py-2">
+                    <p className="font-medium">{i.productName}</p>
+                    <p className="text-[11px] text-text-muted">{formatMXNc(i.unitPrice)} c/u</p>
+                  </td>
+                  <td className="text-center py-2 text-[12px] leading-tight">
+                    {i.qty > 0 && <div className="font-semibold text-emerald-700">Venta: {i.qty}</div>}
+                    {(i.returnQty ?? 0) > 0 && <div className="font-semibold text-warning">Cambio: {i.returnQty}</div>}
+                  </td>
+                  <td className="text-right font-semibold py-2">
+                    {i.qty > 0 && <div className="text-emerald-700">+{formatMXN(itemSubtotal)}</div>}
+                    {(i.returnQty ?? 0) > 0 && <div className="text-warning">-{formatMXN(itemReturnCredit)}</div>}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
 
-        <div className="mt-3 border-t border-border pt-3 space-y-1 text-[13px]">
-          <Row label="Subtotal" value={formatMXN(subtotal)} />
-          <Row label="Costo producción" value={formatMXN(cost)} muted />
-          <Row label="Ganancia" value={formatMXN(profit)} accent="text-success" bold />
-          <Row label="Margen" value={`${margin}%`} muted />
+        <div className="mt-3 border-t border-border pt-3 space-y-1.5 text-[13px]">
+          {/* Internal Business Metrics (smaller/muted for lower cognitive load) */}
+          <div className="bg-gray-50 rounded-xl p-3 mb-2 space-y-1 border border-border/40 text-[12px]">
+            <Row label="Costo de producción" value={formatMXN(cost)} muted />
+            <Row label="Ganancia estimada" value={formatMXN(profit)} accent="text-emerald-700" />
+            <Row label="Margen estimado" value={`${margin}%`} muted />
+          </div>
+
+          {/* Operational summaries */}
+          {returnsTotal > 0 && (
+            <Row
+              label="Cambios registrados"
+              value={`${items.reduce((acc, x) => acc + (x.returnQty ?? 0), 0)} paquetes`}
+              accent="text-warning font-semibold"
+            />
+          )}
+
+          {/* Big Separator and Grand Total */}
+          <div className="pt-2.5 border-t border-border flex items-center justify-between">
+            <span className="text-[14px] font-bold text-text-primary">Total a Cobrar:</span>
+            <span className="text-[20px] font-extrabold text-primary font-display">
+              {formatMXN(subtotal)}
+            </span>
+          </div>
         </div>
       </div>
 

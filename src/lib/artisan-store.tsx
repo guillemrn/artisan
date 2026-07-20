@@ -24,6 +24,7 @@ type DraftSale = {
   client: Client | null;
   priceMode: "distributor" | "public";
   quantities: Record<string, number>;
+  returns: Record<string, number>;
   payment: PaymentMethod;
 };
 
@@ -31,6 +32,7 @@ const emptyDraft = (): DraftSale => ({
   client: null,
   priceMode: "distributor",
   quantities: {},
+  returns: {},
   payment: "Efectivo",
 });
 
@@ -49,6 +51,7 @@ type Ctx = {
   deleteClient: (id: string) => void;
   products: Product[];
   addProduct: (p: Product) => void;
+  updateProduct: (p: Product) => void;
   deleteProduct: (id: string) => void;
   isLoading: boolean;
 };
@@ -241,6 +244,33 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         await supabase.from("products").delete().eq("id", id);
         persist({ sales, clients, products: products.filter((p) => p.id !== id) });
       },
+      updateProduct: async (p) => {
+        if (isDemo) {
+          persist({
+            sales,
+            clients,
+            products: products.map((prod) => (prod.id === p.id ? p : prod)),
+          });
+          return;
+        }
+
+        await supabase
+          .from("products")
+          .update({
+            name: p.name,
+            cost: p.cost,
+            distributor_price: p.distributorPrice,
+            public_price: p.publicPrice,
+            stock: p.stock,
+          })
+          .eq("id", p.id);
+
+        persist({
+          sales,
+          clients,
+          products: products.map((prod) => (prod.id === p.id ? p : prod)),
+        });
+      },
     }),
     [sales, clients, products, draft, lastSaleId, isLoading, persist, isDemo],
   );
@@ -257,6 +287,7 @@ export function useArtisan() {
 
 export function buildSaleItems(
   quantities: Record<string, number>,
+  returns: Record<string, number>,
   priceMode: "distributor" | "public",
   products: {
     id: string;
@@ -267,11 +298,12 @@ export function buildSaleItems(
   }[],
 ): SaleItem[] {
   return products
-    .filter((p) => (quantities[p.id] ?? 0) > 0)
+    .filter((p) => (quantities[p.id] ?? 0) > 0 || (returns[p.id] ?? 0) > 0)
     .map((p) => ({
       productId: p.id,
       productName: p.name,
-      qty: quantities[p.id],
+      qty: quantities[p.id] ?? 0,
+      returnQty: returns[p.id] ?? 0,
       unitPrice: priceMode === "distributor" ? p.distributorPrice : p.publicPrice,
       cost: p.cost,
     }));

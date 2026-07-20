@@ -20,6 +20,7 @@ export type SaleItem = {
   productId: string;
   productName: string;
   qty: number;
+  returnQty?: number;
   unitPrice: number;
   cost: number;
 };

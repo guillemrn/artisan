@@ -15,6 +15,10 @@ import {
   DollarSign,
   TrendingDown,
   ChevronDown,
+  ArrowRight,
+  Check,
+  Sparkles,
+  RefreshCw,
 } from "lucide-react";
 import { useArtisan } from "@/lib/artisan-store";
 import { USER_NAME, formatMXN, formatMXNc } from "@/lib/artisan-data";
@@ -69,8 +73,13 @@ function startOfYear(d: Date) {
 
 function Home() {
   const { user } = useAuth();
+
+  if (!user) {
+    return <LandingPage />;
+  }
+
   const { sales, products, clients, updateSaleStatus } = useArtisan();
-  
+
   // State for filters
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("Mes");
   const [productFilter, setProductFilter] = useState<string>("Todos");
@@ -84,7 +93,7 @@ function Home() {
     day: "numeric",
     month: "long",
   });
-  
+
   const displayName = user?.user_metadata?.full_name ?? USER_NAME;
   const initials = displayName.slice(0, 2).toUpperCase();
 
@@ -120,6 +129,7 @@ function Home() {
     let salesTotal = 0;
     let costTotal = 0;
     let packagesTotal = 0;
+    let returnsTotal = 0;
     const productQuantities: Record<string, number> = {};
 
     fullyFilteredSales.forEach((s) => {
@@ -131,6 +141,7 @@ function Home() {
           salesTotal += itemTotal;
           costTotal += itemCost;
           packagesTotal += item.qty;
+          returnsTotal += item.returnQty ?? 0;
 
           productQuantities[item.productName] =
             (productQuantities[item.productName] ?? 0) + item.qty;
@@ -156,6 +167,7 @@ function Home() {
       profitTotal,
       margin,
       packagesTotal,
+      returnsTotal,
       topProduct,
       maxQty,
     };
@@ -207,7 +219,7 @@ function Home() {
   // 1. Tendencia Diaria Chart
   const trendChartData = useMemo(() => {
     const dailyMap: Record<string, number> = {};
-    
+
     // Sort chronological order
     const sortedSales = [...fullyFilteredSales].sort(
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -391,7 +403,7 @@ function Home() {
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Kpi
           label="VENTAS TOTALES"
           value={formatMXN(kpiData.salesTotal)}
@@ -414,11 +426,18 @@ function Home() {
           tone="bg-gradient-to-br from-violet-50 to-white"
         />
         <Kpi
-          label="PAQUETES VENDIDOS"
+          label="PAQUETES ENTREGADOS"
           value={String(kpiData.packagesTotal)}
           sub="en el periodo"
           icon={<CheckCircle2 className="h-4 w-4 text-amber-600" />}
           tone="bg-gradient-to-br from-amber-50 to-white"
+        />
+        <Kpi
+          label="PRODUCTOS CAMBIADOS"
+          value={String(kpiData.returnsTotal)}
+          sub="cambios / devoluciones"
+          icon={<RefreshCw className="h-4 w-4 text-orange-600" />}
+          tone="bg-gradient-to-br from-orange-50 to-white"
         />
       </div>
 
@@ -463,9 +482,8 @@ function Home() {
                     <td className="px-4 py-3 text-right font-mono font-bold text-emerald-700">{formatMXNc(prod.salesAmount)}</td>
                     <td className="px-4 py-3 text-right font-mono font-bold text-sky-700">{formatMXNc(prod.profitAmount)}</td>
                     <td className="px-4 py-3 text-right font-semibold">
-                      <span className={`px-2 py-0.5 rounded-full text-[11px] ${
-                        prod.margin > 60 ? "bg-green-50 text-green-700" : "bg-gray-50 text-text-secondary"
-                      }`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[11px] ${prod.margin > 60 ? "bg-green-50 text-green-700" : "bg-gray-50 text-text-secondary"
+                        }`}>
                         {prod.margin}%
                       </span>
                     </td>
@@ -619,11 +637,10 @@ function Home() {
                   onClick={() => setOpenId(open ? null : s.id)}
                 >
                   <div
-                    className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
-                      s.channel === "PDV"
+                    className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${s.channel === "PDV"
                         ? "bg-primary-light text-primary"
                         : "bg-[#F5F3FF] text-[#6D28D9]"
-                    }`}
+                      }`}
                   >
                     {s.channel === "PDV" ? (
                       <Store className="h-5 w-5" />
@@ -653,9 +670,8 @@ function Home() {
                     )}
                   </div>
                   <ChevronDown
-                    className={`h-4 w-4 text-text-muted transition ml-1 ${
-                      open ? "rotate-180" : ""
-                    }`}
+                    className={`h-4 w-4 text-text-muted transition ml-1 ${open ? "rotate-180" : ""
+                      }`}
                   />
                 </button>
 
@@ -820,11 +836,10 @@ function CSVSheet({ onClose }: { onClose: () => void }) {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex-1 rounded-full py-1.5 text-[13px] font-semibold border transition ${
-                tab === t.id
+              className={`flex-1 rounded-full py-1.5 text-[13px] font-semibold border transition ${tab === t.id
                   ? "bg-primary text-white border-primary"
                   : "bg-background text-text-secondary border-border hover:bg-muted"
-              }`}
+                }`}
             >
               {t.label}
             </button>
@@ -953,9 +968,8 @@ function InfoBox({
 }) {
   return (
     <div
-      className={`rounded-xl px-3.5 py-3 text-[12px] leading-relaxed ${
-        tone === "green" ? "bg-primary-light text-primary/80" : "bg-muted text-text-muted"
-      }`}
+      className={`rounded-xl px-3.5 py-3 text-[12px] leading-relaxed ${tone === "green" ? "bg-primary-light text-primary/80" : "bg-muted text-text-muted"
+        }`}
     >
       {children}
     </div>
@@ -978,16 +992,14 @@ function ActionRow({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 rounded-xl px-4 py-3.5 border transition ${
-        variant === "primary"
+      className={`w-full flex items-center gap-3 rounded-xl px-4 py-3.5 border transition ${variant === "primary"
           ? "bg-primary text-white border-primary hover:bg-emerald-700"
           : "bg-background text-text-primary border-border hover:bg-muted"
-      }`}
+        }`}
     >
       <span
-        className={`h-8 w-8 rounded-lg grid place-items-center shrink-0 ${
-          variant === "primary" ? "bg-white/20" : "bg-primary-light text-primary"
-        }`}
+        className={`h-8 w-8 rounded-lg grid place-items-center shrink-0 ${variant === "primary" ? "bg-white/20" : "bg-primary-light text-primary"
+          }`}
       >
         {icon}
       </span>
@@ -1003,3 +1015,164 @@ function ActionRow({
     </button>
   );
 }
+
+// ─── Landing Page Component ──────────────────────────────────────────────────
+
+function LandingPage() {
+  return (
+    <div className="min-h-screen bg-[#F6F7F5] text-[#2F3437] selection:bg-primary selection:text-white font-sans antialiased overflow-x-hidden">
+      {/* Top Navbar */}
+      <header className="sticky top-0 z-50 bg-[#F6F7F5]/80 backdrop-blur-md border-b border-border/60">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Logo variant="full" className="h-8 w-auto" />
+
+          <div className="flex items-center gap-4">
+            <Link
+              to="/login"
+              className="text-[14px] font-semibold text-text-secondary hover:text-text-primary transition"
+            >
+              Iniciar sesión
+            </Link>
+            <Link
+              to="/login"
+              className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-4 text-[13px] font-bold text-white shadow-sm hover:bg-[#246448] transition active:scale-[0.98]"
+            >
+              Registrarse gratis
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <section className="relative pt-16 pb-20 px-6 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(46,125,91,0.06),transparent_40%)] pointer-events-none" />
+
+        <div className="max-w-5xl mx-auto text-center space-y-8 relative z-10">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-primary-light px-3.5 py-1 text-[12px] font-bold text-primary animate-pulse">
+            <Sparkles className="h-3.5 w-3.5" /> Diseñado para Productores y Repartidores
+          </div>
+
+          <h1 className="font-display text-[38px] sm:text-[54px] font-extrabold leading-[1.1] tracking-tight text-text-primary max-w-3xl mx-auto">
+            La forma más simple de vender en tu <span className="text-primary">ruta de reparto</span>
+          </h1>
+
+          <p className="text-[16px] sm:text-[18px] text-text-secondary max-w-xl mx-auto leading-relaxed">
+            Registra tus ventas de panadería o productos artesanales al instante, sin Excel ni papel. Gestiona clientes, saldos e inventario en tiempo real.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              to="/login"
+              className="w-full sm:w-auto inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-[15px] font-bold text-white shadow-lg shadow-primary/10 hover:bg-[#246448] hover:shadow-primary/20 transition active:scale-[0.99]"
+            >
+              Comenzar gratis <ArrowRight className="h-4 w-4" />
+            </Link>
+            {/* <Link
+              to="/login"
+              className="w-full sm:w-auto inline-flex h-12 items-center justify-center rounded-xl border border-border bg-white px-6 text-[15px] font-bold text-text-secondary hover:bg-muted hover:text-text-primary transition"
+            >
+              Ver demo en vivo
+            </Link> */}
+          </div>
+
+          {/* Interactive Mobile Mockup Floating Preview */}
+          <div className="mt-16 max-w-[640px] mx-auto rounded-3xl border border-border/80 bg-white p-2.5 shadow-[0_32px_64px_-12px_rgba(31,43,46,0.12)]">
+            <div className="rounded-[20px] bg-gradient-to-br from-[#243437] to-[#1F2B2E] p-6 text-left text-white overflow-hidden relative">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(46,125,91,0.4),transparent_50%)] pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/10 pb-6 mb-6">
+                <div>
+                  <p className="text-[11px] font-semibold text-white/50 uppercase tracking-wider">Dashboard de Control</p>
+                  <h3 className="text-xl font-bold font-display mt-0.5">Almara Panadería</h3>
+                </div>
+                <span className="bg-primary/20 text-primary-light text-[11px] font-bold px-3 py-1 rounded-full border border-primary/20">
+                  Ventas Activas: 25
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                  <p className="text-[11px] font-bold text-white/50">VENTAS HOY</p>
+                  <p className="text-2xl font-bold font-display mt-1 text-emerald-400">$3,450.00</p>
+                  <p className="text-[11px] text-white/40 mt-1">12 entregas exitosas</p>
+                </div>
+                <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                  <p className="text-[11px] font-bold text-white/50">GANANCIA NETO</p>
+                  <p className="text-2xl font-bold font-display mt-1 text-sky-400">$2,110.00</p>
+                  <p className="text-[11px] text-white/40 mt-1">61% margen promedio</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 bg-white border-t border-border/80">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="text-center max-w-xl mx-auto mb-16 space-y-3">
+            <h2 className="font-display text-[28px] sm:text-[34px] font-extrabold text-text-primary">
+              Todo lo que necesitas para tu negocio en reparto
+            </h2>
+            <p className="text-[14px] sm:text-[15px] text-text-muted">
+              Diseñado específicamente para panaderos, pasteleros y productores locales que visitan clientes diariamente.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="space-y-4 p-5 rounded-2xl border border-border/60 hover:border-primary/20 transition hover:shadow-sm">
+              <div className="h-10 w-10 rounded-xl bg-primary-light text-primary flex items-center justify-center shrink-0">
+                <DollarSign className="h-5 w-5" />
+              </div>
+              <h3 className="text-[16px] font-bold text-text-primary font-display">Registro en 3 clics</h3>
+              <p className="text-[13px] text-text-secondary leading-relaxed">
+                Selecciona al cliente, ingresa cantidades y listo. Genera tickets y envíalos de inmediato a través de WhatsApp.
+              </p>
+            </div>
+
+            <div className="space-y-4 p-5 rounded-2xl border border-border/60 hover:border-primary/20 transition hover:shadow-sm">
+              <div className="h-10 w-10 rounded-xl bg-primary-light text-primary flex items-center justify-center shrink-0">
+                <Package className="h-5 w-5" />
+              </div>
+              <h3 className="text-[16px] font-bold text-text-primary font-display">Control de Inventario</h3>
+              <p className="text-[13px] text-text-secondary leading-relaxed">
+                Cada venta descuenta stock de manera automática. Sabrás con precisión cuánto pan te queda en la furgoneta.
+              </p>
+            </div>
+
+            <div className="space-y-4 p-5 rounded-2xl border border-border/60 hover:border-primary/20 transition hover:shadow-sm">
+              <div className="h-10 w-10 rounded-xl bg-primary-light text-primary flex items-center justify-center shrink-0">
+                <Store className="h-5 w-5" />
+              </div>
+              <h3 className="text-[16px] font-bold text-text-primary font-display">Cuentas Claras con Clientes</h3>
+              <p className="text-[13px] text-text-secondary leading-relaxed">
+                Registra cobros y deudas de clientes pendientes. Evita malentendidos y lleva un control transparente de saldos.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer CTA */}
+      <section className="py-20 bg-[#F6F7F5] border-t border-border/60 text-center px-6">
+        <div className="max-w-3xl mx-auto space-y-6">
+          <h2 className="font-display text-[28px] sm:text-[36px] font-extrabold text-text-primary">
+            ¿Listo para digitalizar tu reparto?
+          </h2>
+          <p className="text-[15px] text-text-secondary max-w-md mx-auto leading-relaxed">
+            Únete a los productores que ya organizaron sus ventas sin papel ni dolores de cabeza al final del día.
+          </p>
+          <div className="pt-2">
+            <Link
+              to="/login"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-8 text-[15px] font-bold text-white shadow-lg shadow-primary/10 hover:bg-[#246448] transition active:scale-[0.99]"
+            >
+              Crear mi cuenta gratis
+            </Link>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+

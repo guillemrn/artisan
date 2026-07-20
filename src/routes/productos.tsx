@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { Search, Plus, Package, TrendingUp, Archive } from "lucide-react";
+import { Search, Plus, Package, TrendingUp, Archive, Pencil } from "lucide-react";
 import { useArtisan } from "@/lib/artisan-store";
 import { formatMXN, formatMXNc, type Product } from "@/lib/artisan-data";
 
@@ -10,16 +10,24 @@ export const Route = createFileRoute("/productos")({
 });
 
 function Productos() {
-  const { products, addProduct } = useArtisan();
+  const { products, addProduct, updateProduct } = useArtisan();
   const [q, setQ] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
 
-  // Form states
+  // Add Form states
   const [name, setName] = useState("");
   const [cost, setCost] = useState("");
   const [distPrice, setDistPrice] = useState("");
   const [pubPrice, setPubPrice] = useState("");
   const [stock, setStock] = useState("");
+
+  // Edit Form states
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editCost, setEditCost] = useState("");
+  const [editDistPrice, setEditDistPrice] = useState("");
+  const [editPubPrice, setEditPubPrice] = useState("");
+  const [editStock, setEditStock] = useState("");
 
   const filtered = products.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()));
 
@@ -57,6 +65,32 @@ function Productos() {
     setPubPrice("");
     setStock("");
     setShowAddForm(false);
+  };
+
+  const handleStartEdit = (p: Product) => {
+    setEditingProduct(p);
+    setEditName(p.name);
+    setEditCost(String(p.cost));
+    setEditDistPrice(String(p.distributorPrice));
+    setEditPubPrice(String(p.publicPrice));
+    setEditStock(String(p.stock));
+  };
+
+  const handleSaveProduct = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct || !editName.trim()) return;
+
+    const updated: Product = {
+      id: editingProduct.id,
+      name: editName.trim(),
+      cost: parseFloat(editCost) || 0,
+      distributorPrice: parseFloat(editDistPrice) || 0,
+      publicPrice: parseFloat(editPubPrice) || 0,
+      stock: parseInt(editStock) || 0,
+    };
+
+    updateProduct(updated);
+    setEditingProduct(null);
   };
 
   return (
@@ -128,11 +162,20 @@ function Productos() {
           return (
             <li
               key={p.id}
-              className="flex flex-col gap-3 rounded-2xl border border-border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(31,43,46,0.08)]"
+              className="flex flex-col gap-3 rounded-2xl border border-border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(31,43,46,0.08)] relative"
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-[15px] font-bold text-text-primary">{p.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-[15px] font-bold text-text-primary">{p.name}</h3>
+                    <button
+                      onClick={() => handleStartEdit(p)}
+                      className="p-1 rounded-md text-text-muted hover:text-primary hover:bg-muted transition cursor-pointer"
+                      title="Editar producto"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                   <p className="text-[12px] text-text-muted mt-0.5">Stock: {p.stock} unidades</p>
                 </div>
                 <span
@@ -173,7 +216,7 @@ function Productos() {
         })}
       </ul>
 
-      {/* Slide-up add product sheet */}
+      {/* Slide-up Add Product Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center">
           <div className="w-full max-w-[390px] md:max-w-[480px] bg-surface rounded-t-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200">
@@ -267,6 +310,103 @@ function Productos() {
                   className="flex-1 rounded-xl bg-primary text-white py-3 text-[14px] font-semibold shadow-lg hover:bg-emerald-700 transition"
                 >
                   Guardar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Slide-up Edit Product Modal */}
+      {editingProduct && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center">
+          <div className="w-full max-w-[390px] md:max-w-[480px] bg-surface rounded-t-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200">
+            <h3 className="text-[18px] font-bold text-primary">Editar producto</h3>
+            <form onSubmit={handleSaveProduct} className="mt-4 space-y-4">
+              <div>
+                <label className="text-[12px] font-semibold text-text-secondary block mb-1">
+                  Nombre del producto
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Ej. Pan Pita Integral Grande"
+                  className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[12px] font-semibold text-text-secondary block mb-1">
+                    Costo de producción ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={editCost}
+                    onChange={(e) => setEditCost(e.target.value)}
+                    className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background"
+                  />
+                </div>
+                <div>
+                  <label className="text-[12px] font-semibold text-text-secondary block mb-1">
+                    Inventario / Stock
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={editStock}
+                    onChange={(e) => setEditStock(e.target.value)}
+                    className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background animate-pulse border-primary/50 ring-2 ring-primary/10"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[12px] font-semibold text-text-secondary block mb-1">
+                    Precio Distribuidor ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={editDistPrice}
+                    onChange={(e) => setEditDistPrice(e.target.value)}
+                    className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background"
+                  />
+                </div>
+                <div>
+                  <label className="text-[12px] font-semibold text-text-secondary block mb-1">
+                    Precio Público ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={editPubPrice}
+                    onChange={(e) => setEditPubPrice(e.target.value)}
+                    className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingProduct(null)}
+                  className="flex-1 rounded-xl border border-border py-3 text-[14px] font-semibold text-text-secondary hover:bg-muted transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 rounded-xl bg-primary text-white py-3 text-[14px] font-semibold shadow-lg hover:bg-emerald-700 transition"
+                >
+                  Guardar Cambios
                 </button>
               </div>
             </form>

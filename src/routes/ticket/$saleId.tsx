@@ -52,7 +52,17 @@ function Ticket() {
   const shareText = encodeURIComponent(
     `${BUSINESS_NAME}\n${dateStr} ${timeStr}\nCliente: ${sale.clientName}\n\n` +
       sale.items
-        .map((i) => `${i.productName} x${i.qty} - ${formatMXNc(i.unitPrice * i.qty)}`)
+        .map((i) => {
+          let lines = [];
+          if (i.qty > 0) {
+            lines.push(`${i.productName} x${i.qty} - ${formatMXNc(i.unitPrice * i.qty)}`);
+          }
+          if (i.returnQty && i.returnQty > 0) {
+            lines.push(`[Cambio: ${i.returnQty} paq. de ${i.productName}]`);
+          }
+          return lines.join("\n");
+        })
+        .filter(Boolean)
         .join("\n") +
       `\n\nTotal: ${formatMXNc(sale.total)}\nPago: ${sale.payment}\n\n¡Gracias!`,
   );
@@ -99,13 +109,23 @@ function Ticket() {
 
         <div className="my-3 border-t border-dashed border-border" />
 
-        <ul className="space-y-1.5 text-[12px]">
+        <ul className="space-y-2 text-[12px]">
           {sale.items.map((i) => (
-            <li key={i.productId} className="flex justify-between gap-2">
-              <span className="truncate">
-                {i.productName} <span className="text-text-muted">x{i.qty}</span>
-              </span>
-              <span className="font-semibold">{formatMXNc(i.unitPrice * i.qty)}</span>
+            <li key={i.productId} className="border-b border-border/40 pb-1.5 last:border-0 last:pb-0">
+              {i.qty > 0 && (
+                <div className="flex justify-between gap-2">
+                  <span className="truncate">
+                    {i.productName} <span className="text-text-muted">x{i.qty}</span>
+                  </span>
+                  <span className="font-semibold">{formatMXNc(i.unitPrice * i.qty)}</span>
+                </div>
+              )}
+              {i.returnQty && i.returnQty > 0 && (
+                <div className="flex justify-between gap-2 text-warning font-semibold text-[11px] mt-0.5">
+                  <span>Cambio: {i.productName} x{i.returnQty}</span>
+                  <span>(Merma)</span>
+                </div>
+              )}
             </li>
           ))}
         </ul>
