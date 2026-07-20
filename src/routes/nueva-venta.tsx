@@ -10,6 +10,7 @@ import {
   type Product,
 } from "@/lib/artisan-data";
 import { buildSaleItems, useArtisan } from "@/lib/artisan-store";
+import { useAuth } from "@/core/auth/auth-context";
 
 export const Route = createFileRoute("/nueva-venta")({
   head: () => ({ meta: [{ title: "Nueva venta — Artisan" }] }),
@@ -17,8 +18,9 @@ export const Route = createFileRoute("/nueva-venta")({
 });
 
 function NuevaVenta() {
+  const { user } = useAuth();
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const { draft, setDraft, resetDraft, addSale, products } = useArtisan();
+  const { draft, setDraft, resetDraft, addSale, products, sales } = useArtisan();
   const navigate = useNavigate();
 
   const items = useMemo(
@@ -35,7 +37,21 @@ function NuevaVenta() {
 
   const confirm = () => {
     if (!draft.client) return;
-    const id = `s-${Date.now()}`;
+
+    // Generate dynamic prefix from business name
+    const bizName = user?.user_metadata?.business_name || "Artisan";
+    const prefix = bizName
+      .slice(0, 3)
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "X")
+      .padEnd(3, "X");
+
+    // Calculate sequential number for real sales (excluding s1-s4 seed data)
+    const realSales = sales.filter((s) => !["s1", "s2", "s3", "s4"].includes(s.id));
+    const nextNum = realSales.length + 1;
+    const paddedNum = String(nextNum).padStart(4, "0");
+    const id = `${prefix}-${paddedNum}`;
+
     addSale({
       id,
       clientId: draft.client.id,

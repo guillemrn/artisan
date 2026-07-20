@@ -3,8 +3,10 @@ import { Home, Plus, Settings, Users, Package, Search, Bell } from "lucide-react
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Logo } from "@/components/ui/logo";
 import { USER_NAME } from "@/lib/artisan-data";
+import { useAuth } from "@/core/auth/auth-context";
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const searchQ = useRouterState({
     select: (s) =>
@@ -13,7 +15,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState(searchQ ?? "");
   const isActive = (p: string) => pathname === p;
-  const initials = USER_NAME.slice(0, 2).toUpperCase();
+  const displayName = user?.user_metadata?.full_name ?? USER_NAME;
+  const initials = displayName.slice(0, 2).toUpperCase();
+
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
@@ -72,7 +76,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-[430px] flex-col bg-background shadow-xl md:mx-0 md:max-w-none md:flex-1 md:shadow-none">
+      <div className="relative flex min-h-screen w-full flex-col bg-background md:mx-0 md:max-w-none md:flex-1">
         <header className="hidden h-16 items-center justify-between border-b border-border/80 bg-white/72 px-6 backdrop-blur md:flex lg:px-10">
           <form onSubmit={handleSearch} className="relative w-full max-w-md">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
@@ -105,7 +109,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="md:mx-auto md:max-w-6xl">{children}</div>
         </main>
 
-        <nav className="fixed bottom-0 left-1/2 w-full max-w-[430px] -translate-x-1/2 border-t border-border bg-white/92 backdrop-blur md:hidden">
+        <nav className="fixed bottom-0 left-0 w-full border-t border-border bg-white/92 backdrop-blur md:hidden">
           <div className="grid grid-cols-5 items-end px-2 pt-2 pb-3">
             <NavItem
               to="/"

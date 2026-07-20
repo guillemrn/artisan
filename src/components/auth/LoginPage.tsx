@@ -1,9 +1,15 @@
+import { useState } from "react";
 import {
-  ChartNoAxesColumnIncreasing,
   CheckCircle2,
-  PackageCheck,
   ShieldCheck,
   Sparkles,
+  Eye,
+  EyeOff,
+  ChevronLeft,
+  Store,
+  User as UserIcon,
+  Phone,
+  Tag,
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { useAuth } from "@/core/auth/auth-context";
@@ -33,115 +39,483 @@ function GoogleIcon() {
 }
 
 export function LoginPage() {
-  const { signInWithGoogle, loading, isDemo } = useAuth();
+  const { signInWithGoogle, signInWithEmail, signUpWithEmail, loading, isDemo } = useAuth();
+
+  const [mode, setMode] = useState<"login" | "signup" | "reset">("login");
+  const [signUpStep, setSignUpStep] = useState(1);
+
+  // Form states
+  const [email, setEmail] = useState(isDemo ? "demo@artisan.app" : "");
+  const [password, setPassword] = useState(isDemo ? "123456" : "");
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Onboarding states
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [businessType, setBusinessType] = useState("Panadería");
+
+  // Feedback states
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleNextStep = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    if (!email || !password) {
+      setErrorMsg("Por favor completa las credenciales.");
+      return;
+    }
+    if (password.length < 6) {
+      setErrorMsg("La contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
+    setSignUpStep(2);
+  };
+
+  const handleSignUpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await signUpWithEmail(email, password, {
+        full_name: fullName,
+        phone: phone || undefined,
+        business_name: businessName || "Mi Emprendimiento",
+        business_type: businessType,
+      });
+
+      if (error) {
+        setErrorMsg(error.message || "Error al crear la cuenta.");
+      } else {
+        setSuccessMsg(
+          "¡Cuenta creada! Revisa tu correo de confirmación o inicia sesión."
+        );
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || "Error en el servidor.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await signInWithEmail(email, password);
+      if (error) {
+        setErrorMsg(error.message || "Credenciales incorrectas.");
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || "Error al conectar con el servidor.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setIsSubmitting(true);
+
+    // En modo demo simulamos éxito
+    if (isDemo) {
+      setTimeout(() => {
+        setSuccessMsg("Enlace de restablecimiento enviado (Simulado en modo demo).");
+        setIsSubmitting(false);
+      }, 1000);
+      return;
+    }
+
+    try {
+      // Usar cliente de supabase directamente para restablecimiento
+      const { error } = await signInWithEmail(email, "reset"); // fallback/placeholder o reset trigger
+      // Nota: Supabase auth reset password
+      const { supabase } = await import("@/core/supabase/client");
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (resetError) {
+        setErrorMsg(resetError.message);
+      } else {
+        setSuccessMsg("Se ha enviado un enlace para restablecer tu contraseña a tu correo.");
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || "Error al enviar el enlace.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    <main className="min-h-screen bg-[#F7F3EC] text-text-primary lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(560px,0.92fr)]">
-      <section className="relative flex min-h-[38vh] overflow-hidden bg-[#243437] px-6 py-8 text-white sm:min-h-[42vh] sm:px-12 sm:py-10 lg:min-h-screen lg:px-16 xl:px-24">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(46,125,91,0.58),transparent_34%),radial-gradient(circle_at_88%_82%,rgba(201,120,74,0.24),transparent_35%),linear-gradient(145deg,#1F2B2E_0%,#164332_62%,#101819_100%)]" />
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/20 to-transparent" />
+    <main className="min-h-screen bg-[#F7F3EC] text-text-primary flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden">
+      {/* Decorative Background Elements */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(46,125,91,0.06),transparent_30%),radial-gradient(circle_at_88%_82%,rgba(201,120,74,0.05),transparent_35%)] pointer-events-none" />
 
-        <div className="relative z-10 flex w-full max-w-[640px] flex-col justify-between gap-12">
-          <div>
-            <Logo variant="full" className="h-12 w-auto brightness-0 invert sm:h-14" />
+      <div className="w-full max-w-[480px] bg-white rounded-2xl border border-border p-8 md:p-10 shadow-[0_12px_40px_rgba(36,52,55,0.05)] relative z-10">
+        
+        {/* Logo and Header */}
+        <div className="flex flex-col items-center text-center mb-8">
+          <Logo variant="full" className="h-11 w-auto mb-6" />
+          
+          <p className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F5F0] px-3 py-1 text-[12px] font-bold text-primary mb-3">
+            <Sparkles className="h-3.5 w-3.5" />
+            Panel Artisan
+          </p>
+          
+          <h1 className="font-display text-[26px] font-bold text-[#2F3437] leading-tight">
+            {mode === "login" && "Bienvenido de nuevo"}
+            {mode === "signup" && (signUpStep === 1 ? "Comienza tu viaje" : "Cuéntanos de tu negocio")}
+            {mode === "reset" && "¿Olvidaste tu contraseña?"}
+          </h1>
+          <p className="text-[14px] text-text-secondary mt-1.5">
+            {mode === "login" && "Ingresa para gestionar ventas, productos e inventario."}
+            {mode === "signup" && (signUpStep === 1 ? "Crea tu cuenta de Artisan gratis hoy." : "Personaliza tu inventario y catálogo.")}
+            {mode === "reset" && "Ingresa tu correo y te enviaremos instrucciones de recuperación."}
+          </p>
+        </div>
 
-            <div className="mt-12 max-w-[560px] sm:mt-16 lg:mt-28">
-              <h1 className="font-display text-[34px] font-bold leading-[1.05] tracking-normal sm:text-[56px] lg:text-[60px]">
-                Gestión simple para tu <span className="text-[#C9784A]">negocio artesanal</span>
-              </h1>
-              <p className="mt-4 max-w-[520px] text-[16px] leading-relaxed text-white/78 sm:mt-6 sm:text-[20px]">
-                Controla ventas, inventario y clientes con información clara para decidir mejor cada
-                día.
-              </p>
-            </div>
+        {/* Success message */}
+        {successMsg && (
+          <div className="mb-6 rounded-lg bg-green-50 border border-green-200 p-4 text-[13px] text-green-700 font-medium">
+            {successMsg}
           </div>
+        )}
 
-          <div className="hidden gap-3 sm:grid sm:max-w-[420px]">
-            {[
-              {
-                icon: PackageCheck,
-                title: "Inventario al día",
-                text: "Existencias y productos siempre visibles.",
-              },
-              {
-                icon: ChartNoAxesColumnIncreasing,
-                title: "Ventas accionables",
-                text: "Resumen rápido de utilidad, pedidos y producción.",
-              },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="flex items-center gap-3 rounded-lg border border-white/14 bg-white/8 px-4 py-3 backdrop-blur"
-              >
-                <item.icon className="h-5 w-5 shrink-0 text-[#F7F3EC]" />
+        {/* Error message */}
+        {errorMsg && (
+          <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4 text-[13px] text-red-600 font-medium">
+            {errorMsg}
+          </div>
+        )}
+
+        {/* LOGIN MODE */}
+        {mode === "login" && (
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <div>
+              <label className="block text-[13px] font-bold text-text-primary mb-1.5">
+                Correo Electrónico
+              </label>
+              <input
+                type="email"
+                required
+                placeholder="ejemplo@artisan.app"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full h-11 px-3.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[15px]"
+              />
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="text-[13px] font-bold text-text-primary">
+                  Contraseña
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setMode("reset")}
+                  className="text-[12px] font-semibold text-primary hover:underline"
+                >
+                  ¿La olvidaste?
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full h-11 pl-3.5 pr-10 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[15px]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary"
+                >
+                  {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting || loading}
+              className="flex h-12 w-full items-center justify-center gap-3 rounded-lg bg-primary px-5 text-[15px] font-bold text-white shadow-[0_10px_24px_rgba(46,125,91,0.22)] transition hover:bg-[#246448] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmitting ? (
+                <span className="h-5 w-5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+              ) : (
+                "Iniciar Sesión"
+              )}
+            </button>
+          </form>
+        )}
+
+        {/* SIGNUP MODE */}
+        {mode === "signup" && (
+          <div className="space-y-4">
+            {signUpStep === 1 ? (
+              <form onSubmit={handleNextStep} className="space-y-4">
                 <div>
-                  <p className="text-[14px] font-semibold text-white">{item.title}</p>
-                  <p className="text-[13px] text-white/62">{item.text}</p>
+                  <label className="block text-[13px] font-bold text-text-primary mb-1.5">
+                    Correo Electrónico
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="ejemplo@artisan.app"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full h-11 px-3.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[15px]"
+                  />
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      <section className="flex min-h-[58vh] items-center justify-center bg-white px-6 py-12 sm:px-10 lg:min-h-screen">
-        <div className="w-full max-w-[520px]">
-          <div className="mb-10 lg:hidden">
-            <Logo variant="full" className="h-11 w-auto" />
-          </div>
+                <div>
+                  <label className="block text-[13px] font-bold text-text-primary mb-1.5">
+                    Contraseña (mínimo 6 caracteres)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      minLength={6}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full h-11 pl-3.5 pr-10 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[15px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary"
+                    >
+                      {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                    </button>
+                  </div>
+                </div>
 
-          <div className="mb-9">
-            <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#E8F5F0] px-3 py-1 text-[13px] font-semibold text-primary">
-              <Sparkles className="h-4 w-4" />
-              Panel Artisan
-            </p>
-            <h2 className="font-display text-[34px] font-bold leading-tight text-[#2F3437] sm:text-[44px]">
-              Bienvenido de nuevo
-            </h2>
-            <p className="mt-3 text-[18px] leading-relaxed text-text-secondary">
-              Ingresa para gestionar ventas, productos e inventario.
-            </p>
-          </div>
-
-          <button
-            id="btn-google-signin"
-            onClick={signInWithGoogle}
-            disabled={loading}
-            className="flex h-14 w-full items-center justify-center gap-3 rounded-lg bg-primary px-5 text-[15px] font-bold text-white shadow-[0_10px_24px_rgba(46,125,91,0.22)] transition hover:bg-[#246448] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? (
-              <span className="h-5 w-5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                <button
+                  type="submit"
+                  className="flex h-12 w-full items-center justify-center gap-3 rounded-lg bg-primary px-5 text-[15px] font-bold text-white shadow-[0_10px_24px_rgba(46,125,91,0.22)] transition hover:bg-[#246448] active:scale-[0.99]"
+                >
+                  Continuar
+                </button>
+              </form>
             ) : (
-              <GoogleIcon />
+              <form onSubmit={handleSignUpSubmit} className="space-y-4">
+                <button
+                  type="button"
+                  onClick={() => setSignUpStep(1)}
+                  className="inline-flex items-center gap-1 text-[12px] text-text-secondary font-semibold hover:text-primary mb-2"
+                >
+                  <ChevronLeft className="h-4 w-4" /> Volver a credenciales
+                </button>
+
+                <div>
+                  <label className="block text-[13px] font-bold text-text-primary mb-1.5">
+                    Tu Nombre Completo
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      placeholder="ej. María López"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="w-full h-11 pl-10 pr-3.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[15px]"
+                    />
+                    <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted h-4.5 w-4.5" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[13px] font-bold text-text-primary mb-1.5">
+                    Nombre del Negocio / Emprendimiento
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      placeholder="ej. Pan Pita Artesanal"
+                      value={businessName}
+                      onChange={(e) => setBusinessName(e.target.value)}
+                      className="w-full h-11 pl-10 pr-3.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[15px]"
+                    />
+                    <Store className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted h-4.5 w-4.5" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[13px] font-bold text-text-primary mb-1.5">
+                      Teléfono (Opcional)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="tel"
+                        placeholder="5512345678"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="w-full h-11 pl-10 pr-3.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[15px]"
+                      />
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted h-4.5 w-4.5" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[13px] font-bold text-text-primary mb-1.5">
+                      Categoría
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={businessType}
+                        onChange={(e) => setBusinessType(e.target.value)}
+                        className="w-full h-11 pl-10 pr-3.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[15px] bg-white appearance-none"
+                      >
+                        <option value="Panadería">Panadería</option>
+                        <option value="Repostería">Repostería</option>
+                        <option value="Conservas">Conservas / Salsas</option>
+                        <option value="Bebidas">Bebidas</option>
+                        <option value="Artesanías">Artesanías</option>
+                        <option value="Otros">Otros</option>
+                      </select>
+                      <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted h-4.5 w-4.5" />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex h-12 w-full items-center justify-center gap-3 rounded-lg bg-primary px-5 text-[15px] font-bold text-white shadow-[0_10px_24px_rgba(46,125,91,0.22)] transition hover:bg-[#246448] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSubmitting ? (
+                    <span className="h-5 w-5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                  ) : (
+                    "Crear cuenta e ingresar"
+                  )}
+                </button>
+              </form>
             )}
-            Continuar con Google
-          </button>
+          </div>
+        )}
 
-          {isDemo && (
-            <div className="mt-5 rounded-lg border border-[#C9784A]/25 bg-[#C9784A]/10 px-4 py-3">
-              <p className="text-[13px] font-bold text-[#9D5632]">Modo demo activo</p>
-              <p className="mt-1 text-[12px] leading-relaxed text-[#9D5632]/78">
-                Agrega tus credenciales Supabase en <code className="font-mono">.env</code> para
-                habilitar el login real con Google.
-              </p>
+        {/* PASSWORD RESET MODE */}
+        {mode === "reset" && (
+          <form onSubmit={handleResetSubmit} className="space-y-4">
+            <div>
+              <label className="block text-[13px] font-bold text-text-primary mb-1.5">
+                Correo Electrónico
+              </label>
+              <input
+                type="email"
+                required
+                placeholder="ejemplo@artisan.app"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full h-11 px-3.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[15px]"
+              />
             </div>
-          )}
 
-          <div className="mt-8 grid gap-3 border-t border-border pt-6 text-[13px] text-text-secondary sm:grid-cols-2">
-            {["Acceso seguro a tus datos", "Diseñado para productores en México"].map((text) => (
-              <div key={text} className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
-                <span>{text}</span>
-              </div>
-            ))}
-          </div>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex h-12 w-full items-center justify-center gap-3 rounded-lg bg-primary px-5 text-[15px] font-bold text-white shadow-[0_10px_24px_rgba(46,125,91,0.22)] transition hover:bg-[#246448] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmitting ? (
+                <span className="h-5 w-5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+              ) : (
+                "Enviar enlace"
+              )}
+            </button>
 
-          <div className="mt-10 flex items-center gap-2 text-[12px] text-text-muted">
-            <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
-            <span>© {new Date().getFullYear()} Artisan. Tu negocio en buenas manos.</span>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("login");
+                setErrorMsg(null);
+                setSuccessMsg(null);
+              }}
+              className="w-full text-center text-[13px] font-semibold text-text-secondary hover:text-primary mt-2"
+            >
+              Volver al inicio de sesión
+            </button>
+          </form>
+        )}
+
+        {/* Footer controls & Switcher */}
+        {mode !== "reset" && (
+          <div className="mt-6 flex flex-col items-center gap-4">
+            <button
+              type="button"
+              onClick={() => {
+                setMode(mode === "login" ? "signup" : "login");
+                setSignUpStep(1);
+                setErrorMsg(null);
+                setSuccessMsg(null);
+              }}
+              className="text-[13px] font-semibold text-primary hover:underline"
+            >
+              {mode === "login" ? "¿No tienes cuenta? Regístrate gratis" : "¿Ya tienes cuenta? Inicia sesión"}
+            </button>
+
+            {/* 
+            <div className="relative w-full flex py-2 items-center">
+              <div className="flex-grow border-t border-border"></div>
+              <span className="flex-shrink mx-4 text-text-muted text-[12px]">o continuar con</span>
+              <div className="flex-grow border-t border-border"></div>
+            </div>
+
+            <button
+              id="btn-google-signin"
+              onClick={signInWithGoogle}
+              disabled={loading || isSubmitting}
+              className="flex h-11 w-full items-center justify-center gap-3 rounded-lg border border-border bg-white px-5 text-[14px] font-bold text-text-primary transition hover:bg-gray-50 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <GoogleIcon />
+              Google
+            </button>
+            */}
           </div>
+        )}
+
+        {/* Demo Mode Reminder */}
+        {isDemo && (
+          <div className="mt-5 rounded-lg border border-[#C9784A]/25 bg-[#C9784A]/10 px-4 py-3">
+            <p className="text-[13px] font-bold text-[#9D5632]">Modo demo activo</p>
+            <p className="mt-1 text-[12px] leading-relaxed text-[#9D5632]/78">
+              Agrega tus credenciales Supabase en <code className="font-mono">.env</code> para habilitar el acceso real.
+              Para probar el demo usa: <code className="font-mono">demo@artisan.app</code>
+            </p>
+          </div>
+        )}
+
+        {/* Trust Badges */}
+        <div className="mt-8 grid gap-3 border-t border-border pt-6 text-[13px] text-text-secondary sm:grid-cols-2">
+          {["Acceso seguro a tus datos", "Diseñado para productores"].map((text) => (
+            <div key={text} className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+              <span>{text}</span>
+            </div>
+          ))}
         </div>
-      </section>
+
+        <div className="mt-8 flex items-center justify-center gap-2 text-[12px] text-text-muted">
+          <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
+          <span>© {new Date().getFullYear()} Artisan. Tu negocio en buenas manos.</span>
+        </div>
+
+      </div>
     </main>
   );
 }
+
+

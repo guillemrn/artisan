@@ -1,22 +1,38 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo } from "react";
 import {
   Menu,
   Store,
   User,
   CheckCircle2,
   Clock,
-  ChevronDown,
   Receipt,
   Plus,
-  Download,
-  Upload,
-  X,
   Database,
+  Calendar,
+  Package,
+  TrendingUp,
+  DollarSign,
+  TrendingDown,
+  ChevronDown,
 } from "lucide-react";
 import { useArtisan } from "@/lib/artisan-store";
 import { USER_NAME, formatMXN, formatMXNc } from "@/lib/artisan-data";
 import { Logo } from "@/components/ui/logo";
+import { useAuth } from "@/core/auth/auth-context";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Cell,
+} from "recharts";
+
 import {
   exportSalesCSV,
   exportClientsCSV,
@@ -30,58 +46,242 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-type Filter = "Hoy" | "Semana" | "Mes";
+type TimeFilter = "Hoy" | "Semana" | "Mes" | "Año" | "Todo";
 
 function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }
 
+function startOfWeek(d: Date) {
+  const day = d.getDay() === 0 ? 6 : d.getDay() - 1; // Mon-Sun
+  const start = new Date(d);
+  start.setDate(d.getDate() - day);
+  return startOfDay(start);
+}
+
+function startOfMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+}
+
+function startOfYear(d: Date) {
+  return new Date(d.getFullYear(), 0, 1).getTime();
+}
+
 function Home() {
-  const { sales, updateSaleStatus } = useArtisan();
-  const [filter, setFilter] = useState<Filter>("Hoy");
+  const { user } = useAuth();
+  const { sales, products, clients, updateSaleStatus } = useArtisan();
+  
+  // State for filters
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>("Mes");
+  const [productFilter, setProductFilter] = useState<string>("Todos");
+  const [clientFilter, setClientFilter] = useState<string>("Todos");
+
   const [openId, setOpenId] = useState<string | null>(null);
   const [csvOpen, setCsvOpen] = useState(false);
-
-  const now = Date.now();
-  const filtered = sales.filter((s) => {
-    const t = new Date(s.createdAt).getTime();
-    if (filter === "Hoy") return t >= startOfDay(new Date());
-    if (filter === "Semana") return now - t <= 7 * 86400_000;
-    return now - t <= 30 * 86400_000;
-  });
-
-  const ventasTotal = filtered.reduce((s, x) => s + x.total, 0);
-  const gananciaTotal = filtered.reduce((s, x) => s + x.profit, 0);
-  const margen = ventasTotal > 0 ? Math.round((gananciaTotal / ventasTotal) * 100) : 0;
-  const paquetes = filtered.reduce((s, x) => s + x.items.reduce((n, i) => n + i.qty, 0), 0);
-  const porCobrar = filtered
-    .filter((x) => x.status === "Pendiente")
-    .reduce((s, x) => s + x.total, 0);
-  const nPendientes = filtered.filter((x) => x.status === "Pendiente").length;
 
   const dateLabel = new Date().toLocaleDateString("es-MX", {
     weekday: "long",
     day: "numeric",
     month: "long",
   });
-  const initials = USER_NAME.slice(0, 2).toUpperCase();
+  
+  const displayName = user?.user_metadata?.full_name ?? USER_NAME;
+  const initials = displayName.slice(0, 2).toUpperCase();
+
+  // 1. Filter Sales by Time
+  const timeFilteredSales = useMemo(() => {
+    const now = Date.now();
+    return sales.filter((s) => {
+      const t = new Date(s.createdAt).getTime();
+      if (timeFilter === "Hoy") return t >= startOfDay(new Date());
+      if (timeFilter === "Semana") return t >= startOfWeek(new Date());
+      if (timeFilter === "Mes") return t >= startOfMonth(new Date());
+      if (timeFilter === "Año") return t >= startOfYear(new Date());
+      return true; // "Todo"
+    });
+  }, [sales, timeFilter]);
+
+  // 2. Filter Sales by Client
+  const clientFilteredSales = useMemo(() => {
+    if (clientFilter === "Todos") return timeFilteredSales;
+    return timeFilteredSales.filter((s) => s.clientId === clientFilter);
+  }, [timeFilteredSales, clientFilter]);
+
+  // 3. Filter Sales by Product (Only matching items inside each sale)
+  const fullyFilteredSales = useMemo(() => {
+    if (productFilter === "Todos") return clientFilteredSales;
+    return clientFilteredSales.filter((s) =>
+      s.items.some((i) => i.productId === productFilter)
+    );
+  }, [clientFilteredSales, productFilter]);
+
+  // --- KPIs Calculations ---
+  const kpiData = useMemo(() => {
+    let salesTotal = 0;
+    let costTotal = 0;
+    let packagesTotal = 0;
+    const productQuantities: Record<string, number> = {};
+
+    fullyFilteredSales.forEach((s) => {
+      s.items.forEach((item) => {
+        // If product filter is active, only sum metrics for this product
+        if (productFilter === "Todos" || item.productId === productFilter) {
+          const itemTotal = item.qty * item.unitPrice;
+          const itemCost = item.qty * item.cost;
+          salesTotal += itemTotal;
+          costTotal += itemCost;
+          packagesTotal += item.qty;
+
+          productQuantities[item.productName] =
+            (productQuantities[item.productName] ?? 0) + item.qty;
+        }
+      });
+    });
+
+    const profitTotal = salesTotal - costTotal;
+    const margin = salesTotal > 0 ? Math.round((profitTotal / salesTotal) * 100) : 0;
+
+    // Find top product
+    let topProduct = "N/A";
+    let maxQty = 0;
+    Object.entries(productQuantities).forEach(([name, qty]) => {
+      if (qty > maxQty) {
+        maxQty = qty;
+        topProduct = name;
+      }
+    });
+
+    return {
+      salesTotal,
+      profitTotal,
+      margin,
+      packagesTotal,
+      topProduct,
+      maxQty,
+    };
+  }, [fullyFilteredSales, productFilter]);
+
+  // --- Product Economy Table calculations ---
+  const productPerformance = useMemo(() => {
+    return products.map((prod) => {
+      let salesAmount = 0;
+      let costAmount = 0;
+      let qtySold = 0;
+
+      // Calculate aggregated metrics from clientFilteredSales (so it respects time and client filters)
+      clientFilteredSales.forEach((s) => {
+        s.items.forEach((item) => {
+          if (item.productId === prod.id) {
+            salesAmount += item.qty * item.unitPrice;
+            costAmount += item.qty * item.cost;
+            qtySold += item.qty;
+          }
+        });
+      });
+
+      const profitAmount = salesAmount - costAmount;
+      const margin = salesAmount > 0 ? Math.round((profitAmount / salesAmount) * 100) : 0;
+
+      return {
+        id: prod.id,
+        name: prod.name,
+        cost: prod.cost,
+        distributorPrice: prod.distributorPrice,
+        publicPrice: prod.publicPrice,
+        salesAmount,
+        costAmount,
+        profitAmount,
+        margin,
+        qtySold,
+      };
+    });
+  }, [products, clientFilteredSales]);
+
+  // Total sales across all products for share percentage
+  const totalSalesAllProducts = useMemo(() => {
+    return productPerformance.reduce((s, p) => s + p.salesAmount, 0);
+  }, [productPerformance]);
+
+  // --- Recharts Chart Data Generation ---
+
+  // 1. Tendencia Diaria Chart
+  const trendChartData = useMemo(() => {
+    const dailyMap: Record<string, number> = {};
+    
+    // Sort chronological order
+    const sortedSales = [...fullyFilteredSales].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+
+    sortedSales.forEach((s) => {
+      const dateKey = new Date(s.createdAt).toLocaleDateString("es-MX", {
+        day: "2-digit",
+        month: "2-digit",
+      });
+
+      // Sum only matching items if product filter active
+      let val = 0;
+      s.items.forEach((item) => {
+        if (productFilter === "Todos" || item.productId === productFilter) {
+          val += item.qty * item.unitPrice;
+        }
+      });
+
+      dailyMap[dateKey] = (dailyMap[dateKey] ?? 0) + val;
+    });
+
+    return Object.entries(dailyMap).map(([fecha, total]) => ({
+      fecha,
+      Ventas: total,
+    }));
+  }, [fullyFilteredSales, productFilter]);
+
+  // 2. Ventas por Producto Chart
+  const productChartData = useMemo(() => {
+    const map: Record<string, number> = {};
+    fullyFilteredSales.forEach((s) => {
+      s.items.forEach((item) => {
+        if (productFilter === "Todos" || item.productId === productFilter) {
+          map[item.productName] = (map[item.productName] ?? 0) + item.qty;
+        }
+      });
+    });
+
+    return Object.entries(map).map(([name, paquetes]) => ({
+      name,
+      paquetes,
+    }));
+  }, [fullyFilteredSales, productFilter]);
+
+  // 3. Ventas por Clientes Chart (Top 5)
+  const clientChartData = useMemo(() => {
+    const map: Record<string, number> = {};
+    fullyFilteredSales.forEach((s) => {
+      s.items.forEach((item) => {
+        if (productFilter === "Todos" || item.productId === productFilter) {
+          map[s.clientName] = (map[s.clientName] ?? 0) + item.qty;
+        }
+      });
+    });
+
+    return Object.entries(map)
+      .map(([name, paquetes]) => ({
+        name,
+        paquetes,
+      }))
+      .sort((a, b) => b.paquetes - a.paquetes)
+      .slice(0, 5);
+  }, [fullyFilteredSales, productFilter]);
 
   return (
-    <div className="page-shell md:px-0 md:pt-8">
+    <div className="page-shell md:px-0 md:pt-8 space-y-6">
       {csvOpen && <CSVSheet onClose={() => setCsvOpen(false)} />}
 
+      {/* Header */}
       <div className="flex items-center justify-between">
         <Logo variant="full" className="h-8 w-auto md:hidden" />
         <div className="hidden md:block" />
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setCsvOpen(true)}
-            className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-white text-text-secondary transition hover:bg-muted md:h-9 md:w-auto md:px-3"
-            aria-label="Importar / Exportar datos"
-          >
-            <Database className="h-5 w-5" />
-            <span className="ml-2 hidden text-[13px] font-semibold md:inline">Datos</span>
-          </button>
           <Link
             to="/ajustes"
             className="grid h-10 w-10 place-items-center rounded-xl border border-primary/10 bg-primary-light text-sm font-bold text-primary transition hover:opacity-85 md:hidden"
@@ -99,21 +299,22 @@ function Home() {
         </div>
       </div>
 
-      <section className="mt-6 rounded-2xl border border-border bg-[#1F2B2E] p-5 text-white shadow-[0_18px_44px_rgba(31,43,46,0.16)] md:mt-2 md:p-7">
-        <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+      {/* Hero Welcome Card */}
+      <section className="rounded-2xl border border-border bg-[#243437] p-5 text-white shadow-[0_18px_44px_rgba(31,43,46,0.12)] md:p-7 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(46,125,91,0.58),transparent_34%)] pointer-events-none" />
+        <div className="relative z-10 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-[13px] font-semibold capitalize text-white/60">{dateLabel}</p>
-            <h1 className="mt-2 font-display text-[28px] font-bold leading-tight md:text-[36px]">
-              Buenos días, {USER_NAME}
+            <h1 className="mt-2 font-display text-[26px] font-bold leading-tight md:text-[34px]">
+              Buenos días, {displayName}
             </h1>
             <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-white/68 md:text-[15px]">
-              Revisa ventas, cobros y producción con un resumen operativo claro.
+              Gestiona tu inventario, ventas y clientes con Almara.
             </p>
           </div>
-
           <Link
             to="/nueva-venta"
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 text-[14px] font-bold text-[#1F2B2E] transition hover:bg-[#F7F3EC]"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 text-[14px] font-bold text-[#243437] shadow-md transition hover:bg-[#F7F3EC] active:scale-[0.99]"
           >
             <Plus className="h-4 w-4" />
             Nueva venta
@@ -121,75 +322,293 @@ function Home() {
         </div>
       </section>
 
-      <div className="mt-5 grid grid-cols-3 gap-1 rounded-xl border border-border bg-white p-1 md:max-w-sm">
-        {(["Hoy", "Semana", "Mes"] as Filter[]).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`rounded-lg py-2 text-[13px] font-bold transition ${
-              filter === f
-                ? "bg-primary text-white shadow-sm"
-                : "text-text-secondary hover:bg-muted"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Kpi
-          label="VENTAS"
-          value={formatMXN(ventasTotal)}
-          sub={`${filtered.length} transacciones`}
-          tone="grad-green"
-        />
-        <Kpi
-          label="GANANCIA"
-          value={formatMXN(gananciaTotal)}
-          sub={`${margen}% margen`}
-          tone="grad-blue"
-        />
-        <Kpi label="PAQUETES" value={String(paquetes)} sub="vendidos" tone="grad-purple" />
-        <Kpi
-          label="POR COBRAR"
-          value={formatMXN(porCobrar)}
-          sub={`${nPendientes} pendientes`}
-          tone="grad-yellow"
-        />
-      </div>
-
-      <div className="mt-7">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-[17px] font-bold text-text-primary">Ventas</h2>
-            <p className="text-[13px] text-text-muted">
-              Transacciones filtradas por {filter.toLowerCase()}
-            </p>
+      {/* Interactive Filters Grid */}
+      <div className="bg-white border border-border rounded-2xl p-4 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Time Filter Dropdown */}
+        <div>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted mb-1.5 flex items-center gap-1">
+            <Calendar className="h-3.5 w-3.5 text-primary" /> Rango de Tiempo
+          </label>
+          <div className="relative">
+            <select
+              value={timeFilter}
+              onChange={(e) => setTimeFilter(e.target.value as TimeFilter)}
+              className="w-full h-10 px-3 pr-8 rounded-xl border border-border outline-none transition focus:border-primary focus:ring-1 focus:ring-primary text-[14px] font-semibold bg-white appearance-none"
+            >
+              <option value="Hoy">Hoy</option>
+              <option value="Semana">Esta Semana</option>
+              <option value="Mes">Este Mes</option>
+              <option value="Año">Este Año</option>
+              <option value="Todo">Histórico Todo</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted h-4 w-4 pointer-events-none" />
           </div>
-          <Link
-            to="/nueva-venta"
-            className="flex items-center gap-1 rounded-lg px-2 py-1 text-[13px] font-bold text-primary transition hover:bg-primary-light"
-          >
-            <Plus className="h-4 w-4" />
-            Nueva
-          </Link>
         </div>
 
-        {filtered.length === 0 && (
+        {/* Product Filter Dropdown */}
+        <div>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted mb-1.5 flex items-center gap-1">
+            <Package className="h-3.5 w-3.5 text-primary" /> Filtrar Producto
+          </label>
+          <div className="relative">
+            <select
+              value={productFilter}
+              onChange={(e) => setProductFilter(e.target.value)}
+              className="w-full h-10 px-3 pr-8 rounded-xl border border-border outline-none transition focus:border-primary focus:ring-1 focus:ring-primary text-[14px] font-semibold bg-white appearance-none"
+            >
+              <option value="Todos">Todos los productos</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted h-4 w-4 pointer-events-none" />
+          </div>
+        </div>
+
+        {/* Client Filter Dropdown */}
+        <div>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted mb-1.5 flex items-center gap-1">
+            <Store className="h-3.5 w-3.5 text-primary" /> Punto de Venta / Cliente
+          </label>
+          <div className="relative">
+            <select
+              value={clientFilter}
+              onChange={(e) => setClientFilter(e.target.value)}
+              className="w-full h-10 px-3 pr-8 rounded-xl border border-border outline-none transition focus:border-primary focus:ring-1 focus:ring-primary text-[14px] font-semibold bg-white appearance-none"
+            >
+              <option value="Todos">Todos los clientes</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.channel})
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted h-4 w-4 pointer-events-none" />
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Kpi
+          label="VENTAS TOTALES"
+          value={formatMXN(kpiData.salesTotal)}
+          sub={`${fullyFilteredSales.length} transacciones`}
+          icon={<DollarSign className="h-4 w-4 text-emerald-600" />}
+          tone="bg-gradient-to-br from-emerald-50 to-white"
+        />
+        <Kpi
+          label="GANANCIA TOTAL"
+          value={formatMXN(kpiData.profitTotal)}
+          sub={`${kpiData.margin}% margen util.`}
+          icon={<TrendingUp className="h-4 w-4 text-sky-600" />}
+          tone="bg-gradient-to-br from-sky-50 to-white"
+        />
+        <Kpi
+          label="TOP PRODUCTO"
+          value={kpiData.topProduct}
+          sub={kpiData.maxQty > 0 ? `${kpiData.maxQty} paquetes` : "Ninguno"}
+          icon={<Package className="h-4 w-4 text-violet-600" />}
+          tone="bg-gradient-to-br from-violet-50 to-white"
+        />
+        <Kpi
+          label="PAQUETES VENDIDOS"
+          value={String(kpiData.packagesTotal)}
+          sub="en el periodo"
+          icon={<CheckCircle2 className="h-4 w-4 text-amber-600" />}
+          tone="bg-gradient-to-br from-amber-50 to-white"
+        />
+      </div>
+
+      {/* Product Economy Table (Excel-like) */}
+      <div className="bg-white border border-border rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-border bg-gray-50 flex items-center justify-between">
+          <h3 className="font-display text-[15px] font-bold text-text-primary">Economía del producto</h3>
+          <span className="text-[11px] font-bold text-text-muted bg-border px-2 py-0.5 rounded-full uppercase">
+            {timeFilter}
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[13px] border-collapse">
+            <thead>
+              <tr className="border-b border-border bg-gray-50 text-text-muted font-bold text-left">
+                <th className="px-4 py-3 min-w-[150px]">Producto</th>
+                <th className="px-4 py-3 text-right">Costo</th>
+                <th className="px-4 py-3 text-right">Dist.</th>
+                <th className="px-4 py-3 text-right">Público</th>
+                <th className="px-4 py-3 text-right">Costos Totales</th>
+                <th className="px-4 py-3 text-right">Ventas Totales</th>
+                <th className="px-4 py-3 text-right">Ganancia</th>
+                <th className="px-4 py-3 text-right">% Margen</th>
+                <th className="px-4 py-3 text-center">Paquetes</th>
+                <th className="px-4 py-3 text-right">% Part. Ventas</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/60">
+              {productPerformance.map((prod) => {
+                const partVentas =
+                  totalSalesAllProducts > 0
+                    ? Math.round((prod.salesAmount / totalSalesAllProducts) * 100)
+                    : 0;
+
+                return (
+                  <tr key={prod.id} className="hover:bg-muted/40 transition">
+                    <td className="px-4 py-3 font-semibold text-text-primary">{prod.name}</td>
+                    <td className="px-4 py-3 text-right font-mono">{formatMXNc(prod.cost)}</td>
+                    <td className="px-4 py-3 text-right font-mono">{formatMXNc(prod.distributorPrice)}</td>
+                    <td className="px-4 py-3 text-right font-mono">{formatMXNc(prod.publicPrice)}</td>
+                    <td className="px-4 py-3 text-right font-mono text-text-secondary">{formatMXNc(prod.costAmount)}</td>
+                    <td className="px-4 py-3 text-right font-mono font-bold text-emerald-700">{formatMXNc(prod.salesAmount)}</td>
+                    <td className="px-4 py-3 text-right font-mono font-bold text-sky-700">{formatMXNc(prod.profitAmount)}</td>
+                    <td className="px-4 py-3 text-right font-semibold">
+                      <span className={`px-2 py-0.5 rounded-full text-[11px] ${
+                        prod.margin > 60 ? "bg-green-50 text-green-700" : "bg-gray-50 text-text-secondary"
+                      }`}>
+                        {prod.margin}%
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center font-bold">{prod.qtySold}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-text-secondary">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="w-8 text-right">{partVentas}%</span>
+                        <div className="w-12 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="bg-primary h-full rounded-full"
+                            style={{ width: `${partVentas}%` }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Visual Graphs Section (Recharts) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Tendencia Diaria Chart Card */}
+        <div className="bg-white border border-border rounded-2xl p-4 shadow-sm flex flex-col h-[320px]">
+          <div className="mb-4">
+            <h4 className="font-display text-[14px] font-bold text-text-primary">Tendencia diaria</h4>
+            <p className="text-[12px] text-text-muted">Ventas acumuladas por fecha</p>
+          </div>
+          <div className="flex-1 w-full text-xs">
+            {trendChartData.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-text-muted">Sin datos en el periodo</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendChartData}>
+                  <defs>
+                    <linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#2e7d5b" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#2e7d5b" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EBEBEB" />
+                  <XAxis dataKey="fecha" tickLine={false} axisLine={false} />
+                  <YAxis tickLine={false} axisLine={false} width={40} />
+                  <RechartsTooltip formatter={(value) => formatMXN(Number(value))} />
+                  <Area
+                    type="monotone"
+                    dataKey="Ventas"
+                    stroke="#2e7d5b"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorVentas)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        {/* Ventas por Producto Chart Card */}
+        <div className="bg-white border border-border rounded-2xl p-4 shadow-sm flex flex-col h-[320px]">
+          <div className="mb-4">
+            <h4 className="font-display text-[14px] font-bold text-text-primary">Ventas por producto</h4>
+            <p className="text-[12px] text-text-muted">Cantidad de paquetes vendidos</p>
+          </div>
+          <div className="flex-1 w-full text-xs">
+            {productChartData.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-text-muted">Sin datos en el periodo</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={productChartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EBEBEB" />
+                  <XAxis dataKey="name" tickLine={false} axisLine={false} />
+                  <YAxis tickLine={false} axisLine={false} width={30} />
+                  <RechartsTooltip />
+                  <Bar dataKey="paquetes" radius={[4, 4, 0, 0]}>
+                    {productChartData.map((_entry, index) => {
+                      const colors = ["#2e7d5b", "#C9784A", "#1D4ED8", "#7C3AED", "#D97706"];
+                      return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        {/* Ventas por Clientes Chart Card */}
+        <div className="bg-white border border-border rounded-2xl p-4 shadow-sm flex flex-col h-[320px]">
+          <div className="mb-4">
+            <h4 className="font-display text-[14px] font-bold text-text-primary">Ventas por cliente</h4>
+            <p className="text-[12px] text-text-muted">Top 5 de clientes con más paquetes</p>
+          </div>
+          <div className="flex-1 w-full text-xs">
+            {clientChartData.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-text-muted">Sin datos en el periodo</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={clientChartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EBEBEB" />
+                  <XAxis dataKey="name" tickLine={false} axisLine={false} />
+                  <YAxis tickLine={false} axisLine={false} width={30} />
+                  <RechartsTooltip />
+                  <Bar dataKey="paquetes" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Recientes/Historial list */}
+      <div className="mt-7 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-display text-[16px] font-bold text-text-primary font-display">Historial de Ventas</h3>
+            <p className="text-[12px] text-text-muted">
+              Transacciones que coinciden con los filtros
+            </p>
+          </div>
+        </div>
+
+        {fullyFilteredSales.length === 0 && (
           <div className="mt-8 flex flex-col items-center gap-3 text-text-muted">
             <Receipt className="h-10 w-10 opacity-30" />
-            <p className="text-[14px]">Sin ventas en este periodo</p>
+            <p className="text-[14px]">Sin ventas registradas</p>
           </div>
         )}
 
-        <ul className="mt-3 grid gap-2 pb-4 lg:grid-cols-2">
-          {filtered.map((s) => {
+        <ul className="grid gap-2 lg:grid-cols-2">
+          {fullyFilteredSales.slice(0, 10).map((s) => {
             const open = openId === s.id;
             const t = new Date(s.createdAt).toLocaleTimeString("es-MX", {
               hour: "2-digit",
               minute: "2-digit",
             });
+            const dateStr = new Date(s.createdAt).toLocaleDateString("es-MX", {
+              day: "2-digit",
+              month: "2-digit",
+            });
+
             return (
               <li
                 key={s.id}
@@ -217,7 +636,9 @@ function Home() {
                     <p className="text-[12px] text-text-muted truncate">
                       {s.items.map((i) => `${i.productName} ×${i.qty}`).join(" · ")}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-text-muted">{t}</p>
+                    <p className="mt-0.5 text-[11px] text-text-muted">
+                      {dateStr} · {t}
+                    </p>
                   </div>
                   <div className="shrink-0 text-right flex flex-col items-end gap-1">
                     <p className="text-[14px] font-bold">{formatMXN(s.total)}</p>
@@ -240,7 +661,6 @@ function Home() {
 
                 {open && (
                   <div className="border-t border-border px-4 py-3 space-y-2">
-                    {/* Items detail */}
                     <div className="space-y-1">
                       {s.items.map((i) => (
                         <div key={i.productId} className="flex justify-between text-[13px]">
@@ -252,7 +672,6 @@ function Home() {
                       ))}
                     </div>
 
-                    {/* Meta row */}
                     <div className="pt-2 border-t border-border space-y-1 text-[13px]">
                       <div className="flex justify-between">
                         <span className="text-text-secondary">Pago</span>
@@ -264,7 +683,6 @@ function Home() {
                       </div>
                     </div>
 
-                    {/* Actions */}
                     <div className="pt-2 border-t border-border flex gap-2">
                       {s.status === "Pendiente" && (
                         <button
@@ -305,21 +723,29 @@ function Kpi({
   label,
   value,
   sub,
+  icon,
   tone,
 }: {
   label: string;
   value: string;
   sub: string;
+  icon: React.ReactNode;
   tone: string;
 }) {
   return (
-    <div className={`${tone} rounded-2xl border border-border/80 p-4 shadow-sm`}>
-      <p className="text-[11px] font-bold tracking-wide text-text-muted">{label}</p>
-      <p className="mt-2 text-[23px] font-bold leading-tight text-text-primary">{value}</p>
-      <p className="mt-1 text-[12px] font-medium text-text-secondary">{sub}</p>
+    <div className={`${tone} rounded-2xl border border-border/80 p-4 shadow-sm relative flex flex-col justify-between h-[104px]`}>
+      <div className="flex justify-between items-center">
+        <p className="text-[10px] font-bold tracking-wider text-text-muted">{label}</p>
+        <span className="p-1 rounded-lg bg-white/70 shadow-sm border border-border/40">{icon}</span>
+      </div>
+      <div>
+        <p className="text-[20px] font-bold leading-tight text-text-primary font-display truncate">{value}</p>
+        <p className="text-[11px] font-medium text-text-secondary truncate mt-0.5">{sub}</p>
+      </div>
     </div>
   );
 }
+
 
 // ─── CSV Sheet ────────────────────────────────────────────────────────────────
 

@@ -12,6 +12,17 @@ type AuthCtx = {
   /** true when env vars are missing and we're running in local demo mode */
   isDemo: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<{ error: any }>;
+  signUpWithEmail: (
+    email: string,
+    password: string,
+    metadata?: {
+      full_name: string;
+      phone?: string;
+      business_name: string;
+      business_type: string;
+    }
+  ) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 };
 
@@ -39,6 +50,7 @@ const DEMO_USER: User = {
   user_metadata: {
     full_name: "María (demo)",
     avatar_url: "",
+    business_name: "Pan Pita Artesanal",
   },
   identities: [],
   created_at: new Date().toISOString(),
@@ -84,6 +96,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const signInWithEmail = async (email: string, password: string) => {
+    if (!HAS_SUPABASE) {
+      if (email === "demo@artisan.app") {
+        setUser(DEMO_USER);
+        return { error: null };
+      }
+      return { error: new Error("Credenciales inválidas en modo Demo. Usa: demo@artisan.app") };
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) return { error };
+
+    setSession(data.session);
+    setUser(data.user);
+    return { error: null };
+  };
+
+  const signUpWithEmail = async (
+    email: string,
+    password: string,
+    metadata?: {
+      full_name: string;
+      phone?: string;
+      business_name: string;
+      business_type: string;
+    }
+  ) => {
+    if (!HAS_SUPABASE) {
+      return { error: new Error("El registro no está disponible en modo Demo.") };
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: metadata,
+      },
+    });
+    if (error) return { error };
+
+    setSession(data.session);
+    setUser(data.user);
+    return { error: null };
+  };
+
+
   const signOut = async () => {
     if (!HAS_SUPABASE) {
       setUser(null);
@@ -102,6 +163,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         isDemo: !HAS_SUPABASE,
         signInWithGoogle,
+        signInWithEmail,
+        signUpWithEmail,
         signOut,
       }}
     >
@@ -117,3 +180,4 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
   return ctx;
 }
+

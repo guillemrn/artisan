@@ -17,6 +17,9 @@ import {
   type ArtisanData,
 } from "./artisan-persistence";
 
+import { useAuth } from "@/core/auth/auth-context";
+import { supabase } from "@/core/supabase/client";
+
 type DraftSale = {
   client: Client | null;
   priceMode: "distributor" | "public";
@@ -66,6 +69,8 @@ function updateClientLastDelivery(clients: Client[], clientId: string): Client[]
 
 export function ArtisanProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  const { isDemo } = useAuth();
+  
   const { data, isLoading } = useQuery({
     queryKey: artisanQueryKeys.data(),
     queryFn: fetchArtisanData,
@@ -81,10 +86,12 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
 
   const persist = useCallback(
     (next: ArtisanData) => {
-      saveArtisanData(next);
+      if (isDemo) {
+        saveArtisanData(next);
+      }
       queryClient.setQueryData(artisanQueryKeys.data(), next);
     },
-    [queryClient],
+    [queryClient, isDemo],
   );
 
   const value = useMemo<Ctx>(
@@ -94,15 +101,77 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
       lastSaleId,
       setLastSaleId,
       getSale: (id) => sales.find((s) => s.id === id),
-      addSale: (s) => {
+      addSale: async (s) => {
+        const nextClients = updateClientLastDelivery(clients, s.clientId);
+        const nextProducts = applyStockDeduction(products, s);
+
+        if (isDemo) {
+          persist({
+            sales: [s, ...sales],
+            clients: nextClients,
+            products: nextProducts,
+          });
+          setLastSaleId(s.id);
+          return;
+        }
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        // Insert sale
+        await supabase.from("sales").insert({
+          id: s.id,
+          client_id: s.clientId,
+          client_name: s.clientName,
+          channel: s.channel,
+          items: s.items,
+          total: s.total,
+          cost: s.cost,
+          profit: s.profit,
+          payment: s.payment,
+          status: s.status,
+          created_at: s.createdAt,
+          user_id: session.user.id,
+        });
+
+        // Update client last delivery
+        await supabase.from("clients")
+          .update({ last_delivery: "Hoy" })
+          .eq("id", s.clientId);
+
+        // Update product stock levels
+        await Promise.all(
+          s.items.map(async (item) => {
+            const prod = products.find(p => p.id === item.productId);
+            if (prod) {
+              await supabase.from("products")
+                .update({ stock: Math.max(0, prod.stock - item.qty) })
+                .eq("id", item.productId);
+            }
+          })
+        );
+
         persist({
           sales: [s, ...sales],
-          clients: updateClientLastDelivery(clients, s.clientId),
-          products: applyStockDeduction(products, s),
+          clients: nextClients,
+          products: nextProducts,
         });
         setLastSaleId(s.id);
       },
-      updateSaleStatus: (id, status, payment) => {
+      updateSaleStatus: async (id, status, payment) => {
+        if (isDemo) {
+          persist({
+            sales: sales.map((sale) => (sale.id === id ? { ...sale, status, payment } : sale)),
+            clients,
+            products,
+          });
+          return;
+        }
+
+        await supabase.from("sales")
+          .update({ status, payment })
+          .eq("id", id);
+
         persist({
           sales: sales.map((sale) => (sale.id === id ? { ...sale, status, payment } : sale)),
           clients,
@@ -113,22 +182,69 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
       setDraft: (u) => setDraftState((d) => u(d)),
       resetDraft: () => setDraftState(emptyDraft()),
       clients,
-      addClient: (c) => {
+      addClient: async (c) => {
+        if (isDemo) {
+          persist({ sales, clients: [c, ...clients], products });
+          return;
+        }
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        await supabase.from("clients").insert({
+          id: c.id,
+          name: c.name,
+          channel: c.channel,
+          last_delivery: c.lastDelivery ?? null,
+          user_id: session.user.id,
+        });
+
         persist({ sales, clients: [c, ...clients], products });
       },
-      deleteClient: (id) => {
+      deleteClient: async (id) => {
+        if (isDemo) {
+          persist({ sales, clients: clients.filter((c) => c.id !== id), products });
+          return;
+        }
+
+        await supabase.from("clients").delete().eq("id", id);
         persist({ sales, clients: clients.filter((c) => c.id !== id), products });
       },
       products,
-      addProduct: (p) => {
+      addProduct: async (p) => {
+        if (isDemo) {
+          persist({ sales, clients, products: [...products, p] });
+          return;
+        }
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        await supabase.from("products").insert({
+          id: p.id,
+          name: p.name,
+          cost: p.cost,
+          distributor_price: p.distributorPrice,
+          public_price: p.publicPrice,
+          stock: p.stock,
+          user_id: session.user.id,
+        });
+
         persist({ sales, clients, products: [...products, p] });
       },
-      deleteProduct: (id) => {
+      deleteProduct: async (id) => {
+        if (isDemo) {
+          persist({ sales, clients, products: products.filter((p) => p.id !== id) });
+          return;
+        }
+
+        await supabase.from("products").delete().eq("id", id);
         persist({ sales, clients, products: products.filter((p) => p.id !== id) });
       },
     }),
-    [sales, clients, products, draft, lastSaleId, isLoading, persist],
+    [sales, clients, products, draft, lastSaleId, isLoading, persist, isDemo],
   );
+
 
   return <ArtisanContext.Provider value={value}>{children}</ArtisanContext.Provider>;
 }
