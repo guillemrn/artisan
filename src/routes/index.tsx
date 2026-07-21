@@ -20,6 +20,7 @@ import {
   Sparkles,
   RefreshCw,
   Search,
+  Instagram,
 } from "lucide-react";
 import { useArtisan } from "@/lib/artisan-store";
 import { USER_NAME, formatMXN, formatMXNc } from "@/lib/artisan-data";
@@ -1373,6 +1374,18 @@ function LandingPage() {
             >
               Crear mi cuenta gratis
             </Link>
+          </div>
+
+          <div className="pt-12 border-t border-border/20 text-[12px] text-text-muted flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p>© {new Date().getFullYear()} Almara. Todos los derechos reservados.</p>
+            <a
+              href="https://instagram.com/guillermomrnl"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 hover:text-primary transition font-semibold text-text-secondary"
+            >
+              <Instagram className="h-4 w-4 text-primary" /> @guillermomrnl
+            </a>
           </div>
         </div>
       </section>
