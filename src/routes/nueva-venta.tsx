@@ -37,38 +37,55 @@ function NuevaVenta() {
   const canContinue1 = !!draft.client;
   const canContinue2 = items.length > 0;
 
-  const confirm = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const confirm = async () => {
     if (!draft.client) return;
+    setIsSubmitting(true);
+    try {
+      // Generate dynamic prefix from business name
+      const bizName = user?.user_metadata?.business_name || "Artisan";
+      const prefix = bizName
+        .slice(0, 3)
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "X")
+        .padEnd(3, "X");
 
-    // Generate dynamic prefix from business name
-    const bizName = user?.user_metadata?.business_name || "Artisan";
-    const prefix = bizName
-      .slice(0, 3)
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, "X")
-      .padEnd(3, "X");
+      // Calculate sequential number for real sales (excluding s1-s4 seed data)
+      const realSales = sales.filter((s) => !["s1", "s2", "s3", "s4"].includes(s.id));
+      const nextNum = realSales.length + 1;
+      const paddedNum = String(nextNum).padStart(4, "0");
+      const id = `${prefix}-${paddedNum}`;
 
-    // Calculate sequential number for real sales (excluding s1-s4 seed data)
-    const realSales = sales.filter((s) => !["s1", "s2", "s3", "s4"].includes(s.id));
-    const nextNum = realSales.length + 1;
-    const paddedNum = String(nextNum).padStart(4, "0");
-    const id = `${prefix}-${paddedNum}`;
-
-    addSale({
-      id,
-      clientId: draft.client.id,
-      clientName: draft.client.name,
-      channel: draft.client.channel,
-      items,
-      total: netTotal,
-      cost,
-      profit,
-      payment: draft.payment,
-      status: draft.payment === "Pendiente" ? "Pendiente" : "Entregado",
-      createdAt: new Date().toISOString(),
-    });
-    navigate({ to: "/ticket/$saleId", params: { saleId: id } });
+      await addSale({
+        id,
+        clientId: draft.client.id,
+        clientName: draft.client.name,
+        channel: draft.client.channel,
+        items,
+        total: netTotal,
+        cost,
+        profit,
+        payment: draft.payment,
+        status: draft.payment === "Pendiente" ? "Pendiente" : "Entregado",
+        createdAt: new Date().toISOString(),
+      });
+      navigate({ to: "/ticket/$saleId", params: { saleId: id } });
+    } catch (error) {
+      console.error(error);
+      setIsSubmitting(false);
+    }
   };
+
+  if (isSubmitting) {
+    return (
+      <div className="page-shell flex flex-col items-center justify-center min-h-[60vh] text-center md:px-0 md:pt-8">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mb-4" />
+        <h2 className="text-lg font-bold text-text-primary">Registrando venta...</h2>
+        <p className="text-sm text-text-muted mt-1">Guardando información y actualizando inventario.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="page-shell md:px-0 md:pt-8">

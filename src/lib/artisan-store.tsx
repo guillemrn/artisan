@@ -38,7 +38,7 @@ const emptyDraft = (): DraftSale => ({
 
 type Ctx = {
   sales: Sale[];
-  addSale: (s: Sale) => void;
+  addSale: (s: Sale) => Promise<void>;
   updateSaleStatus: (id: string, status: Sale["status"], payment: PaymentMethod) => void;
   getSale: (id: string) => Sale | undefined;
   lastSaleId: string | null;
@@ -62,7 +62,7 @@ function applyStockDeduction(products: Product[], sale: Sale): Product[] {
   return products.map((p) => {
     const item = sale.items.find((i) => i.productId === p.id);
     if (!item) return p;
-    return { ...p, stock: Math.max(0, p.stock - item.qty) };
+    return { ...p, stock: Math.max(0, p.stock - item.qty - (item.returnQty ?? 0)) };
   });
 }
 
@@ -148,7 +148,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
             const prod = products.find(p => p.id === item.productId);
             if (prod) {
               await supabase.from("products")
-                .update({ stock: Math.max(0, prod.stock - item.qty) })
+                .update({ stock: Math.max(0, prod.stock - item.qty - (item.returnQty ?? 0)) })
                 .eq("id", item.productId);
             }
           })

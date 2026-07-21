@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { CheckCircle2, MessageCircle, Plus } from "lucide-react";
+import { useRef, useState } from "react";
+import { CheckCircle2, MessageCircle, Plus, Image, Copy, Download, Check } from "lucide-react";
 import { BUSINESS_NAME, formatMXN, formatMXNc } from "@/lib/artisan-data";
 import { useArtisan } from "@/lib/artisan-store";
 import { Logo } from "@/components/ui/logo";
+import { toPng } from "html-to-image";
 
 export const Route = createFileRoute("/ticket/$saleId")({
   head: () => ({ meta: [{ title: "Ticket — Artisan" }] }),
@@ -15,6 +17,62 @@ function Ticket() {
   const navigate = useNavigate();
   const sale = getSale(saleId);
   const isLatest = lastSaleId === saleId;
+
+  const ticketRef = useRef<HTMLDivElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  const getTicketBlob = async (): Promise<{ blob: Blob; dataUrl: string } | null> => {
+    if (!ticketRef || !ticketRef.current) return null;
+    const dataUrl = await toPng(ticketRef.current, {
+      backgroundColor: "#ffffff",
+      style: {
+        margin: "0",
+        boxShadow: "none",
+      },
+      pixelRatio: 2,
+    });
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    return { blob, dataUrl };
+  };
+
+  const handleCopyImage = async () => {
+    setIsExporting(true);
+    try {
+      const data = await getTicketBlob();
+      if (!data) return;
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          [data.blob.type]: data.blob,
+        }),
+      ]);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error("Error copying image:", err);
+      // Fallback: download
+      await handleDownloadImage();
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleDownloadImage = async () => {
+    setIsExporting(true);
+    try {
+      const data = await getTicketBlob();
+      if (!data) return;
+      const link = document.createElement("a");
+      link.download = `ticket-${saleId}.png`;
+      link.href = data.dataUrl;
+      link.click();
+    } catch (err) {
+      console.error("Error downloading image:", err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -84,6 +142,7 @@ function Ticket() {
       )}
 
       <div
+        ref={ticketRef}
         className={`rounded-2xl bg-white p-5 shadow-sm md:mx-auto md:max-w-md ${isLatest ? "mt-4" : ""}`}
         style={{
           border: "1px dashed #cbd5e1",
@@ -146,15 +205,42 @@ function Ticket() {
       </div>
 
       <div className="mt-4 space-y-2 md:mx-auto md:max-w-md">
-        <a
-          href={`https://wa.me/?text=${shareText}`}
-          target="_blank"
-          rel="noreferrer"
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-success py-3 text-center text-[14px] font-bold text-white transition hover:bg-[#246448]"
+        <button
+          onClick={handleCopyImage}
+          disabled={isExporting}
+          className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 text-center text-[14px] font-bold text-white transition disabled:opacity-50 ${
+            copySuccess ? "bg-emerald-600 hover:bg-emerald-700" : "bg-primary hover:bg-[#246448]"
+          }`}
         >
-          <MessageCircle className="h-4 w-4" />
-          Compartir por WhatsApp
-        </a>
+          {copySuccess ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          {copySuccess
+            ? "¡Imagen copiada al portapapeles!"
+            : isExporting
+              ? "Generando imagen..."
+              : "Copiar Imagen (para pegar en WhatsApp)"}
+        </button>
+
+        <div className="grid grid-cols-2 gap-2">
+          <a
+            href={`https://wa.me/?text=${shareText}`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-center gap-2 rounded-xl bg-success py-3 text-center text-[13px] font-bold text-white transition hover:bg-[#1f523b]"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Enviar Texto
+          </a>
+
+          <button
+            onClick={handleDownloadImage}
+            disabled={isExporting}
+            className="flex items-center justify-center gap-2 rounded-xl border border-border bg-white py-3 text-center text-[13px] font-bold text-text-secondary transition hover:bg-muted disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" />
+            Descargar PNG
+          </button>
+        </div>
+
         <button
           onClick={() => {
             resetDraft();

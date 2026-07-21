@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useRef, useState, useMemo } from "react";
+import { useRef, useState, useMemo, useEffect } from "react";
 import {
   Menu,
   Store,
@@ -19,6 +19,7 @@ import {
   Check,
   Sparkles,
   RefreshCw,
+  Search,
 } from "lucide-react";
 import { useArtisan } from "@/lib/artisan-store";
 import { USER_NAME, formatMXN, formatMXNc } from "@/lib/artisan-data";
@@ -85,8 +86,35 @@ function Home() {
   const [productFilter, setProductFilter] = useState<string>("Todos");
   const [clientFilter, setClientFilter] = useState<string>("Todos");
 
+  const [historySearch, setHistorySearch] = useState("");
+  const [historyStatus, setHistoryStatus] = useState<"Todos" | "Entregado" | "Pendiente">("Todos");
+
   const [openId, setOpenId] = useState<string | null>(null);
   const [csvOpen, setCsvOpen] = useState(false);
+
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    const completed = localStorage.getItem("onboarding_completed") === "true";
+    const shownCount = parseInt(localStorage.getItem("onboarding_shown_count") ?? "0", 10);
+    const remindLaterCount = parseInt(localStorage.getItem("onboarding_remind_later_count") ?? "0", 10);
+
+    if (!completed && shownCount < 3 && remindLaterCount < 2) {
+      setShowOnboarding(true);
+      localStorage.setItem("onboarding_shown_count", String(shownCount + 1));
+    }
+  }, []);
+
+  const handleCloseOnboarding = () => {
+    localStorage.setItem("onboarding_completed", "true");
+    setShowOnboarding(false);
+  };
+
+  const handleRemindLaterOnboarding = () => {
+    const remindLaterCount = parseInt(localStorage.getItem("onboarding_remind_later_count") ?? "0", 10);
+    localStorage.setItem("onboarding_remind_later_count", String(remindLaterCount + 1));
+    setShowOnboarding(false);
+  };
 
   const dateLabel = new Date().toLocaleDateString("es-MX", {
     weekday: "long",
@@ -123,6 +151,17 @@ function Home() {
       s.items.some((i) => i.productId === productFilter)
     );
   }, [clientFilteredSales, productFilter]);
+
+  // 4. Filter History Sales by Search and Status
+  const historyFilteredSales = useMemo(() => {
+    return fullyFilteredSales.filter((s) => {
+      const matchesSearch =
+        s.clientName.toLowerCase().includes(historySearch.toLowerCase()) ||
+        s.id.toLowerCase().includes(historySearch.toLowerCase());
+      const matchesStatus = historyStatus === "Todos" || s.status === historyStatus;
+      return matchesSearch && matchesStatus;
+    });
+  }, [fullyFilteredSales, historySearch, historyStatus]);
 
   // --- KPIs Calculations ---
   const kpiData = useMemo(() => {
@@ -556,12 +595,19 @@ function Home() {
               <div className="h-full flex items-center justify-center text-text-muted">Sin datos en el periodo</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={productChartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EBEBEB" />
-                  <XAxis dataKey="name" tickLine={false} axisLine={false} />
-                  <YAxis tickLine={false} axisLine={false} width={30} />
+                <BarChart layout="vertical" data={productChartData} margin={{ left: 5, right: 10, top: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#EBEBEB" />
+                  <XAxis type="number" tickLine={false} axisLine={false} />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    tickLine={false}
+                    axisLine={false}
+                    width={110}
+                    tickFormatter={(val) => (val.length > 15 ? val.slice(0, 13) + "..." : val)}
+                  />
                   <RechartsTooltip />
-                  <Bar dataKey="paquetes" radius={[4, 4, 0, 0]}>
+                  <Bar dataKey="paquetes" radius={[0, 4, 4, 0]}>
                     {productChartData.map((_entry, index) => {
                       const colors = ["#2e7d5b", "#C9784A", "#1D4ED8", "#7C3AED", "#D97706"];
                       return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
@@ -584,12 +630,19 @@ function Home() {
               <div className="h-full flex items-center justify-center text-text-muted">Sin datos en el periodo</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={clientChartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EBEBEB" />
-                  <XAxis dataKey="name" tickLine={false} axisLine={false} />
-                  <YAxis tickLine={false} axisLine={false} width={30} />
+                <BarChart layout="vertical" data={clientChartData} margin={{ left: 5, right: 10, top: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#EBEBEB" />
+                  <XAxis type="number" tickLine={false} axisLine={false} />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    tickLine={false}
+                    axisLine={false}
+                    width={110}
+                    tickFormatter={(val) => (val.length > 15 ? val.slice(0, 13) + "..." : val)}
+                  />
                   <RechartsTooltip />
-                  <Bar dataKey="paquetes" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="paquetes" fill="#3B82F6" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -599,138 +652,289 @@ function Home() {
 
       {/* Recientes/Historial list */}
       <div className="mt-7 space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="font-display text-[16px] font-bold text-text-primary font-display">Historial de Ventas</h3>
             <p className="text-[12px] text-text-muted">
               Transacciones que coinciden con los filtros
             </p>
           </div>
+          {/* Filters for Sales History */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 sm:flex-initial min-w-[155px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted" />
+              <input
+                type="text"
+                value={historySearch}
+                onChange={(e) => setHistorySearch(e.target.value)}
+                placeholder="Buscar cliente..."
+                className="w-full h-9 pl-8 pr-2.5 rounded-lg border border-border text-[12px] outline-none bg-white focus:border-primary"
+              />
+            </div>
+            <select
+              value={historyStatus}
+              onChange={(e) => setHistoryStatus(e.target.value as any)}
+              className="h-9 px-2 rounded-lg border border-border text-[12px] font-semibold bg-white outline-none focus:border-primary"
+            >
+              <option value="Todos">Todos los estados</option>
+              <option value="Entregado">Entregado</option>
+              <option value="Pendiente">Pendiente</option>
+            </select>
+          </div>
         </div>
 
-        {fullyFilteredSales.length === 0 && (
-          <div className="mt-8 flex flex-col items-center gap-3 text-text-muted">
+        {historyFilteredSales.length === 0 ? (
+          <div className="mt-8 flex flex-col items-center gap-3 text-text-muted py-8 bg-white rounded-2xl border border-border">
             <Receipt className="h-10 w-10 opacity-30" />
             <p className="text-[14px]">Sin ventas registradas</p>
           </div>
-        )}
+        ) : (
+          <>
+            {/* Mobile View: Cards */}
+            <ul className="grid gap-2 md:hidden">
+              {historyFilteredSales.slice(0, 15).map((s) => {
+                const open = openId === s.id;
+                const t = new Date(s.createdAt).toLocaleTimeString("es-MX", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+                const dateStr = new Date(s.createdAt).toLocaleDateString("es-MX", {
+                  day: "2-digit",
+                  month: "2-digit",
+                });
 
-        <ul className="grid gap-2 lg:grid-cols-2">
-          {fullyFilteredSales.slice(0, 10).map((s) => {
-            const open = openId === s.id;
-            const t = new Date(s.createdAt).toLocaleTimeString("es-MX", {
-              hour: "2-digit",
-              minute: "2-digit",
-            });
-            const dateStr = new Date(s.createdAt).toLocaleDateString("es-MX", {
-              day: "2-digit",
-              month: "2-digit",
-            });
-
-            return (
-              <li
-                key={s.id}
-                className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(31,43,46,0.08)]"
-              >
-                <button
-                  className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
-                  onClick={() => setOpenId(open ? null : s.id)}
-                >
-                  <div
-                    className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${s.channel === "PDV"
-                        ? "bg-primary-light text-primary"
-                        : "bg-[#F5F3FF] text-[#6D28D9]"
-                      }`}
+                return (
+                  <li
+                    key={s.id}
+                    className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition"
                   >
-                    {s.channel === "PDV" ? (
-                      <Store className="h-5 w-5" />
-                    ) : (
-                      <User className="h-5 w-5" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate text-[14px] font-bold">{s.clientName}</p>
-                    <p className="text-[12px] text-text-muted truncate">
-                      {s.items.map((i) => `${i.productName} ×${i.qty}`).join(" · ")}
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-text-muted">
-                      {dateStr} · {t}
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right flex flex-col items-end gap-1">
-                    <p className="text-[14px] font-bold">{formatMXN(s.total)}</p>
-                    {s.status === "Entregado" ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[10px] font-semibold px-2 py-0.5">
-                        <CheckCircle2 className="h-3 w-3" /> Entregado
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 text-warning text-[10px] font-semibold px-2 py-0.5">
-                        <Clock className="h-3 w-3" /> Pendiente
-                      </span>
-                    )}
-                  </div>
-                  <ChevronDown
-                    className={`h-4 w-4 text-text-muted transition ml-1 ${open ? "rotate-180" : ""
-                      }`}
-                  />
-                </button>
-
-                {open && (
-                  <div className="border-t border-border px-4 py-3 space-y-2">
-                    <div className="space-y-1">
-                      {s.items.map((i) => (
-                        <div key={i.productId} className="flex justify-between text-[13px]">
-                          <span>
-                            {i.productName} <span className="text-text-muted">×{i.qty}</span>
-                          </span>
-                          <span className="font-semibold">{formatMXNc(i.unitPrice * i.qty)}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="pt-2 border-t border-border space-y-1 text-[13px]">
-                      <div className="flex justify-between">
-                        <span className="text-text-secondary">Pago</span>
-                        <span className="font-semibold">{s.payment}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-text-secondary">Ganancia</span>
-                        <span className="font-semibold text-success">{formatMXN(s.profit)}</span>
-                      </div>
-                    </div>
-
-                    <div className="pt-2 border-t border-border flex gap-2">
-                      {s.status === "Pendiente" && (
-                        <button
-                          onClick={() =>
-                            updateSaleStatus(
-                              s.id,
-                              "Entregado",
-                              s.payment === "Pendiente" ? "Efectivo" : s.payment,
-                            )
-                          }
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-primary text-white text-[13px] font-semibold py-2 transition hover:bg-emerald-700"
-                        >
-                          <CheckCircle2 className="h-4 w-4" />
-                          Marcar entregado
-                        </button>
-                      )}
-                      <Link
-                        to="/ticket/$saleId"
-                        params={{ saleId: s.id }}
-                        className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-muted text-text-secondary text-[13px] font-semibold px-4 py-2 transition hover:bg-border"
+                    <button
+                      className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
+                      onClick={() => setOpenId(open ? null : s.id)}
+                    >
+                      <div
+                        className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${s.channel === "PDV"
+                            ? "bg-primary-light text-primary"
+                            : "bg-[#F5F3FF] text-[#6D28D9]"
+                          }`}
                       >
-                        <Receipt className="h-4 w-4" />
-                        Ticket
-                      </Link>
-                    </div>
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                        {s.channel === "PDV" ? (
+                          <Store className="h-5 w-5" />
+                        ) : (
+                          <User className="h-5 w-5" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate text-[14px] font-bold">{s.clientName}</p>
+                        <p className="text-[12px] text-text-muted truncate">
+                          {s.items
+                            .map((i) => {
+                              const list = [];
+                              if (i.qty > 0) list.push(`${i.productName} ×${i.qty}`);
+                              if (i.returnQty && i.returnQty > 0)
+                                list.push(`[Cambio: ${i.productName} ×${i.returnQty}]`);
+                              return list.join(" ");
+                            })
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-text-muted">
+                          {dateStr} · {t}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-right flex flex-col items-end gap-1">
+                        <p className="text-[14px] font-bold">{formatMXN(s.total)}</p>
+                        {s.status === "Entregado" ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[10px] font-semibold px-2 py-0.5">
+                            <CheckCircle2 className="h-3 w-3" /> Entregado
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 text-warning text-[10px] font-semibold px-2 py-0.5">
+                            <Clock className="h-3 w-3" /> Pendiente
+                          </span>
+                        )}
+                      </div>
+                      <ChevronDown className={`h-4 w-4 text-text-muted transition ml-1 ${open ? "rotate-180" : ""}`} />
+                    </button>
+
+                    {open && (
+                      <div className="border-t border-border px-4 py-3 space-y-2">
+                        <div className="space-y-1.5">
+                          {s.items.map((i) => (
+                            <div key={i.productId} className="space-y-0.5">
+                              {i.qty > 0 && (
+                                <div className="flex justify-between text-[13px]">
+                                  <span>
+                                    {i.productName} <span className="text-text-muted">×{i.qty}</span>
+                                  </span>
+                                  <span className="font-semibold">{formatMXNc(i.unitPrice * i.qty)}</span>
+                                </div>
+                              )}
+                              {(i.returnQty ?? 0) > 0 && (
+                                <div className="flex justify-between text-[12px] text-warning font-medium">
+                                  <span>
+                                    Cambio (Merma): {i.productName} <span className="opacity-70">×{i.returnQty}</span>
+                                  </span>
+                                  <span>(Sin costo)</span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="pt-2 border-t border-border space-y-1 text-[13px]">
+                          <div className="flex justify-between">
+                            <span className="text-text-secondary">Pago</span>
+                            <span className="font-semibold">{s.payment}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-text-secondary">Ganancia</span>
+                            <span className="font-semibold text-success">{formatMXN(s.profit)}</span>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-border flex gap-2">
+                          {s.status === "Pendiente" && (
+                            <button
+                              onClick={() =>
+                                updateSaleStatus(
+                                  s.id,
+                                  "Entregado",
+                                  s.payment === "Pendiente" ? "Efectivo" : s.payment,
+                                )
+                              }
+                              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-primary text-white text-[13px] font-semibold py-2 transition hover:bg-[#1f523b]"
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                              Marcar entregado
+                            </button>
+                          )}
+                          <Link
+                            to="/ticket/$saleId"
+                            params={{ saleId: s.id }}
+                            className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-muted text-text-secondary text-[13px] font-semibold px-4 py-2 transition hover:bg-border"
+                          >
+                            <Receipt className="h-4 w-4" />
+                            Ticket
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* Desktop View: Table */}
+            <div className="hidden md:block overflow-hidden bg-white border border-border rounded-2xl shadow-sm">
+              <table className="w-full text-left border-collapse text-[13px]">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-border text-text-muted text-[11px] font-bold uppercase tracking-wider">
+                    <th className="py-3 px-4">Fecha</th>
+                    <th className="py-3 px-4">Cliente / PDV</th>
+                    <th className="py-3 px-4">Canal</th>
+                    <th className="py-3 px-4">Productos / Movimientos</th>
+                    <th className="py-3 px-4">Pago</th>
+                    <th className="py-3 px-4">Estado</th>
+                    <th className="py-3 px-4 text-right">Total</th>
+                    <th className="py-3 px-4 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {historyFilteredSales.slice(0, 20).map((s) => {
+                    const d = new Date(s.createdAt);
+                    const dateStr = d.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit" });
+                    const timeStr = d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+
+                    return (
+                      <tr key={s.id} className="hover:bg-gray-50/50 transition">
+                        <td className="py-3 px-4 text-text-muted">
+                          <div>{dateStr}</div>
+                          <div className="text-[11px] opacity-75">{timeStr}</div>
+                        </td>
+                        <td className="py-3 px-4 font-bold text-text-primary">{s.clientName}</td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`rounded-full text-[10px] font-bold px-2 py-0.5 ${s.channel === "PDV"
+                                ? "bg-primary-light text-primary"
+                                : "bg-[#F5F3FF] text-[#6D28D9]"
+                              }`}
+                          >
+                            {s.channel}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="space-y-1">
+                            {s.items.map((i) => (
+                              <div key={i.productId} className="text-[12px] leading-tight">
+                                {i.qty > 0 && (
+                                  <div>
+                                    <span className="font-medium text-emerald-800">Entregado:</span> {i.productName}{" "}
+                                    <span className="text-text-muted">x{i.qty}</span>
+                                  </div>
+                                )}
+                                {(i.returnQty ?? 0) > 0 && (
+                                  <div className="text-warning-dark font-medium">
+                                    <span>Cambio:</span> {i.productName} <span className="opacity-80">x{i.returnQty}</span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-text-secondary font-medium">{s.payment}</td>
+                        <td className="py-3 px-4">
+                          {s.status === "Entregado" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold px-2.5 py-1">
+                              <CheckCircle2 className="h-3.5 w-3.5" /> Entregado
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 text-warning text-[10px] font-bold px-2.5 py-1">
+                              <Clock className="h-3.5 w-3.5" /> Pendiente
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right font-bold text-text-primary">{formatMXN(s.total)}</td>
+                        <td className="py-3 px-4">
+                          <div className="flex justify-end gap-1.5">
+                            {s.status === "Pendiente" && (
+                              <button
+                                onClick={() =>
+                                  updateSaleStatus(
+                                    s.id,
+                                    "Entregado",
+                                    s.payment === "Pendiente" ? "Efectivo" : s.payment,
+                                  )
+                                }
+                                className="bg-primary hover:bg-[#1f523b] text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition"
+                              >
+                                Entregar
+                              </button>
+                            )}
+                            <Link
+                              to="/ticket/$saleId"
+                              params={{ saleId: s.id }}
+                              className="border border-border bg-white hover:bg-muted text-text-secondary text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition inline-flex items-center gap-1"
+                            >
+                              <Receipt className="h-3 w-3" /> Ticket
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
+      {showOnboarding && (
+        <OnboardingModal
+          onClose={handleCloseOnboarding}
+          onRemindLater={handleRemindLaterOnboarding}
+        />
+      )}
     </div>
   );
 }
@@ -837,8 +1041,8 @@ function CSVSheet({ onClose }: { onClose: () => void }) {
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`flex-1 rounded-full py-1.5 text-[13px] font-semibold border transition ${tab === t.id
-                  ? "bg-primary text-white border-primary"
-                  : "bg-background text-text-secondary border-border hover:bg-muted"
+                ? "bg-primary text-white border-primary"
+                : "bg-background text-text-secondary border-border hover:bg-muted"
                 }`}
             >
               {t.label}
@@ -993,8 +1197,8 @@ function ActionRow({
     <button
       onClick={onClick}
       className={`w-full flex items-center gap-3 rounded-xl px-4 py-3.5 border transition ${variant === "primary"
-          ? "bg-primary text-white border-primary hover:bg-emerald-700"
-          : "bg-background text-text-primary border-border hover:bg-muted"
+        ? "bg-primary text-white border-primary hover:bg-emerald-700"
+        : "bg-background text-text-primary border-border hover:bg-muted"
         }`}
     >
       <span
@@ -1172,6 +1376,83 @@ function LandingPage() {
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+interface OnboardingModalProps {
+  onClose: () => void;
+  onRemindLater: () => void;
+}
+
+function OnboardingModal({ onClose, onRemindLater }: OnboardingModalProps) {
+  const [step, setStep] = useState(1);
+
+  const steps = [
+    {
+      title: "Registra ventas al instante",
+      desc: "Presiona el botón '+ Nueva venta' para iniciar. Registra compras, selecciona clientes y documenta cambios (mermas) en segundos.",
+      icon: <Receipt className="h-10 w-10 text-emerald-600" />,
+    },
+    {
+      title: "Tu negocio de un vistazo",
+      desc: "Monitorea tus ventas totales, ganancias estimadas y productos entregados en el Dashboard. Aplica filtros de tiempo para analizar tu rendimiento.",
+      icon: <TrendingUp className="h-10 w-10 text-sky-600" />,
+    },
+    {
+      title: "Controla tu inventario",
+      desc: "Mantén al día tus existencias de producto. Cada venta o cambio realizado descuenta de forma automática tu stock físico.",
+      icon: <Package className="h-10 w-10 text-violet-600" />,
+    },
+  ];
+
+  const current = steps[step - 1];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-md bg-white rounded-3xl border border-border p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex flex-col items-center text-center">
+          <div className="grid h-16 w-16 place-items-center rounded-2xl bg-gray-50 mb-4 border border-border/40">
+            {current.icon}
+          </div>
+          <div className="flex gap-1.5 mb-2">
+            {[1, 2, 3].map((n) => (
+              <div
+                key={n}
+                className={`h-1.5 rounded-full transition-all duration-300 ${n === step ? "w-6 bg-primary" : "w-1.5 bg-border"
+                  }`}
+              />
+            ))}
+          </div>
+          <p className="text-[12px] font-bold text-primary uppercase tracking-wider">Paso {step} de 3</p>
+          <h3 className="mt-2 font-display text-[18px] font-bold text-text-primary">{current.title}</h3>
+          <p className="mt-2 text-[13px] leading-relaxed text-text-secondary">{current.desc}</p>
+        </div>
+
+        <div className="mt-6 flex flex-col gap-2">
+          {step < 3 ? (
+            <button
+              onClick={() => setStep(step + 1)}
+              className="w-full rounded-xl bg-primary py-3 text-[14px] font-bold text-white transition hover:bg-[#246448]"
+            >
+              Siguiente
+            </button>
+          ) : (
+            <button
+              onClick={onClose}
+              className="w-full rounded-xl bg-primary py-3 text-[14px] font-bold text-white transition hover:bg-[#246448]"
+            >
+              Comenzar ahora
+            </button>
+          )}
+          <button
+            onClick={onRemindLater}
+            className="w-full py-2.5 text-[13px] font-semibold text-text-muted hover:text-text-secondary transition"
+          >
+            Recordarme más tarde
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
