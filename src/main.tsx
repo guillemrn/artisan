@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import { getRouter } from "./router";
 import "./styles.css";
+import { Analytics } from "@vercel/analytics/next"
 
 const router = getRouter();
 
@@ -12,6 +13,7 @@ if (!rootElement.innerHTML) {
   root.render(
     <React.StrictMode>
       <RouterProvider router={router} />
+      <Analytics />
     </React.StrictMode>,
   );
 }
