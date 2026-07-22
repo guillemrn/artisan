@@ -85,6 +85,10 @@ export async function fetchArtisanData(): Promise<ArtisanData> {
       return cleanItem as SaleItem;
     });
 
+    const normalizedCreatedAt = (s.created_at || "")
+      .replace(" ", "T")
+      .replace(/\+00(:00)?$/, "Z");
+
     return {
       id: s.id,
       clientId: s.client_id,
@@ -96,7 +100,7 @@ export async function fetchArtisanData(): Promise<ArtisanData> {
       profit: Number(s.profit),
       payment: actualPayment as PaymentMethod,
       status: s.status as "Pendiente" | "Entregado",
-      createdAt: s.created_at,
+      createdAt: normalizedCreatedAt,
     };
   });
 

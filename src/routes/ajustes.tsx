@@ -10,6 +10,7 @@ import {
   Phone,
   Tag,
   X,
+  Activity,
 } from "lucide-react";
 import { USER_NAME } from "@/lib/artisan-data";
 import { useAuth } from "@/core/auth/auth-context";
@@ -177,6 +178,28 @@ function Ajustes() {
                   <p className="text-[12px] text-text-muted truncate">0.2.0 — MVP Connect</p>
                 </div>
               </div>
+            </li>
+          </ul>
+        </div>
+
+        {/* LOG DE EVENTOS (ACTIVIDAD RECIENTE) */}
+        <div>
+          <p className="mb-2 px-1 text-[11px] font-bold uppercase tracking-widest text-text-muted">Actividad Reciente</p>
+          <ul className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+            <li>
+              <Link
+                to="/actividad"
+                className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-muted transition"
+              >
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-light text-primary">
+                  <Activity className="h-4 w-4" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold text-text-primary">Log de eventos</p>
+                  <p className="text-[12px] text-text-muted truncate">Ver historial completo de movimientos</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-text-muted" />
+              </Link>
             </li>
           </ul>
         </div>

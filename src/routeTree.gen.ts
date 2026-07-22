@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ActividadRouteImport } from './routes/actividad'
 import { Route as AjustesRouteImport } from './routes/ajustes'
 import { Route as BuscarRouteImport } from './routes/buscar'
 import { Route as ClientesRouteImport } from './routes/clientes'
@@ -23,6 +24,11 @@ import { Route as TicketSaleIdRouteImport } from './routes/ticket/$saleId'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ActividadRoute = ActividadRouteImport.update({
+  id: '/actividad',
+  path: '/actividad',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AjustesRoute = AjustesRouteImport.update({
@@ -73,6 +79,7 @@ const TicketSaleIdRoute = TicketSaleIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/actividad': typeof ActividadRoute
   '/ajustes': typeof AjustesRoute
   '/buscar': typeof BuscarRoute
   '/clientes': typeof ClientesRoute
@@ -85,6 +92,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/actividad': typeof ActividadRoute
   '/ajustes': typeof AjustesRoute
   '/buscar': typeof BuscarRoute
   '/clientes': typeof ClientesRoute
@@ -98,6 +106,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/actividad': typeof ActividadRoute
   '/ajustes': typeof AjustesRoute
   '/buscar': typeof BuscarRoute
   '/clientes': typeof ClientesRoute
@@ -112,6 +121,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/actividad'
     | '/ajustes'
     | '/buscar'
     | '/clientes'
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/actividad'
     | '/ajustes'
     | '/buscar'
     | '/clientes'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/actividad'
     | '/ajustes'
     | '/buscar'
     | '/clientes'
@@ -149,6 +161,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ActividadRoute: typeof ActividadRoute
   AjustesRoute: typeof AjustesRoute
   BuscarRoute: typeof BuscarRoute
   ClientesRoute: typeof ClientesRoute
@@ -167,6 +180,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/actividad': {
+      id: '/actividad'
+      path: '/actividad'
+      fullPath: '/actividad'
+      preLoaderRoute: typeof ActividadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ajustes': {
@@ -237,6 +257,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ActividadRoute: ActividadRoute,
   AjustesRoute: AjustesRoute,
   BuscarRoute: BuscarRoute,
   ClientesRoute: ClientesRoute,
