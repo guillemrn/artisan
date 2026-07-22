@@ -119,10 +119,10 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         }
 
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
+        if (!session) throw new Error("No hay una sesión de usuario activa");
 
         // Insert sale
-        await supabase.from("sales").insert({
+        const { error: saleError } = await supabase.from("sales").insert({
           id: s.id,
           client_id: s.clientId,
           client_name: s.clientName,
@@ -137,19 +137,31 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           user_id: session.user.id,
         });
 
+        if (saleError) {
+          console.error("Error inserting sale to Supabase:", saleError);
+          throw new Error(`Error al registrar la venta en la base de datos: ${saleError.message}`);
+        }
+
         // Update client last delivery
-        await supabase.from("clients")
+        const { error: clientError } = await supabase.from("clients")
           .update({ last_delivery: "Hoy" })
           .eq("id", s.clientId);
+
+        if (clientError) {
+          console.error("Error updating client last delivery:", clientError);
+        }
 
         // Update product stock levels
         await Promise.all(
           s.items.map(async (item) => {
             const prod = products.find(p => p.id === item.productId);
             if (prod) {
-              await supabase.from("products")
+              const { error: prodError } = await supabase.from("products")
                 .update({ stock: Math.max(0, prod.stock - item.qty - (item.returnQty ?? 0)) })
                 .eq("id", item.productId);
+              if (prodError) {
+                console.error(`Error updating stock for product ${item.productId}:`, prodError);
+              }
             }
           })
         );
@@ -171,9 +183,14 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        await supabase.from("sales")
+        const { error } = await supabase.from("sales")
           .update({ status, payment })
           .eq("id", id);
+
+        if (error) {
+          console.error("Error updating sale status:", error);
+          throw new Error(`Error al actualizar el estado de la venta: ${error.message}`);
+        }
 
         persist({
           sales: sales.map((sale) => (sale.id === id ? { ...sale, status, payment } : sale)),
@@ -192,15 +209,20 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         }
 
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
+        if (!session) throw new Error("No hay una sesión de usuario activa");
 
-        await supabase.from("clients").insert({
+        const { error } = await supabase.from("clients").insert({
           id: c.id,
           name: c.name,
           channel: c.channel,
           last_delivery: c.lastDelivery ?? null,
           user_id: session.user.id,
         });
+
+        if (error) {
+          console.error("Error inserting client:", error);
+          throw new Error(`Error al agregar el cliente: ${error.message}`);
+        }
 
         persist({ sales, clients: [c, ...clients], products });
       },
@@ -210,7 +232,12 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        await supabase.from("clients").delete().eq("id", id);
+        const { error } = await supabase.from("clients").delete().eq("id", id);
+        if (error) {
+          console.error("Error deleting client:", error);
+          throw new Error(`Error al eliminar el cliente: ${error.message}`);
+        }
+
         persist({ sales, clients: clients.filter((c) => c.id !== id), products });
       },
       products,
@@ -221,9 +248,9 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         }
 
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
+        if (!session) throw new Error("No hay una sesión de usuario activa");
 
-        await supabase.from("products").insert({
+        const { error } = await supabase.from("products").insert({
           id: p.id,
           name: p.name,
           cost: p.cost,
@@ -233,6 +260,11 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           user_id: session.user.id,
         });
 
+        if (error) {
+          console.error("Error inserting product:", error);
+          throw new Error(`Error al agregar el producto: ${error.message}`);
+        }
+
         persist({ sales, clients, products: [...products, p] });
       },
       deleteProduct: async (id) => {
@@ -241,7 +273,12 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        await supabase.from("products").delete().eq("id", id);
+        const { error } = await supabase.from("products").delete().eq("id", id);
+        if (error) {
+          console.error("Error deleting product:", error);
+          throw new Error(`Error al eliminar el producto: ${error.message}`);
+        }
+
         persist({ sales, clients, products: products.filter((p) => p.id !== id) });
       },
       updateProduct: async (p) => {
@@ -254,7 +291,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        await supabase
+        const { error } = await supabase
           .from("products")
           .update({
             name: p.name,
@@ -264,6 +301,11 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
             stock: p.stock,
           })
           .eq("id", p.id);
+
+        if (error) {
+          console.error("Error updating product:", error);
+          throw new Error(`Error al actualizar el producto: ${error.message}`);
+        }
 
         persist({
           sales,

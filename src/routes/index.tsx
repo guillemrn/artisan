@@ -83,7 +83,7 @@ function Home() {
   const { sales, products, clients, updateSaleStatus } = useArtisan();
 
   // State for filters
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>("Mes");
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>("Hoy");
   const [productFilter, setProductFilter] = useState<string>("Todos");
   const [clientFilter, setClientFilter] = useState<string>("Todos");
 
@@ -125,6 +125,9 @@ function Home() {
 
   const displayName = user?.user_metadata?.full_name ?? USER_NAME;
   const initials = displayName.slice(0, 2).toUpperCase();
+
+  const currentHour = new Date().getHours();
+  const greeting = currentHour < 12 ? "Buenos días" : currentHour < 19 ? "Buenas tardes" : "Buenas noches";
 
   // 1. Filter Sales by Time
   const timeFilteredSales = useMemo(() => {
@@ -204,6 +207,7 @@ function Home() {
 
     return {
       salesTotal,
+      costTotal,
       profitTotal,
       margin,
       packagesTotal,
@@ -358,7 +362,7 @@ function Home() {
           <div>
             <p className="text-[13px] font-semibold capitalize text-white/60">{dateLabel}</p>
             <h1 className="mt-2 font-display text-[26px] font-bold leading-tight md:text-[34px]">
-              Buenos días, {displayName}
+              {greeting}, {displayName}
             </h1>
             <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-white/68 md:text-[15px]">
               Gestiona tu inventario, ventas y clientes con Almara.
@@ -443,13 +447,20 @@ function Home() {
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Kpi
           label="VENTAS TOTALES"
           value={formatMXN(kpiData.salesTotal)}
           sub={`${fullyFilteredSales.length} transacciones`}
           icon={<DollarSign className="h-4 w-4 text-emerald-600" />}
           tone="bg-gradient-to-br from-emerald-50 to-white"
+        />
+        <Kpi
+          label="COSTOS TOTALES"
+          value={formatMXN(kpiData.costTotal)}
+          sub="en el periodo"
+          icon={<DollarSign className="h-4 w-4 text-rose-600" />}
+          tone="bg-gradient-to-br from-rose-50 to-white"
         />
         <Kpi
           label="GANANCIA TOTAL"

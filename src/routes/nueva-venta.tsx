@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ChevronLeft, Search, Store, User, Plus, Minus } from "lucide-react";
+import { ChevronLeft, Search, Store, User, Plus, Minus, AlertCircle } from "lucide-react";
 import { AddClientSheet } from "@/components/artisan/AddClientSheet";
 import {
   formatMXN,
@@ -22,6 +22,7 @@ function NuevaVenta() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const { draft, setDraft, resetDraft, addSale, products, sales } = useArtisan();
   const navigate = useNavigate();
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const items = useMemo(
     () => buildSaleItems(draft.quantities, draft.returns || {}, draft.priceMode, products),
@@ -42,6 +43,7 @@ function NuevaVenta() {
   const confirm = async () => {
     if (!draft.client) return;
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
       // Generate dynamic prefix from business name
       const bizName = user?.user_metadata?.business_name || "Artisan";
@@ -51,9 +53,18 @@ function NuevaVenta() {
         .replace(/[^A-Z0-9]/g, "X")
         .padEnd(3, "X");
 
-      // Calculate sequential number for real sales (excluding s1-s4 seed data)
-      const realSales = sales.filter((s) => !["s1", "s2", "s3", "s4"].includes(s.id));
-      const nextNum = realSales.length + 1;
+      // Find the maximum existing numeric suffix for this prefix to ensure uniqueness
+      const prefixSales = sales.filter((s) => s.id.startsWith(`${prefix}-`));
+      let maxNum = 0;
+      for (const s of prefixSales) {
+        const parts = s.id.split("-");
+        const suffix = parts[parts.length - 1];
+        const parsed = parseInt(suffix, 10);
+        if (!isNaN(parsed) && parsed > maxNum) {
+          maxNum = parsed;
+        }
+      }
+      const nextNum = maxNum + 1;
       const paddedNum = String(nextNum).padStart(4, "0");
       const id = `${prefix}-${paddedNum}`;
 
@@ -70,10 +81,12 @@ function NuevaVenta() {
         status: draft.payment === "Pendiente" ? "Pendiente" : "Entregado",
         createdAt: new Date().toISOString(),
       });
+      resetDraft();
       navigate({ to: "/ticket/$saleId", params: { saleId: id } });
     } catch (error) {
       console.error(error);
       setIsSubmitting(false);
+      setSubmitError(error instanceof Error ? error.message : "Error desconocido al registrar la venta");
     }
   };
 
@@ -154,18 +167,29 @@ function NuevaVenta() {
         />
       )}
       {step === 3 && (
-        <StepConfirm
-          clientName={draft.client!.name}
-          channel={draft.client!.channel}
-          items={items}
-          subtotal={subtotal}
-          returnsTotal={returnsTotal}
-          cost={cost}
-          profit={profit}
-          margin={margin}
-          payment={draft.payment}
-          setPayment={(p) => setDraft((d) => ({ ...d, payment: p }))}
-        />
+        <div className="space-y-4">
+          {submitError && (
+            <div className="flex items-start gap-3 rounded-2xl border border-destructive/20 bg-destructive/10 p-4 text-destructive">
+              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-sm">No se pudo guardar la venta</p>
+                <p className="text-[12px] text-destructive-foreground/90 mt-0.5">{submitError}</p>
+              </div>
+            </div>
+          )}
+          <StepConfirm
+            clientName={draft.client!.name}
+            channel={draft.client!.channel}
+            items={items}
+            subtotal={subtotal}
+            returnsTotal={returnsTotal}
+            cost={cost}
+            profit={profit}
+            margin={margin}
+            payment={draft.payment}
+            setPayment={(p) => setDraft((d) => ({ ...d, payment: p }))}
+          />
+        </div>
       )}
 
       {/* Sticky bottom bar */}
