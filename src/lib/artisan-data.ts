@@ -14,7 +14,7 @@ export type Client = {
   lastDelivery?: string;
 };
 
-export type PaymentMethod = "Efectivo" | "Transferencia" | "Pendiente";
+export type PaymentMethod = "Efectivo" | "Transferencia" | "Pendiente" | "Consignación" | "Cortesía";
 
 export type SaleItem = {
   productId: string;

@@ -30,7 +30,7 @@ function NuevaVenta() {
   );
   const subtotal = items.reduce((s, i) => s + i.unitPrice * i.qty, 0);
   const returnsTotal = items.reduce((s, i) => s + i.unitPrice * (i.returnQty ?? 0), 0);
-  const netTotal = subtotal; // Do not deduct returns from payment total
+  const netTotal = draft.payment === "Cortesía" ? 0 : subtotal; // Cortesías charge 0, but track cost
   const cost = items.reduce((s, i) => s + i.cost * i.qty, 0);
   const profit = netTotal - cost;
   const margin = netTotal > 0 ? Math.round((profit / netTotal) * 100) : 0;
@@ -78,7 +78,7 @@ function NuevaVenta() {
         cost,
         profit,
         payment: draft.payment,
-        status: draft.payment === "Pendiente" ? "Pendiente" : "Entregado",
+        status: (draft.payment === "Pendiente" || draft.payment === "Consignación") ? "Pendiente" : "Entregado",
         createdAt: new Date().toISOString(),
       });
       resetDraft();
@@ -173,7 +173,7 @@ function NuevaVenta() {
               <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold text-sm">No se pudo guardar la venta</p>
-                <p className="text-[12px] text-destructive-foreground/90 mt-0.5">{submitError}</p>
+                <p className="text-[12px] text-destructive/90 mt-0.5">{submitError}</p>
               </div>
             </div>
           )}
@@ -181,7 +181,7 @@ function NuevaVenta() {
             clientName={draft.client!.name}
             channel={draft.client!.channel}
             items={items}
-            subtotal={subtotal}
+            subtotal={netTotal}
             returnsTotal={returnsTotal}
             cost={cost}
             profit={profit}
@@ -526,16 +526,16 @@ function StepConfirm({
       </div>
 
       <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-        <p className="text-[12px] font-semibold text-text-muted mb-2">MÉTODO DE PAGO</p>
-        <div className="grid grid-cols-3 gap-2">
-          {(["Efectivo", "Transferencia", "Pendiente"] as PaymentMethod[]).map((p) => (
+        <p className="text-[12px] font-semibold text-text-muted mb-2.5">MÉTODO DE PAGO</p>
+        <div className="flex flex-wrap gap-2">
+          {(["Efectivo", "Transferencia", "Pendiente", "Consignación", "Cortesía"] as PaymentMethod[]).map((p) => (
             <button
               key={p}
               onClick={() => setPayment(p)}
-              className={`rounded-full py-2 text-[12px] font-semibold border transition ${
+              className={`rounded-xl px-4 py-2.5 text-[12px] font-semibold border transition ${
                 payment === p
-                  ? "bg-primary text-white border-primary"
-                  : "bg-surface text-text-secondary border-border"
+                  ? "bg-primary text-white border-primary shadow-sm"
+                  : "bg-surface text-text-secondary border-border hover:bg-muted"
               }`}
             >
               {p}

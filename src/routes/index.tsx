@@ -171,6 +171,7 @@ function Home() {
   const kpiData = useMemo(() => {
     let salesTotal = 0;
     let costTotal = 0;
+    let pendingSalesTotal = 0;
     let packagesTotal = 0;
     let returnsTotal = 0;
     const productQuantities: Record<string, number> = {};
@@ -179,10 +180,16 @@ function Home() {
       s.items.forEach((item) => {
         // If product filter is active, only sum metrics for this product
         if (productFilter === "Todos" || item.productId === productFilter) {
-          const itemTotal = item.qty * item.unitPrice;
+          const itemTotal = s.payment === "Cortesía" ? 0 : item.qty * item.unitPrice;
           const itemCost = item.qty * item.cost;
-          salesTotal += itemTotal;
-          costTotal += itemCost;
+          
+          if (s.status === "Entregado") {
+            salesTotal += itemTotal;
+            costTotal += itemCost;
+          } else {
+            pendingSalesTotal += itemTotal;
+          }
+          
           packagesTotal += item.qty;
           returnsTotal += item.returnQty ?? 0;
 
@@ -209,6 +216,7 @@ function Home() {
       salesTotal,
       costTotal,
       profitTotal,
+      pendingSalesTotal,
       margin,
       packagesTotal,
       returnsTotal,
@@ -228,7 +236,7 @@ function Home() {
       clientFilteredSales.forEach((s) => {
         s.items.forEach((item) => {
           if (item.productId === prod.id) {
-            salesAmount += item.qty * item.unitPrice;
+            salesAmount += s.payment === "Cortesía" ? 0 : item.qty * item.unitPrice;
             costAmount += item.qty * item.cost;
             qtySold += item.qty;
           }
@@ -279,7 +287,7 @@ function Home() {
       let val = 0;
       s.items.forEach((item) => {
         if (productFilter === "Todos" || item.productId === productFilter) {
-          val += item.qty * item.unitPrice;
+          val += s.payment === "Cortesía" ? 0 : item.qty * item.unitPrice;
         }
       });
 
@@ -446,50 +454,70 @@ function Home() {
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <Kpi
-          label="VENTAS TOTALES"
-          value={formatMXN(kpiData.salesTotal)}
-          sub={`${fullyFilteredSales.length} transacciones`}
-          icon={<DollarSign className="h-4 w-4 text-emerald-600" />}
-          tone="bg-gradient-to-br from-emerald-50 to-white"
-        />
-        <Kpi
-          label="COSTOS TOTALES"
-          value={formatMXN(kpiData.costTotal)}
-          sub="en el periodo"
-          icon={<DollarSign className="h-4 w-4 text-rose-600" />}
-          tone="bg-gradient-to-br from-rose-50 to-white"
-        />
-        <Kpi
-          label="GANANCIA TOTAL"
-          value={formatMXN(kpiData.profitTotal)}
-          sub={`${kpiData.margin}% margen util.`}
-          icon={<TrendingUp className="h-4 w-4 text-sky-600" />}
-          tone="bg-gradient-to-br from-sky-50 to-white"
-        />
-        <Kpi
-          label="TOP PRODUCTO"
-          value={kpiData.topProduct}
-          sub={kpiData.maxQty > 0 ? `${kpiData.maxQty} paquetes` : "Ninguno"}
-          icon={<Package className="h-4 w-4 text-violet-600" />}
-          tone="bg-gradient-to-br from-violet-50 to-white"
-        />
-        <Kpi
-          label="PAQUETES ENTREGADOS"
-          value={String(kpiData.packagesTotal)}
-          sub="en el periodo"
-          icon={<CheckCircle2 className="h-4 w-4 text-amber-600" />}
-          tone="bg-gradient-to-br from-amber-50 to-white"
-        />
-        <Kpi
-          label="PRODUCTOS CAMBIADOS"
-          value={String(kpiData.returnsTotal)}
-          sub="cambios / devoluciones"
-          icon={<RefreshCw className="h-4 w-4 text-orange-600" />}
-          tone="bg-gradient-to-br from-orange-50 to-white"
-        />
+      {/* KPI Section */}
+      <div className="space-y-6">
+        {/* Resumen Financiero */}
+        <div>
+          <h4 className="text-[11px] font-bold tracking-wider text-text-muted uppercase mb-2">Resumen Financiero (Efectivo/Transferencia)</h4>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Kpi
+              label="VENTAS COBRADAS"
+              value={formatMXN(kpiData.salesTotal)}
+              sub={`${fullyFilteredSales.filter(s => s.status === "Entregado").length} cobradas`}
+              icon={<DollarSign className="h-4 w-4 text-emerald-600" />}
+              tone="bg-gradient-to-br from-emerald-50 to-white"
+            />
+            <Kpi
+              label="COSTOS TOTALES"
+              value={formatMXN(kpiData.costTotal)}
+              sub="entregados y cortesías"
+              icon={<DollarSign className="h-4 w-4 text-rose-600" />}
+              tone="bg-gradient-to-br from-rose-50 to-white"
+            />
+            <Kpi
+              label="GANANCIA NETA"
+              value={formatMXN(kpiData.profitTotal)}
+              sub={`${kpiData.margin}% margen util.`}
+              icon={<TrendingUp className="h-4 w-4 text-sky-600" />}
+              tone="bg-gradient-to-br from-sky-50 to-white"
+            />
+            <Kpi
+              label="POR COBRAR"
+              value={formatMXN(kpiData.pendingSalesTotal)}
+              sub={`${fullyFilteredSales.filter(s => s.status === "Pendiente").length} pendientes / consignación`}
+              icon={<DollarSign className="h-4 w-4 text-amber-600" />}
+              tone="bg-gradient-to-br from-amber-50 to-white"
+            />
+          </div>
+        </div>
+
+        {/* Métricas de Operación */}
+        <div>
+          <h4 className="text-[11px] font-bold tracking-wider text-text-muted uppercase mb-2">Métricas de Operación</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Kpi
+              label="TOP PRODUCTO"
+              value={kpiData.topProduct}
+              sub={kpiData.maxQty > 0 ? `${kpiData.maxQty} paquetes` : "Ninguno"}
+              icon={<Package className="h-4 w-4 text-violet-600" />}
+              tone="bg-gradient-to-br from-violet-50 to-white"
+            />
+            <Kpi
+              label="PAQUETES ENTREGADOS"
+              value={String(kpiData.packagesTotal)}
+              sub="en el periodo"
+              icon={<CheckCircle2 className="h-4 w-4 text-amber-600" />}
+              tone="bg-gradient-to-br from-amber-50 to-white"
+            />
+            <Kpi
+              label="PRODUCTOS CAMBIADOS"
+              value={String(kpiData.returnsTotal)}
+              sub="cambios / devoluciones"
+              icon={<RefreshCw className="h-4 w-4 text-orange-600" />}
+              tone="bg-gradient-to-br from-orange-50 to-white"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Product Economy Table (Excel-like) */}
@@ -812,13 +840,13 @@ function Home() {
                                 updateSaleStatus(
                                   s.id,
                                   "Entregado",
-                                  s.payment === "Pendiente" ? "Efectivo" : s.payment,
+                                  ["Pendiente", "Consignación"].includes(s.payment) ? "Efectivo" : s.payment,
                                 )
                               }
                               className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-primary text-white text-[13px] font-semibold py-2 transition hover:bg-[#1f523b]"
                             >
                               <CheckCircle2 className="h-4 w-4" />
-                              Marcar entregado
+                              Cobrar
                             </button>
                           )}
                           <Link
@@ -915,12 +943,12 @@ function Home() {
                                   updateSaleStatus(
                                     s.id,
                                     "Entregado",
-                                    s.payment === "Pendiente" ? "Efectivo" : s.payment,
+                                    ["Pendiente", "Consignación"].includes(s.payment) ? "Efectivo" : s.payment,
                                   )
                                 }
                                 className="bg-primary hover:bg-[#1f523b] text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition"
                               >
-                                Entregar
+                                Cobrar
                               </button>
                             )}
                             <Link

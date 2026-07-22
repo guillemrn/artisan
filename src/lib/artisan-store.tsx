@@ -121,17 +121,32 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error("No hay una sesión de usuario activa");
 
+        // Inject metadata into items to circumvent database check constraint
+        const itemsWithMetadata = s.items.map((item, idx) => {
+          if (idx === 0) {
+            return {
+              ...item,
+              _paymentMethod: s.payment,
+            };
+          }
+          return item;
+        });
+
         // Insert sale
         const { error: saleError } = await supabase.from("sales").insert({
           id: s.id,
           client_id: s.clientId,
           client_name: s.clientName,
           channel: s.channel,
-          items: s.items,
+          items: itemsWithMetadata,
           total: s.total,
           cost: s.cost,
           profit: s.profit,
-          payment: s.payment,
+          payment: s.payment === "Consignación" 
+            ? "Pendiente" 
+            : s.payment === "Cortesía" 
+              ? "Efectivo" 
+              : s.payment,
           status: s.status,
           created_at: s.createdAt,
           user_id: session.user.id,

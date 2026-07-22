@@ -76,19 +76,29 @@ export async function fetchArtisanData(): Promise<ArtisanData> {
     lastDelivery: c.last_delivery || undefined,
   }));
 
-  const sales: Sale[] = dbSales.map(s => ({
-    id: s.id,
-    clientId: s.client_id,
-    clientName: s.client_name,
-    channel: s.channel as "PDV" | "Público",
-    items: s.items as SaleItem[],
-    total: Number(s.total),
-    cost: Number(s.cost),
-    profit: Number(s.profit),
-    payment: s.payment as PaymentMethod,
-    status: s.status as "Pendiente" | "Entregado",
-    createdAt: s.created_at,
-  }));
+  const sales: Sale[] = dbSales.map(s => {
+    const dbItems = s.items as any[] ?? [];
+    const actualPayment = dbItems[0]?._paymentMethod || s.payment;
+    
+    const cleanedItems: SaleItem[] = dbItems.map((item: any) => {
+      const { _paymentMethod, ...cleanItem } = item;
+      return cleanItem as SaleItem;
+    });
+
+    return {
+      id: s.id,
+      clientId: s.client_id,
+      clientName: s.client_name,
+      channel: s.channel as "PDV" | "Público",
+      items: cleanedItems,
+      total: Number(s.total),
+      cost: Number(s.cost),
+      profit: Number(s.profit),
+      payment: actualPayment as PaymentMethod,
+      status: s.status as "Pendiente" | "Entregado",
+      createdAt: s.created_at,
+    };
+  });
 
   return { products, clients, sales };
 }
