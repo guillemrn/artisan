@@ -1309,12 +1309,6 @@ function LandingPage() {
             >
               Iniciar sesión
             </Link>
-            <Link
-              to="/login"
-              className="inline-flex h-10 items-center justify-center rounded-full bg-[#246448] px-5 text-[14px] font-bold text-white shadow-sm hover:bg-[#1c5039] transition active:scale-[0.98]"
-            >
-              Registrarse gratis
-            </Link>
           </div>
         </div>
       </header>
@@ -1371,24 +1365,111 @@ function LandingPage() {
             </div>
 
             {/* CTA Button & Subtext */}
-            <div className="pt-2 flex items-center gap-4 flex-wrap">
+            <div className="pt-2 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <Link
                 to="/login"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#246448] px-7 text-[15px] font-bold text-white shadow-lg shadow-[#246448]/20 hover:bg-[#1c5039] transition active:scale-[0.98]"
+                className="w-full sm:w-auto inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#246448] px-7 text-[15px] font-bold text-white shadow-lg shadow-[#246448]/20 hover:bg-[#1c5039] transition active:scale-[0.98]"
               >
                 Prueba Artisan gratis <ArrowRight className="h-4 w-4" />
               </Link>
-              <div className="text-[13px] text-text-muted italic leading-snug">
+              <div className="text-[13px] text-text-muted italic leading-snug text-center sm:text-left">
                 Sin tarjeta.<br />Sin complicaciones.
               </div>
             </div>
           </div>
 
-          {/* RIGHT COLUMN: Desktop Dashboard + Mobile Overlay Showcase */}
+          {/* RIGHT COLUMN: Showcase (Mobile Dashboard on mobile screens, Desktop + Mobile on desktop screens) */}
           <div className="lg:col-span-7 relative pt-4 lg:pt-0">
 
-            {/* DESKTOP APP MOCKUP */}
-            <div className="bg-[#FAF9F5] rounded-[24px] border border-black/10 shadow-[0_20px_50px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col md:flex-row text-[#2F3437]">
+            {/* MOBILE-ONLY PREVIEW (Shown on Mobile screens sm:hidden) */}
+            <div className="block sm:hidden py-4">
+              <div className="w-[300px] shadow-[0_20px_50px_rgba(0,0,0,0.18)] rounded-[38px] border-[7px] border-[#1F2B2E] bg-[#FAF9F5] overflow-hidden mx-auto">
+                {/* Phone Notch */}
+                <div className="bg-[#1F2B2E] h-5 w-full flex items-center justify-center">
+                  <div className="w-16 h-3 bg-black rounded-full" />
+                </div>
+
+                {/* Mobile Content */}
+                <div className="p-3.5 space-y-3 bg-[#FAF9F5]">
+                  <div className="flex items-center justify-between">
+                    <Logo variant="full" className="h-5 w-auto text-[#246448]" />
+                    <Bell className="h-3.5 w-3.5 text-text-muted" />
+                  </div>
+
+                  <div>
+                    <p className="text-[9px] text-text-muted font-semibold">Miércoles, 22 de Julio</p>
+                    <h3 className="text-sm font-bold font-display text-[#1F2B2E]">¡Buenos días, Andrea!</h3>
+                  </div>
+
+                  {/* Mobile KPI 1 */}
+                  <div className="bg-white p-3 rounded-2xl border border-black/5 shadow-2xs flex justify-between items-center">
+                    <div>
+                      <p className="text-[8px] font-bold text-text-muted uppercase">VENTAS HOY</p>
+                      <p className="text-base font-extrabold font-display text-[#1F2B2E] mt-0.5">$4,860.00</p>
+                      <p className="text-[8px] text-text-muted">9 cobradas</p>
+                    </div>
+                    <div className="h-6 w-6 rounded-full bg-emerald-50 text-emerald-600 font-bold text-[10px] flex items-center justify-center">
+                      $
+                    </div>
+                  </div>
+
+                  {/* Mobile KPI 2 */}
+                  <div className="bg-white p-3 rounded-2xl border border-black/5 shadow-2xs flex justify-between items-center">
+                    <div>
+                      <p className="text-[8px] font-bold text-text-muted uppercase">GANANCIA</p>
+                      <p className="text-base font-extrabold font-display text-[#1F2B2E] mt-0.5">$2,940.00</p>
+                      <p className="text-[8px] text-text-muted">60% margen util.</p>
+                    </div>
+                    <div className="h-6 w-6 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center">
+                      <TrendingUp className="h-3 w-3" />
+                    </div>
+                  </div>
+
+                  {/* Mobile KPI 3 */}
+                  <div className="bg-white p-3 rounded-2xl border border-black/5 shadow-2xs flex justify-between items-center">
+                    <div>
+                      <p className="text-[8px] font-bold text-text-muted uppercase">TOP PRODUCTO</p>
+                      <p className="text-[11px] font-bold text-[#1F2B2E] mt-0.5">Jabón Lavanda</p>
+                      <p className="text-[8px] text-text-muted">18 unidades vendidas</p>
+                    </div>
+                    <div className="h-6 w-6 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+                      <Package className="h-3 w-3" />
+                    </div>
+                  </div>
+
+                  {/* Mobile Action Button */}
+                  <button className="w-full py-2 rounded-xl bg-[#246448] text-white font-bold text-[11px] flex items-center justify-center gap-1 shadow-sm">
+                    <Plus className="h-3.5 w-3.5" /> Nueva venta
+                  </button>
+
+                  {/* Mobile Tab Bar */}
+                  <div className="bg-white rounded-xl border border-black/5 py-1.5 px-3 flex justify-between items-center text-[8px] font-bold text-text-muted">
+                    <div className="flex flex-col items-center text-[#246448]">
+                      <Store className="h-3.5 w-3.5" />
+                      <span>Inicio</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <Receipt className="h-3.5 w-3.5" />
+                      <span>Ventas</span>
+                    </div>
+                    <div className="h-6 w-6 rounded-full bg-[#246448] text-white flex items-center justify-center shadow-2xs">
+                      <Plus className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <Package className="h-3.5 w-3.5" />
+                      <span>Productos</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      <span>Ajustes</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* DESKTOP APP MOCKUP (Shown on Tablet & Desktop screens sm:flex) */}
+            <div className="hidden sm:flex bg-[#FAF9F5] rounded-[24px] border border-black/10 shadow-[0_20px_50px_rgba(0,0,0,0.08)] overflow-hidden flex-col md:flex-row text-[#2F3437]">
 
               {/* Desktop Left Sidebar */}
               <div className="w-full md:w-48 bg-[#F4F3EE] p-4 border-r border-black/5 flex flex-col justify-between shrink-0">
@@ -1421,7 +1502,6 @@ function LandingPage() {
                 </div>
 
                 <div className="space-y-3 pt-4 border-t border-black/5">
-
                   <div className="flex items-center gap-2 px-1">
                     <div className="h-7 w-7 rounded-full bg-amber-200 text-amber-900 font-bold text-xs flex items-center justify-center shrink-0">
                       AM
@@ -1605,7 +1685,7 @@ function LandingPage() {
               </div>
             </div>
 
-            {/* MOBILE OVERLAY FRAME */}
+            {/* MOBILE OVERLAY FRAME (Shown overlapping desktop on Tablet & Desktop screens sm:block) */}
             <div className="absolute -bottom-10 -right-2 sm:right-2 w-[260px] sm:w-[280px] z-20 shadow-[0_25px_60px_rgba(0,0,0,0.22)] rounded-[38px] border-[7px] border-[#1F2B2E] bg-[#FAF9F5] overflow-hidden hidden sm:block">
               {/* Phone Notch */}
               <div className="bg-[#1F2B2E] h-5 w-full flex items-center justify-center">
