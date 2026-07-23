@@ -10,8 +10,8 @@ export const Route = createFileRoute("/buscar")({
   validateSearch: (search: Record<string, unknown>): SearchParams => ({
     q: typeof search.q === "string" ? search.q : "",
   }),
-  head: ({ search }) => ({
-    meta: [{ title: search.q ? `Buscar: ${search.q} — Artisan` : "Buscar — Artisan" }],
+  head: () => ({
+    meta: [{ title: "Buscar — Artisan" }],
   }),
   component: Buscar,
 });
