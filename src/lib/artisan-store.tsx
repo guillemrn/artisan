@@ -89,10 +89,36 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
 
   const persist = useCallback(
     (next: ArtisanData) => {
-      if (isDemo) {
-        saveArtisanData(next);
-      }
-      queryClient.setQueryData(artisanQueryKeys.data(), next);
+      queryClient.setQueryData<ArtisanData>(artisanQueryKeys.data(), (old) => {
+        if (!old) {
+          if (isDemo) saveArtisanData(next);
+          return next;
+        }
+
+        // Deduplicate sales by ID and sort descending by createdAt
+        const salesMap = new Map<string, Sale>();
+        next.sales.forEach((s) => salesMap.set(s.id, s));
+        old.sales.forEach((s) => {
+          if (!salesMap.has(s.id)) {
+            salesMap.set(s.id, s);
+          }
+        });
+
+        const mergedSales = Array.from(salesMap.values()).sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+        const merged: ArtisanData = {
+          sales: mergedSales,
+          clients: next.clients,
+          products: next.products,
+        };
+
+        if (isDemo) {
+          saveArtisanData(merged);
+        }
+        return merged;
+      });
     },
     [queryClient, isDemo],
   );
@@ -187,6 +213,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           products: nextProducts,
         });
         setLastSaleId(s.id);
+        queryClient.invalidateQueries({ queryKey: artisanQueryKeys.data() });
       },
       updateSaleStatus: async (id, status, payment) => {
         if (isDemo) {

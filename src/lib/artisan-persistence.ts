@@ -24,12 +24,26 @@ const DEFAULT_DATA: ArtisanData = {
   products: PRODUCTS,
 };
 
+export function normalizeIsoDate(dateStr?: string | null): string {
+  if (!dateStr) return new Date().toISOString();
+  let iso = dateStr.trim().replace(" ", "T");
+  iso = iso.replace(/\+00(:00)?$/, "Z");
+  if (!/[Zz]|\+\d{2}:?\d{2}|-\d{2}:?\d{2}$/.test(iso)) {
+    iso += "Z";
+  }
+  return iso;
+}
+
 export function loadArtisanData(): ArtisanData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_DATA;
     const parsed = JSON.parse(raw) as ArtisanData;
     if (!parsed.sales || !parsed.clients || !parsed.products) return DEFAULT_DATA;
+    parsed.sales = parsed.sales.map((s) => ({
+      ...s,
+      createdAt: normalizeIsoDate(s.createdAt),
+    }));
     return parsed;
   } catch {
     return DEFAULT_DATA;
@@ -57,8 +71,6 @@ export async function fetchArtisanData(): Promise<ArtisanData> {
   const dbClients = clientsRes.data ?? [];
   const dbSales = salesRes.data ?? [];
 
-
-
   // Map database models to client types
   const products: Product[] = dbProducts.map(p => ({
     id: p.id,
@@ -76,7 +88,9 @@ export async function fetchArtisanData(): Promise<ArtisanData> {
     lastDelivery: c.last_delivery || undefined,
   }));
 
-  const sales: Sale[] = dbSales.map(s => {
+  const salesMap = new Map<string, Sale>();
+
+  dbSales.forEach(s => {
     const dbItems = s.items as any[] ?? [];
     const actualPayment = dbItems[0]?._paymentMethod || s.payment;
     
@@ -85,11 +99,9 @@ export async function fetchArtisanData(): Promise<ArtisanData> {
       return cleanItem as SaleItem;
     });
 
-    const normalizedCreatedAt = (s.created_at || "")
-      .replace(" ", "T")
-      .replace(/\+00(:00)?$/, "Z");
+    const normalizedCreatedAt = normalizeIsoDate(s.created_at);
 
-    return {
+    const sale: Sale = {
       id: s.id,
       clientId: s.client_id,
       clientName: s.client_name,
@@ -102,7 +114,13 @@ export async function fetchArtisanData(): Promise<ArtisanData> {
       status: s.status as "Pendiente" | "Entregado",
       createdAt: normalizedCreatedAt,
     };
+
+    salesMap.set(sale.id, sale);
   });
+
+  const sales = Array.from(salesMap.values()).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
   return { products, clients, sales };
 }

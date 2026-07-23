@@ -65,8 +65,13 @@ function NuevaVenta() {
         }
       }
       const nextNum = maxNum + 1;
-      const paddedNum = String(nextNum).padStart(4, "0");
-      const id = `${prefix}-${paddedNum}`;
+      let candidateId = `${prefix}-${String(nextNum).padStart(4, "0")}`;
+
+      // Fallback if ID collision occurs with existing loaded or cached sales
+      if (sales.some((s) => s.id === candidateId)) {
+        candidateId = `${prefix}-${Date.now().toString().slice(-6)}`;
+      }
+      const id = candidateId;
 
       await addSale({
         id,
