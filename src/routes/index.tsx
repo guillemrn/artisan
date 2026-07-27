@@ -34,9 +34,17 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { useArtisan } from "@/lib/artisan-store";
-import { USER_NAME, formatMXN, formatMXNc } from "@/lib/artisan-data";
+import { USER_NAME, formatMXN, formatMXNc, type Sale, type PaymentMethod } from "@/lib/artisan-data";
 import { Logo } from "@/components/ui/logo";
 import { useAuth } from "@/core/auth/auth-context";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -91,7 +99,7 @@ function Home() {
     return <LandingPage />;
   }
 
-  const { sales, products, clients, updateSaleStatus } = useArtisan();
+  const { sales, products, clients, updateSaleStatus, updateProduct } = useArtisan();
 
   // State for filters
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("Hoy");
@@ -105,6 +113,52 @@ function Home() {
   const [csvOpen, setCsvOpen] = useState(false);
 
   const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // States for Cobrar Confirmation & Pending Sales Modals
+  const [saleToCobrar, setSaleToCobrar] = useState<Sale | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>("Efectivo");
+  const [isPendingSalesModalOpen, setIsPendingSalesModalOpen] = useState(false);
+  const [modalOpenId, setModalOpenId] = useState<string | null>(null);
+
+  // State for Add Inventory Modal
+  const [isAddStockModalOpen, setIsAddStockModalOpen] = useState(false);
+  const [addStockValues, setAddStockValues] = useState<Record<string, string>>({});
+
+  const handleSaveAddStock = async () => {
+    let updatedCount = 0;
+    for (const p of products) {
+      const addedQty = parseInt(addStockValues[p.id] || "0", 10);
+      if (addedQty > 0) {
+        await updateProduct({ ...p, stock: p.stock + addedQty });
+        updatedCount += addedQty;
+      }
+    }
+    if (updatedCount > 0) {
+      toast.success(`Se agregaron ${updatedCount} piezas al inventario`);
+    } else {
+      toast.info("No se ingresaron piezas para agregar");
+    }
+    setAddStockValues({});
+    setIsAddStockModalOpen(false);
+  };
+
+  const handleOpenCobrarModal = (sale: Sale) => {
+    setSaleToCobrar(sale);
+    setSelectedPayment(
+      ["Pendiente", "Consignación"].includes(sale.payment) ? "Efectivo" : sale.payment
+    );
+  };
+
+  const allPendingSales = useMemo(() => {
+    return sales.filter((s) => s.status === "Pendiente");
+  }, [sales]);
+
+  const allPendingSalesTotal = useMemo(() => {
+    return allPendingSales.reduce((acc, s) => {
+      if (s.payment === "Cortesía") return acc;
+      return acc + s.total;
+    }, 0);
+  }, [allPendingSales]);
 
   useEffect(() => {
     const completed = localStorage.getItem("onboarding_completed") === "true";
@@ -387,13 +441,23 @@ function Home() {
               Gestiona tu inventario, ventas y clientes con Almara.
             </p>
           </div>
-          <Link
-            to="/nueva-venta"
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 text-[14px] font-bold text-[#243437] shadow-md transition hover:bg-[#F7F3EC] active:scale-[0.99]"
-          >
-            <Plus className="h-4 w-4" />
-            Nueva venta
-          </Link>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setIsAddStockModalOpen(true)}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-4 text-[14px] font-bold text-white transition hover:bg-white/20 active:scale-[0.99] cursor-pointer"
+            >
+              <Package className="h-4 w-4" />
+              Agregar inventario
+            </button>
+            <Link
+              to="/nueva-venta"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 text-[14px] font-bold text-[#243437] shadow-md transition hover:bg-[#F7F3EC] active:scale-[0.99]"
+            >
+              <Plus className="h-4 w-4" />
+              Nueva venta
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -498,6 +562,7 @@ function Home() {
               sub={`${fullyFilteredSales.filter(s => s.status === "Pendiente").length} pendientes / consignación`}
               icon={<DollarSign className="h-4 w-4 text-amber-600" />}
               tone="bg-gradient-to-br from-amber-50 to-white"
+              onClick={() => setIsPendingSalesModalOpen(true)}
             />
           </div>
         </div>
@@ -743,137 +808,15 @@ function Home() {
           <>
             {/* Mobile View: Cards */}
             <ul className="grid gap-2 md:hidden">
-              {historyFilteredSales.slice(0, 15).map((s) => {
-                const open = openId === s.id;
-                const t = new Date(s.createdAt).toLocaleTimeString("es-MX", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                });
-                const dateStr = new Date(s.createdAt).toLocaleDateString("es-MX", {
-                  day: "2-digit",
-                  month: "2-digit",
-                });
-
-                return (
-                  <li
-                    key={s.id}
-                    className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition"
-                  >
-                    <button
-                      className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
-                      onClick={() => setOpenId(open ? null : s.id)}
-                    >
-                      <div
-                        className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${s.channel === "PDV"
-                          ? "bg-primary-light text-primary"
-                          : "bg-[#F5F3FF] text-[#6D28D9]"
-                          }`}
-                      >
-                        {s.channel === "PDV" ? (
-                          <Store className="h-5 w-5" />
-                        ) : (
-                          <User className="h-5 w-5" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="truncate text-[14px] font-bold">{s.clientName}</p>
-                        <p className="text-[12px] text-text-muted truncate">
-                          {s.items
-                            .map((i) => {
-                              const list = [];
-                              if (i.qty > 0) list.push(`${i.productName} ×${i.qty}`);
-                              if (i.returnQty && i.returnQty > 0)
-                                list.push(`[Cambio: ${i.productName} ×${i.returnQty}]`);
-                              return list.join(" ");
-                            })
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-text-muted">
-                          {dateStr} · {t}
-                        </p>
-                      </div>
-                      <div className="shrink-0 text-right flex flex-col items-end gap-1">
-                        <p className="text-[14px] font-bold">{formatMXN(s.total)}</p>
-                        {s.status === "Entregado" ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[10px] font-semibold px-2 py-0.5">
-                            <CheckCircle2 className="h-3 w-3" /> Entregado
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 text-warning text-[10px] font-semibold px-2 py-0.5">
-                            <Clock className="h-3 w-3" /> Pendiente
-                          </span>
-                        )}
-                      </div>
-                      <ChevronDown className={`h-4 w-4 text-text-muted transition ml-1 ${open ? "rotate-180" : ""}`} />
-                    </button>
-
-                    {open && (
-                      <div className="border-t border-border px-4 py-3 space-y-2">
-                        <div className="space-y-1.5">
-                          {s.items.map((i) => (
-                            <div key={i.productId} className="space-y-0.5">
-                              {i.qty > 0 && (
-                                <div className="flex justify-between text-[13px]">
-                                  <span>
-                                    {i.productName} <span className="text-text-muted">×{i.qty}</span>
-                                  </span>
-                                  <span className="font-semibold">{formatMXNc(i.unitPrice * i.qty)}</span>
-                                </div>
-                              )}
-                              {(i.returnQty ?? 0) > 0 && (
-                                <div className="flex justify-between text-[12px] text-warning font-medium">
-                                  <span>
-                                    Cambio (Merma): {i.productName} <span className="opacity-70">×{i.returnQty}</span>
-                                  </span>
-                                  <span>(Sin costo)</span>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="pt-2 border-t border-border space-y-1 text-[13px]">
-                          <div className="flex justify-between">
-                            <span className="text-text-secondary">Pago</span>
-                            <span className="font-semibold">{s.payment}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-text-secondary">Ganancia</span>
-                            <span className="font-semibold text-success">{formatMXN(s.profit)}</span>
-                          </div>
-                        </div>
-
-                        <div className="pt-2 border-t border-border flex gap-2">
-                          {s.status === "Pendiente" && (
-                            <button
-                              onClick={() =>
-                                updateSaleStatus(
-                                  s.id,
-                                  "Entregado",
-                                  ["Pendiente", "Consignación"].includes(s.payment) ? "Efectivo" : s.payment,
-                                )
-                              }
-                              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-primary text-white text-[13px] font-semibold py-2 transition hover:bg-[#1f523b]"
-                            >
-                              <CheckCircle2 className="h-4 w-4" />
-                              Cobrar
-                            </button>
-                          )}
-                          <Link
-                            to="/ticket/$saleId"
-                            params={{ saleId: s.id }}
-                            className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-muted text-text-secondary text-[13px] font-semibold px-4 py-2 transition hover:bg-border"
-                          >
-                            <Receipt className="h-4 w-4" />
-                            Ticket
-                          </Link>
-                        </div>
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
+              {historyFilteredSales.slice(0, 15).map((s) => (
+                <SaleCardItem
+                  key={s.id}
+                  sale={s}
+                  open={openId === s.id}
+                  onToggle={() => setOpenId(openId === s.id ? null : s.id)}
+                  onCobrar={handleOpenCobrarModal}
+                />
+              ))}
             </ul>
 
             {/* Desktop View: Table */}
@@ -950,14 +893,8 @@ function Home() {
                           <div className="flex justify-end gap-1.5">
                             {s.status === "Pendiente" && (
                               <button
-                                onClick={() =>
-                                  updateSaleStatus(
-                                    s.id,
-                                    "Entregado",
-                                    ["Pendiente", "Consignación"].includes(s.payment) ? "Efectivo" : s.payment,
-                                  )
-                                }
-                                className="bg-primary hover:bg-[#1f523b] text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition"
+                                onClick={() => handleOpenCobrarModal(s)}
+                                className="bg-primary hover:bg-[#1f523b] text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition cursor-pointer"
                               >
                                 Cobrar
                               </button>
@@ -986,6 +923,213 @@ function Home() {
           onRemindLater={handleRemindLaterOnboarding}
         />
       )}
+
+      {/* Modal 1: Confirmation Modal for Cobrar */}
+      <Dialog open={!!saleToCobrar} onOpenChange={(open) => !open && setSaleToCobrar(null)}>
+        <DialogContent className="max-w-md rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-text-primary flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              Confirmar Cobro de Venta
+            </DialogTitle>
+            <DialogDescription className="text-xs text-text-muted mt-1">
+              Selecciona el método de pago para registrar el cobro de esta venta.
+            </DialogDescription>
+          </DialogHeader>
+
+          {saleToCobrar && (
+            <div className="space-y-4 py-2">
+              <div className="bg-gray-50 p-4 rounded-xl border border-border/80 space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-text-muted">Cliente:</span>
+                  <span className="font-bold text-text-primary">{saleToCobrar.clientName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-muted">Fecha:</span>
+                  <span className="font-medium text-text-secondary">
+                    {new Date(saleToCobrar.createdAt).toLocaleDateString("es-MX", {
+                      day: "2-digit",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-muted">Productos:</span>
+                  <span className="font-medium text-text-secondary text-right max-w-[200px] truncate">
+                    {saleToCobrar.items.map((i) => `${i.productName} (x${i.qty})`).join(", ")}
+                  </span>
+                </div>
+                <div className="border-t border-border pt-2 flex justify-between items-center text-sm">
+                  <span className="text-text-muted font-medium">Monto Total:</span>
+                  <span className="text-base font-bold text-emerald-700">{formatMXN(saleToCobrar.total)}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2">
+                  Método de Pago
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["Efectivo", "Transferencia"] as PaymentMethod[]).map((method) => (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => setSelectedPayment(method)}
+                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${
+                        selectedPayment === method
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-white text-text-secondary hover:bg-gray-50"
+                      }`}
+                    >
+                      {method}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSaleToCobrar(null)}
+                  className="flex-1 py-2.5 rounded-xl border border-border text-xs font-semibold text-text-secondary hover:bg-gray-100 transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateSaleStatus(saleToCobrar.id, "Entregado", selectedPayment);
+                    toast.success("Venta marcada como cobrada correctamente");
+                    setSaleToCobrar(null);
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-[#1f523b] transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Confirmar Cobro
+                </button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal 2: Pending Sales Modal (All Pending Sales) */}
+      <Dialog open={isPendingSalesModalOpen} onOpenChange={setIsPendingSalesModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6 rounded-2xl">
+          <DialogHeader className="pb-3 border-b border-border">
+            <div className="flex justify-between items-center pr-6">
+              <div>
+                <DialogTitle className="text-lg font-bold text-text-primary flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-amber-600" />
+                  Ventas Por Cobrar (Todas)
+                </DialogTitle>
+                <DialogDescription className="text-xs text-text-muted mt-0.5">
+                  Ventas pendientes de cobro sin importar el filtro de fecha.
+                </DialogDescription>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-text-muted uppercase">Total Por Cobrar</p>
+                <p className="text-lg font-bold text-amber-700">{formatMXN(allPendingSalesTotal)}</p>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto py-3 pr-1 space-y-3">
+            {allPendingSales.length === 0 ? (
+              <div className="py-12 text-center text-text-muted">
+                <CheckCircle2 className="h-10 w-10 mx-auto text-emerald-500 mb-2 opacity-80" />
+                <p className="font-semibold text-sm">¡No hay ventas pendientes por cobrar!</p>
+                <p className="text-xs mt-1">Todas las ventas registradas han sido entregadas y cobradas.</p>
+              </div>
+            ) : (
+              <ul className="grid gap-2.5">
+                {allPendingSales.map((s) => (
+                  <SaleCardItem
+                    key={s.id}
+                    sale={s}
+                    open={modalOpenId === s.id}
+                    onToggle={() => setModalOpenId(modalOpenId === s.id ? null : s.id)}
+                    onCobrar={handleOpenCobrarModal}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal 3: Add Inventory Modal */}
+      <Dialog open={isAddStockModalOpen} onOpenChange={setIsAddStockModalOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] flex flex-col p-6 rounded-2xl">
+          <DialogHeader className="pb-3 border-b border-border">
+            <DialogTitle className="text-xl font-bold text-text-primary flex items-center gap-2">
+              <Package className="h-5 w-5 text-primary" />
+              ¿Cuántas piezas deseas agregar a tu inventario?
+            </DialogTitle>
+            <DialogDescription className="text-xs text-text-muted mt-1">
+              Ingresa la cantidad de piezas nuevas a sumar al stock actual de cada producto.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto py-4 space-y-3 pr-1">
+            {products.map((p) => {
+              const addedVal = addStockValues[p.id] ?? "";
+              return (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-border bg-white hover:border-primary/40 transition"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-sm text-text-primary truncate">{p.name}</p>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      Stock actual: <span className="font-semibold text-text-secondary">{p.stock} unidades</span>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-primary">+</span>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      min="0"
+                      placeholder="0"
+                      value={addedVal}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setAddStockValues((prev) => ({ ...prev, [p.id]: val }));
+                      }}
+                      className="w-24 h-10 px-3 text-right rounded-xl border border-border outline-none transition focus:border-primary focus:ring-1 focus:ring-primary font-bold text-sm bg-gray-50/50"
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="pt-3 border-t border-border flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setAddStockValues({});
+                setIsAddStockModalOpen(false);
+              }}
+              className="flex-1 py-2.5 rounded-xl border border-border text-xs font-semibold text-text-secondary hover:bg-gray-100 transition cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveAddStock}
+              className="flex-1 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-[#1f523b] transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <Package className="h-4 w-4" />
+              Guardar Inventario
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -996,15 +1140,22 @@ function Kpi({
   sub,
   icon,
   tone,
+  onClick,
 }: {
   label: string;
   value: string;
   sub: string;
   icon: React.ReactNode;
   tone: string;
+  onClick?: () => void;
 }) {
   return (
-    <div className={`${tone} rounded-2xl border border-border/80 p-4 shadow-sm relative flex flex-col justify-between h-[104px]`}>
+    <div
+      onClick={onClick}
+      className={`${tone} rounded-2xl border border-border/80 p-4 shadow-sm relative flex flex-col justify-between h-[104px] ${
+        onClick ? "cursor-pointer hover:border-amber-400 hover:shadow-md transition group select-none" : ""
+      }`}
+    >
       <div className="flex justify-between items-center">
         <p className="text-[10px] font-bold tracking-wider text-text-muted">{label}</p>
         <span className="p-1 rounded-lg bg-white/70 shadow-sm border border-border/40">{icon}</span>
@@ -1014,6 +1165,142 @@ function Kpi({
         <p className="text-[11px] font-medium text-text-secondary truncate mt-0.5">{sub}</p>
       </div>
     </div>
+  );
+}
+
+function SaleCardItem({
+  sale: s,
+  open,
+  onToggle,
+  onCobrar,
+}: {
+  sale: Sale;
+  open: boolean;
+  onToggle: () => void;
+  onCobrar: (sale: Sale) => void;
+}) {
+  const d = new Date(s.createdAt);
+  const t = d.toLocaleTimeString("es-MX", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const dateStr = d.toLocaleDateString("es-MX", {
+    day: "2-digit",
+    month: "2-digit",
+  });
+
+  return (
+    <li className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition list-none">
+      <button
+        type="button"
+        className="flex w-full items-center gap-3 px-4 py-3.5 text-left cursor-pointer"
+        onClick={onToggle}
+      >
+        <div
+          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
+            s.channel === "PDV"
+              ? "bg-primary-light text-primary"
+              : "bg-[#F5F3FF] text-[#6D28D9]"
+          }`}
+        >
+          {s.channel === "PDV" ? (
+            <Store className="h-5 w-5" />
+          ) : (
+            <User className="h-5 w-5" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="truncate text-[14px] font-bold text-text-primary">{s.clientName}</p>
+          <p className="text-[12px] text-text-muted truncate">
+            {s.items
+              .map((i) => {
+                const list = [];
+                if (i.qty > 0) list.push(`${i.productName} ×${i.qty}`);
+                if (i.returnQty && i.returnQty > 0)
+                  list.push(`[Cambio: ${i.productName} ×${i.returnQty}]`);
+                return list.join(" ");
+              })
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+          <p className="mt-0.5 text-[11px] text-text-muted">
+            {dateStr} · {t}
+          </p>
+        </div>
+        <div className="shrink-0 text-right flex flex-col items-end gap-1">
+          <p className="text-[14px] font-bold">{formatMXN(s.total)}</p>
+          {s.status === "Entregado" ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[10px] font-semibold px-2 py-0.5">
+              <CheckCircle2 className="h-3 w-3" /> Entregado
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 text-warning text-[10px] font-semibold px-2 py-0.5">
+              <Clock className="h-3 w-3" /> Pendiente
+            </span>
+          )}
+        </div>
+        <ChevronDown className={`h-4 w-4 text-text-muted transition ml-1 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="border-t border-border px-4 py-3 space-y-2">
+          <div className="space-y-1.5">
+            {s.items.map((i) => (
+              <div key={i.productId} className="space-y-0.5">
+                {i.qty > 0 && (
+                  <div className="flex justify-between text-[13px]">
+                    <span>
+                      {i.productName} <span className="text-text-muted">×{i.qty}</span>
+                    </span>
+                    <span className="font-semibold">{formatMXNc(i.unitPrice * i.qty)}</span>
+                  </div>
+                )}
+                {(i.returnQty ?? 0) > 0 && (
+                  <div className="flex justify-between text-[12px] text-warning font-medium">
+                    <span>
+                      Cambio (Merma): {i.productName} <span className="opacity-70">×{i.returnQty}</span>
+                    </span>
+                    <span>(Sin costo)</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-2 border-t border-border space-y-1 text-[13px]">
+            <div className="flex justify-between">
+              <span className="text-text-secondary">Pago</span>
+              <span className="font-semibold">{s.payment}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-text-secondary">Ganancia</span>
+              <span className="font-semibold text-success">{formatMXN(s.profit)}</span>
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-border flex gap-2">
+            {s.status === "Pendiente" && (
+              <button
+                type="button"
+                onClick={() => onCobrar(s)}
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-primary text-white text-[13px] font-semibold py-2 transition hover:bg-[#1f523b] cursor-pointer"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Cobrar
+              </button>
+            )}
+            <Link
+              to="/ticket/$saleId"
+              params={{ saleId: s.id }}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-muted text-text-secondary text-[13px] font-semibold px-4 py-2 transition hover:bg-border"
+            >
+              <Receipt className="h-4 w-4" />
+              Ticket
+            </Link>
+          </div>
+        </div>
+      )}
+    </li>
   );
 }
 

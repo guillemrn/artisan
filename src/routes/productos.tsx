@@ -243,6 +243,7 @@ function Productos() {
                   </label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     step="0.01"
                     required
                     value={cost}
@@ -257,6 +258,8 @@ function Productos() {
                   </label>
                   <input
                     type="number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     required
                     value={stock}
                     onChange={(e) => setStock(e.target.value)}
@@ -344,6 +347,7 @@ function Productos() {
                   </label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     step="0.01"
                     required
                     value={editCost}
@@ -357,6 +361,8 @@ function Productos() {
                   </label>
                   <input
                     type="number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     required
                     value={editStock}
                     onChange={(e) => setEditStock(e.target.value)}
