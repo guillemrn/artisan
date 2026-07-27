@@ -441,18 +441,18 @@ function Home() {
               Gestiona tu inventario, ventas y clientes con Almara.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setIsAddStockModalOpen(true)}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-4 text-[14px] font-bold text-white transition hover:bg-white/20 active:scale-[0.99] cursor-pointer"
+              className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-4 text-[14px] font-bold text-white transition hover:bg-white/20 active:scale-[0.99] cursor-pointer"
             >
               <Package className="h-4 w-4" />
               Agregar inventario
             </button>
             <Link
               to="/nueva-venta"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 text-[14px] font-bold text-[#243437] shadow-md transition hover:bg-[#F7F3EC] active:scale-[0.99]"
+              className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-white px-5 text-[14px] font-bold text-[#243437] shadow-md transition hover:bg-[#F7F3EC] active:scale-[0.99]"
             >
               <Plus className="h-4 w-4" />
               Nueva venta
