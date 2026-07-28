@@ -18,6 +18,7 @@ import { Route as HistorialRouteImport } from './routes/historial'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as NuevaVentaRouteImport } from './routes/nueva-venta'
 import { Route as ProductosRouteImport } from './routes/productos'
+import { Route as VentasRouteImport } from './routes/ventas'
 import { Route as TicketIndexRouteImport } from './routes/ticket/index'
 import { Route as TicketSaleIdRouteImport } from './routes/ticket/$saleId'
 
@@ -66,6 +67,11 @@ const ProductosRoute = ProductosRouteImport.update({
   path: '/productos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VentasRoute = VentasRouteImport.update({
+  id: '/ventas',
+  path: '/ventas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TicketIndexRoute = TicketIndexRouteImport.update({
   id: '/ticket/',
   path: '/ticket/',
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/nueva-venta': typeof NuevaVentaRoute
   '/productos': typeof ProductosRoute
+  '/ventas': typeof VentasRoute
   '/ticket/$saleId': typeof TicketSaleIdRoute
   '/ticket/': typeof TicketIndexRoute
 }
@@ -100,6 +107,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/nueva-venta': typeof NuevaVentaRoute
   '/productos': typeof ProductosRoute
+  '/ventas': typeof VentasRoute
   '/ticket/$saleId': typeof TicketSaleIdRoute
   '/ticket': typeof TicketIndexRoute
 }
@@ -114,6 +122,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/nueva-venta': typeof NuevaVentaRoute
   '/productos': typeof ProductosRoute
+  '/ventas': typeof VentasRoute
   '/ticket/$saleId': typeof TicketSaleIdRoute
   '/ticket/': typeof TicketIndexRoute
 }
@@ -129,6 +138,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/nueva-venta'
     | '/productos'
+    | '/ventas'
     | '/ticket/$saleId'
     | '/ticket/'
   fileRoutesByTo: FileRoutesByTo
@@ -142,6 +152,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/nueva-venta'
     | '/productos'
+    | '/ventas'
     | '/ticket/$saleId'
     | '/ticket'
   id:
@@ -155,6 +166,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/nueva-venta'
     | '/productos'
+    | '/ventas'
     | '/ticket/$saleId'
     | '/ticket/'
   fileRoutesById: FileRoutesById
@@ -169,6 +181,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   NuevaVentaRoute: typeof NuevaVentaRoute
   ProductosRoute: typeof ProductosRoute
+  VentasRoute: typeof VentasRoute
   TicketSaleIdRoute: typeof TicketSaleIdRoute
   TicketIndexRoute: typeof TicketIndexRoute
 }
@@ -238,6 +251,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ventas': {
+      id: '/ventas'
+      path: '/ventas'
+      fullPath: '/ventas'
+      preLoaderRoute: typeof VentasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ticket/': {
       id: '/ticket/'
       path: '/ticket'
@@ -265,6 +285,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   NuevaVentaRoute: NuevaVentaRoute,
   ProductosRoute: ProductosRoute,
+  VentasRoute: VentasRoute,
   TicketSaleIdRoute: TicketSaleIdRoute,
   TicketIndexRoute: TicketIndexRoute,
 }

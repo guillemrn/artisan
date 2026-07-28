@@ -218,8 +218,8 @@ function Productos() {
 
       {/* Slide-up Add Product Modal */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center">
-          <div className="w-full max-w-[390px] md:max-w-[480px] bg-surface rounded-t-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200">
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center px-4">
+          <div className="w-full max-w-[calc(100vw-2rem)] sm:max-w-[390px] md:max-w-[480px] bg-surface rounded-t-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200">
             <h3 className="text-[18px] font-bold text-primary">Agregar nuevo producto</h3>
             <form onSubmit={handleCreateProduct} className="mt-4 space-y-4">
               <div>
@@ -322,8 +322,8 @@ function Productos() {
 
       {/* Slide-up Edit Product Modal */}
       {editingProduct && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center">
-          <div className="w-full max-w-[390px] md:max-w-[480px] bg-surface rounded-t-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200">
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center px-4">
+          <div className="w-full max-w-[calc(100vw-2rem)] sm:max-w-[390px] md:max-w-[480px] bg-surface rounded-t-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200">
             <h3 className="text-[18px] font-bold text-primary">Editar producto</h3>
             <form onSubmit={handleSaveProduct} className="mt-4 space-y-4">
               <div>

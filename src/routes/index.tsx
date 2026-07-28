@@ -406,28 +406,6 @@ function Home() {
     <div className="page-shell md:px-0 md:pt-8 space-y-6">
       {csvOpen && <CSVSheet onClose={() => setCsvOpen(false)} />}
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <Logo variant="full" className="h-8 w-auto md:hidden" />
-        <div className="hidden md:block" />
-        <div className="flex items-center gap-2">
-          <Link
-            to="/ajustes"
-            className="grid h-10 w-10 place-items-center rounded-xl border border-primary/10 bg-primary-light text-sm font-bold text-primary transition hover:opacity-85 md:hidden"
-            aria-label="Perfil y Ajustes"
-          >
-            {initials}
-          </Link>
-          <Link
-            to="/ajustes"
-            className="grid h-10 w-10 place-items-center rounded-xl text-text-secondary transition hover:bg-muted md:hidden"
-            aria-label="Ajustes"
-          >
-            <Menu className="h-5 w-5" />
-          </Link>
-        </div>
-      </div>
-
       {/* Hero Welcome Card */}
       <section className="rounded-2xl border border-border bg-[#243437] p-5 text-white shadow-[0_18px_44px_rgba(31,43,46,0.12)] md:p-7 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(46,125,91,0.58),transparent_34%)] pointer-events-none" />
@@ -977,11 +955,10 @@ function Home() {
                       key={method}
                       type="button"
                       onClick={() => setSelectedPayment(method)}
-                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${
-                        selectedPayment === method
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-white text-text-secondary hover:bg-gray-50"
-                      }`}
+                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${selectedPayment === method
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-white text-text-secondary hover:bg-gray-50"
+                        }`}
                     >
                       {method}
                     </button>
@@ -1152,9 +1129,8 @@ function Kpi({
   return (
     <div
       onClick={onClick}
-      className={`${tone} rounded-2xl border border-border/80 p-4 shadow-sm relative flex flex-col justify-between h-[104px] ${
-        onClick ? "cursor-pointer hover:border-amber-400 hover:shadow-md transition group select-none" : ""
-      }`}
+      className={`${tone} rounded-2xl border border-border/80 p-4 shadow-sm relative flex flex-col justify-between h-[104px] ${onClick ? "cursor-pointer hover:border-amber-400 hover:shadow-md transition group select-none" : ""
+        }`}
     >
       <div className="flex justify-between items-center">
         <p className="text-[10px] font-bold tracking-wider text-text-muted">{label}</p>
@@ -1197,11 +1173,10 @@ function SaleCardItem({
         onClick={onToggle}
       >
         <div
-          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
-            s.channel === "PDV"
-              ? "bg-primary-light text-primary"
-              : "bg-[#F5F3FF] text-[#6D28D9]"
-          }`}
+          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${s.channel === "PDV"
+            ? "bg-primary-light text-primary"
+            : "bg-[#F5F3FF] text-[#6D28D9]"
+            }`}
         >
           {s.channel === "PDV" ? (
             <Store className="h-5 w-5" />

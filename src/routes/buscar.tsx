@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { Package, Receipt, Search, Store, User } from "lucide-react";
 import { useArtisan } from "@/lib/artisan-store";
 import { formatMXN } from "@/lib/artisan-data";
@@ -17,9 +17,16 @@ export const Route = createFileRoute("/buscar")({
 });
 
 function Buscar() {
+  const navigate = useNavigate();
   const { q = "" } = Route.useSearch();
   const { sales, clients, products } = useArtisan();
-  const query = q.trim().toLowerCase();
+  const [inputVal, setInputVal] = useState(q);
+  const query = (inputVal || q).trim().toLowerCase();
+
+  const handleInputChange = (val: string) => {
+    setInputVal(val);
+    navigate({ to: "/buscar", search: { q: val } });
+  };
 
   const results = useMemo(() => {
     if (!query) {
@@ -37,31 +44,37 @@ function Buscar() {
     const matchedProducts = products.filter((p) => p.name.toLowerCase().includes(query));
 
     return {
-      sales: matchedSales.slice(0, 8),
-      clients: matchedClients.slice(0, 8),
-      products: matchedProducts.slice(0, 8),
+      sales: matchedSales.slice(0, 10),
+      clients: matchedClients.slice(0, 10),
+      products: matchedProducts.slice(0, 10),
     };
   }, [sales, clients, products, query]);
 
   const total = results.sales.length + results.clients.length + results.products.length;
 
   return (
-    <div className="page-shell md:px-0 md:pt-8">
+    <div className="page-shell pb-12 md:px-0 md:pt-8">
       <div className="flex items-center gap-3">
-        <Search className="h-5 w-5 text-primary shrink-0" />
+        <Search className="h-6 w-6 text-primary shrink-0" />
         <div>
-          <h1 className="text-[22px] font-bold text-text-primary">Resultados</h1>
+          <h1 className="text-[22px] font-bold text-text-primary">Búsqueda Global</h1>
           <p className="text-[13px] text-text-muted">
-            {query ? (
-              <>
-                {total} resultado{total !== 1 ? "s" : ""} para{" "}
-                <span className="font-semibold text-text-primary">&ldquo;{q}&rdquo;</span>
-              </>
-            ) : (
-              "Escribe en la barra de búsqueda para encontrar ventas, clientes o productos."
-            )}
+            Encuentra ventas, clientes o productos al instante.
           </p>
         </div>
+      </div>
+
+      {/* Input de búsqueda directa */}
+      <div className="relative mt-4">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-text-muted" />
+        <input
+          type="text"
+          value={inputVal}
+          onChange={(e) => handleInputChange(e.target.value)}
+          placeholder="Escribe para buscar ventas, clientes o productos..."
+          className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-white outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 text-[14px]"
+          autoFocus
+        />
       </div>
 
       {!query && (
