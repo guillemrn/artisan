@@ -61,7 +61,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-background md:flex">
+    <div className="min-h-screen w-full max-w-full overflow-x-clip bg-background md:flex">
       {/* Mobile Drawer Backdrop */}
       {mobileMenuOpen && (
         <div

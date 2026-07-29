@@ -199,7 +199,7 @@ function ClientDetail() {
                 <div className="rounded-2xl border border-border bg-white p-4 shadow-sm flex flex-col gap-3">
                   <div className="flex justify-between items-start">
                      <div>
-                       <p className="font-bold text-text-primary">#{sale.id.slice(0, 6).toUpperCase()}</p>
+                       <p className="font-bold text-text-primary">#{sale.id.startsWith("s") ? sale.id.toUpperCase() : sale.id}</p>
                        <p className="text-[13px] text-text-muted flex items-center gap-1 mt-0.5">
                          <Calendar className="h-3 w-3" /> {formatDate(sale.createdAt)}
                        </p>
@@ -244,7 +244,7 @@ function ClientDetail() {
                 {filteredSales.map((s) => (
                   <tr key={s.id} className="hover:bg-gray-50/50 transition">
                     <td className="py-3.5 px-4 font-bold text-text-primary">
-                      #{s.id.slice(0, 6).toUpperCase()}
+                      #{s.id.startsWith("s") ? s.id.toUpperCase() : s.id}
                     </td>
                     <td className="py-3.5 px-4 text-text-muted">
                       <div className="font-semibold text-text-primary">{formatJustDate(s.createdAt)}</div>

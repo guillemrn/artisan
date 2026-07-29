@@ -216,17 +216,22 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         queryClient.invalidateQueries({ queryKey: artisanQueryKeys.data() });
       },
       updateSaleStatus: async (id, status, payment) => {
+        const now = new Date().toISOString();
+
         if (isDemo) {
           persist({
-            sales: sales.map((sale) => (sale.id === id ? { ...sale, status, payment } : sale)),
+            sales: sales.map((sale) =>
+              sale.id === id ? { ...sale, status, payment, createdAt: now } : sale
+            ),
             clients,
             products,
           });
           return;
         }
 
-        const { error } = await supabase.from("sales")
-          .update({ status, payment })
+        const { error } = await supabase
+          .from("sales")
+          .update({ status, payment, created_at: now })
           .eq("id", id);
 
         if (error) {
@@ -235,7 +240,9 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         }
 
         persist({
-          sales: sales.map((sale) => (sale.id === id ? { ...sale, status, payment } : sale)),
+          sales: sales.map((sale) =>
+            sale.id === id ? { ...sale, status, payment, createdAt: now } : sale
+          ),
           clients,
           products,
         });
