@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { Search, Store, User, Plus, Users, TrendingUp } from "lucide-react";
 import { AddClientSheet } from "@/components/artisan/AddClientSheet";
@@ -93,10 +93,12 @@ function Clientes() {
         {filtered.map((c) => {
           const stats = clientStats[c.id] || { totalAmount: 0, count: 0 };
           return (
-            <li
-              key={c.id}
-              className="flex items-center justify-between rounded-2xl border border-border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(31,43,46,0.08)]"
-            >
+            <li key={c.id}>
+              <Link
+                to="/clientes/$clientId"
+                params={{ clientId: c.id }}
+                className="flex items-center justify-between rounded-2xl border border-border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(31,43,46,0.08)]"
+              >
               <div className="flex items-center gap-3 min-w-0">
                 <div
                   className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${
@@ -133,6 +135,7 @@ function Clientes() {
                   </p>
                 )}
               </div>
+              </Link>
             </li>
           );
         })}
