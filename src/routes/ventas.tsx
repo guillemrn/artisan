@@ -15,6 +15,7 @@ import {
   Store,
   User,
   Filter,
+  Loader2,
 } from "lucide-react";
 import { useArtisan } from "@/lib/artisan-store";
 import { formatMXN, formatMXNc, type Sale, type PaymentMethod } from "@/lib/artisan-data";
@@ -25,6 +26,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { ModalSuccessState } from "@/components/ui/ModalSuccessState";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/ventas")({
@@ -50,12 +52,45 @@ function VentasPage() {
   // Cobrar Confirmation Modal state
   const [saleToCobrar, setSaleToCobrar] = useState<Sale | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>("Efectivo");
+  const [isCobrando, setIsCobrando] = useState(false);
+  const [cobroSuccess, setCobroSuccess] = useState<{
+    saleId: string;
+    clientName: string;
+    total: number;
+    paymentMethod: PaymentMethod;
+  } | null>(null);
 
   const handleOpenCobrarModal = (sale: Sale) => {
     setSaleToCobrar(sale);
+    setCobroSuccess(null);
+    setIsCobrando(false);
     setSelectedPayment(
       ["Pendiente", "Consignación"].includes(sale.payment) ? "Efectivo" : sale.payment
     );
+  };
+
+  const handleCloseCobrarModal = () => {
+    setSaleToCobrar(null);
+    setCobroSuccess(null);
+    setIsCobrando(false);
+  };
+
+  const handleConfirmCobro = () => {
+    if (!saleToCobrar || isCobrando) return;
+
+    setIsCobrando(true);
+
+    setTimeout(() => {
+      updateSaleStatus(saleToCobrar.id, "Entregado", selectedPayment);
+      setIsCobrando(false);
+      setCobroSuccess({
+        saleId: saleToCobrar.id,
+        clientName: saleToCobrar.clientName,
+        total: saleToCobrar.total,
+        paymentMethod: selectedPayment,
+      });
+      toast.success("Venta marcada como cobrada correctamente");
+    }, 600);
   };
 
   // 1. Filter and sort sales
@@ -610,92 +645,122 @@ function VentasPage() {
       )}
 
       {/* Confirmation Modal for Cobrar */}
-      <Dialog open={!!saleToCobrar} onOpenChange={(open) => !open && setSaleToCobrar(null)}>
+      <Dialog open={!!saleToCobrar} onOpenChange={(open) => !open && handleCloseCobrarModal()}>
         <DialogContent className="max-w-md rounded-2xl p-6">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-text-primary flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-              Confirmar Cobro de Venta
-            </DialogTitle>
-            <DialogDescription className="text-xs text-text-muted mt-1">
-              Selecciona el método de pago para registrar el cobro de esta venta.
-            </DialogDescription>
-          </DialogHeader>
+          {cobroSuccess ? (
+            <ModalSuccessState
+              badgeText="Cobro Registrado"
+              title="¡Cobro realizado con éxito!"
+              description={
+                <span>
+                  Se registró el pago de <strong className="font-bold text-text-primary">{formatMXN(cobroSuccess.total)}</strong> para el cliente <strong className="font-bold text-text-primary">{cobroSuccess.clientName}</strong> mediante <strong className="font-bold text-text-primary">{cobroSuccess.paymentMethod}</strong>.
+                </span>
+              }
+              details={[
+                { label: "Cliente", value: cobroSuccess.clientName },
+                { label: "Monto Cobrado", value: formatMXN(cobroSuccess.total) },
+                { label: "Método de Pago", value: cobroSuccess.paymentMethod },
+                { label: "Estado Venta", value: "Entregado y Pagado" },
+              ]}
+              onDone={handleCloseCobrarModal}
+              actionText="Entendido"
+            />
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold text-text-primary flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                  Confirmar Cobro de Venta
+                </DialogTitle>
+                <DialogDescription className="text-xs text-text-muted mt-1">
+                  Selecciona el método de pago para registrar el cobro de esta venta.
+                </DialogDescription>
+              </DialogHeader>
 
-          {saleToCobrar && (
-            <div className="space-y-4 py-2">
-              <div className="bg-gray-50 p-4 rounded-xl border border-border/80 space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-text-muted">Cliente:</span>
-                  <span className="font-bold text-text-primary">{saleToCobrar.clientName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-text-muted">Fecha:</span>
-                  <span className="font-medium text-text-secondary">
-                    {new Date(saleToCobrar.createdAt).toLocaleDateString("es-MX", {
-                      day: "2-digit",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-text-muted">Productos:</span>
-                  <span className="font-medium text-text-secondary text-right max-w-[200px] truncate">
-                    {saleToCobrar.items.map((i) => `${i.productName} (x${i.qty})`).join(", ")}
-                  </span>
-                </div>
-                <div className="border-t border-border pt-2 flex justify-between items-center text-sm">
-                  <span className="text-text-muted font-medium">Monto Total:</span>
-                  <span className="text-base font-bold text-emerald-700">{formatMXN(saleToCobrar.total)}</span>
-                </div>
-              </div>
+              {saleToCobrar && (
+                <div className="space-y-4 py-2">
+                  <div className="bg-gray-50 p-4 rounded-xl border border-border/80 space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-text-muted">Cliente:</span>
+                      <span className="font-bold text-text-primary">{saleToCobrar.clientName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-text-muted">Fecha:</span>
+                      <span className="font-medium text-text-secondary">
+                        {new Date(saleToCobrar.createdAt).toLocaleDateString("es-MX", {
+                          day: "2-digit",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-text-muted">Productos:</span>
+                      <span className="font-medium text-text-secondary text-right max-w-[200px] truncate">
+                        {saleToCobrar.items.map((i) => `${i.productName} (x${i.qty})`).join(", ")}
+                      </span>
+                    </div>
+                    <div className="border-t border-border pt-2 flex justify-between items-center text-sm">
+                      <span className="text-text-muted font-medium">Monto Total:</span>
+                      <span className="text-base font-bold text-emerald-700">{formatMXN(saleToCobrar.total)}</span>
+                    </div>
+                  </div>
 
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2">
-                  Método de Pago
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(["Efectivo", "Transferencia"] as PaymentMethod[]).map((method) => (
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2">
+                      Método de Pago
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["Efectivo", "Transferencia"] as PaymentMethod[]).map((method) => (
+                        <button
+                          key={method}
+                          type="button"
+                          disabled={isCobrando}
+                          onClick={() => setSelectedPayment(method)}
+                          className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${
+                            selectedPayment === method
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border bg-white text-text-secondary hover:bg-gray-50"
+                          } disabled:opacity-60`}
+                        >
+                          {method}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
                     <button
-                      key={method}
                       type="button"
-                      onClick={() => setSelectedPayment(method)}
-                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${
-                        selectedPayment === method
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-white text-text-secondary hover:bg-gray-50"
-                      }`}
+                      disabled={isCobrando}
+                      onClick={handleCloseCobrarModal}
+                      className="flex-1 py-2.5 rounded-xl border border-border text-xs font-semibold text-text-secondary hover:bg-gray-100 transition cursor-pointer disabled:opacity-60"
                     >
-                      {method}
+                      Cancelar
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      disabled={isCobrando}
+                      onClick={handleConfirmCobro}
+                      className="flex-1 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-[#1f523b] transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-80"
+                    >
+                      {isCobrando ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Procesando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span>Confirmar Cobro</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setSaleToCobrar(null)}
-                  className="flex-1 py-2.5 rounded-xl border border-border text-xs font-semibold text-text-secondary hover:bg-gray-100 transition cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    updateSaleStatus(saleToCobrar.id, "Entregado", selectedPayment);
-                    toast.success("Venta marcada como cobrada correctamente");
-                    setSaleToCobrar(null);
-                  }}
-                  className="flex-1 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-[#1f523b] transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  Confirmar Cobro
-                </button>
-              </div>
-            </div>
+              )}
+            </>
           )}
         </DialogContent>
       </Dialog>

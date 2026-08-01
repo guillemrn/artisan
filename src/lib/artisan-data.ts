@@ -91,7 +91,7 @@ export const CLIENTS: Client[] = [
   { id: "lolita", name: "Sra. Lolita", channel: "Público", lastDelivery: "Hace 2 semanas" },
 ];
 
-export const BUSINESS_NAME = "Pan Pita Artesanal";
+export const BUSINESS_NAME = "Artisan - Punto de venta";
 export const USER_NAME = "María";
 
 // Sample route/history seed

@@ -11,11 +11,13 @@ import {
   Tag,
   X,
   Activity,
+  Loader2,
 } from "lucide-react";
 import { USER_NAME } from "@/lib/artisan-data";
 import { useAuth } from "@/core/auth/auth-context";
 import { Logo } from "@/components/ui/logo";
 import { supabase } from "@/core/supabase/client";
+import { ModalSuccessState } from "@/components/ui/ModalSuccessState";
 
 export const Route = createFileRoute("/ajustes")({
   head: () => ({ meta: [{ title: "Ajustes — Artisan" }] }),
@@ -32,6 +34,7 @@ function Ajustes() {
   const [phone, setPhone] = useState(user?.user_metadata?.phone ?? "");
   const [businessType, setBusinessType] = useState(user?.user_metadata?.business_type ?? "Panadería");
   const [savingProfile, setSavingProfile] = useState(false);
+  const [profileSuccess, setProfileSuccess] = useState(false);
 
   // Bug report states
   const [bugModalOpen, setBugModalOpen] = useState(false);
@@ -46,6 +49,7 @@ function Ajustes() {
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingProfile) return;
     setSavingProfile(true);
     try {
       if (!isDemo) {
@@ -57,10 +61,10 @@ function Ajustes() {
             business_type: businessType,
           },
         });
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 600));
       }
-      setProfileModalOpen(false);
-      // Reload page to reflect changes
-      window.location.reload();
+      setProfileSuccess(true);
     } catch (err) {
       console.error("Error updating profile", err);
     } finally {
@@ -231,79 +235,119 @@ function Ajustes() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-md bg-white rounded-2xl border border-border p-6 shadow-xl relative">
             <button
-              onClick={() => setProfileModalOpen(false)}
-              className="absolute right-4 top-4 text-text-muted hover:text-text-primary"
+              onClick={() => {
+                setProfileModalOpen(false);
+                setProfileSuccess(false);
+              }}
+              className="absolute right-4 top-4 text-text-muted hover:text-text-primary z-10"
             >
               <X className="h-5 w-5" />
             </button>
-            <h3 className="font-display text-[18px] font-bold text-text-primary mb-4">Editar Perfil del Negocio</h3>
-            <form onSubmit={handleSaveProfile} className="space-y-4">
-              <div>
-                <label className="block text-[12px] font-bold text-text-primary mb-1">Tu Nombre</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="w-full h-10 pl-9 pr-3 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[14px]"
-                  />
-                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-[12px] font-bold text-text-primary mb-1">Nombre del Negocio</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    required
-                    value={businessName}
-                    onChange={(e) => setBusinessName(e.target.value)}
-                    className="w-full h-10 pl-9 pr-3 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[14px]"
-                  />
-                  <Store className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[12px] font-bold text-text-primary mb-1">Teléfono</label>
-                  <div className="relative">
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full h-10 pl-9 pr-3 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[14px]"
-                    />
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+
+            {profileSuccess ? (
+              <ModalSuccessState
+                badgeText="Perfil de Negocio"
+                title="¡Perfil actualizado con éxito!"
+                description={
+                  <span>
+                    Los datos de <strong className="font-bold text-text-primary">{businessName}</strong> han sido guardados correctamente.
+                  </span>
+                }
+                details={[
+                  { label: "Titular", value: fullName },
+                  { label: "Negocio", value: businessName },
+                  { label: "Categoría", value: businessType },
+                ]}
+                onDone={() => {
+                  setProfileModalOpen(false);
+                  setProfileSuccess(false);
+                  window.location.reload();
+                }}
+                actionText="Entendido"
+              />
+            ) : (
+              <>
+                <h3 className="font-display text-[18px] font-bold text-text-primary mb-4">Editar Perfil del Negocio</h3>
+                <form onSubmit={handleSaveProfile} className="space-y-4">
+                  <div>
+                    <label className="block text-[12px] font-bold text-text-primary mb-1">Tu Nombre</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        disabled={savingProfile}
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="w-full h-10 pl-9 pr-3 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[14px] disabled:opacity-60"
+                      />
+                      <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <label className="block text-[12px] font-bold text-text-primary mb-1">Categoría</label>
-                  <div className="relative">
-                    <select
-                      value={businessType}
-                      onChange={(e) => setBusinessType(e.target.value)}
-                      className="w-full h-10 pl-9 pr-8 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[14px] bg-white appearance-none"
-                    >
-                      <option value="Panadería">Panadería</option>
-                      <option value="Repostería">Repostería</option>
-                      <option value="Conservas">Conservas</option>
-                      <option value="Bebidas">Bebidas</option>
-                      <option value="Artesanías">Artesanías</option>
-                      <option value="Otros">Otros</option>
-                    </select>
-                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+                  <div>
+                    <label className="block text-[12px] font-bold text-text-primary mb-1">Nombre del Negocio</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        disabled={savingProfile}
+                        value={businessName}
+                        onChange={(e) => setBusinessName(e.target.value)}
+                        className="w-full h-10 pl-9 pr-3 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[14px] disabled:opacity-60"
+                      />
+                      <Store className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+                    </div>
                   </div>
-                </div>
-              </div>
-              <button
-                type="submit"
-                disabled={savingProfile}
-                className="w-full h-10 rounded-lg bg-primary text-white text-[14px] font-bold hover:bg-[#246448] transition mt-2"
-              >
-                {savingProfile ? "Guardando..." : "Guardar cambios"}
-              </button>
-            </form>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[12px] font-bold text-text-primary mb-1">Teléfono</label>
+                      <div className="relative">
+                        <input
+                          type="tel"
+                          disabled={savingProfile}
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="w-full h-10 pl-9 pr-3 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[14px] disabled:opacity-60"
+                        />
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[12px] font-bold text-text-primary mb-1">Categoría</label>
+                      <div className="relative">
+                        <select
+                          disabled={savingProfile}
+                          value={businessType}
+                          onChange={(e) => setBusinessType(e.target.value)}
+                          className="w-full h-10 pl-9 pr-8 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[14px] bg-white appearance-none disabled:opacity-60"
+                        >
+                          <option value="Panadería">Panadería</option>
+                          <option value="Repostería">Repostería</option>
+                          <option value="Conservas">Conservas</option>
+                          <option value="Bebidas">Bebidas</option>
+                          <option value="Artesanías">Artesanías</option>
+                          <option value="Otros">Otros</option>
+                        </select>
+                        <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={savingProfile}
+                    className="w-full h-10 rounded-lg bg-primary text-white text-[14px] font-bold hover:bg-[#246448] transition mt-2 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-80"
+                  >
+                    {savingProfile ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Guardando...</span>
+                      </>
+                    ) : (
+                      "Guardar cambios"
+                    )}
+                  </button>
+                </form>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -317,38 +361,55 @@ function Ajustes() {
                 setBugModalOpen(false);
                 setBugSuccess(false);
               }}
-              className="absolute right-4 top-4 text-text-muted hover:text-text-primary"
+              className="absolute right-4 top-4 text-text-muted hover:text-text-primary z-10"
             >
               <X className="h-5 w-5" />
             </button>
-            <h3 className="font-display text-[18px] font-bold text-text-primary mb-2">Reportar un problema</h3>
-            <p className="text-[12px] text-text-muted mb-4">
-              Cuéntanos qué falló o qué podemos mejorar para ayudarte en tu día a día.
-            </p>
             {bugSuccess ? (
-              <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-[13px] text-green-700 font-semibold text-center">
-                ¡Reporte recibido! Gracias por ayudarnos a mejorar.
-              </div>
+              <ModalSuccessState
+                badgeText="Soporte Artisan"
+                title="¡Reporte recibido!"
+                description="Gracias por tus comentarios. Nuestro equipo revisará el reporte para seguir mejorando la aplicación."
+                onDone={() => {
+                  setBugSuccess(false);
+                  setBugModalOpen(false);
+                }}
+                actionText="Entendido"
+              />
             ) : (
-              <form onSubmit={handleSendBug} className="space-y-4">
-                <div>
-                  <textarea
-                    required
-                    rows={4}
-                    placeholder="Describe el problema detalladamente..."
-                    value={bugDesc}
-                    onChange={(e) => setBugDesc(e.target.value)}
-                    className="w-full p-3 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[14px] resize-none"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={sendingBug}
-                  className="w-full h-10 rounded-lg bg-primary text-white text-[14px] font-bold hover:bg-[#246448] transition"
-                >
-                  {sendingBug ? "Enviando..." : "Enviar reporte"}
-                </button>
-              </form>
+              <>
+                <h3 className="font-display text-[18px] font-bold text-text-primary mb-2">Reportar un problema</h3>
+                <p className="text-[12px] text-text-muted mb-4">
+                  Cuéntanos qué falló o qué podemos mejorar para ayudarte en tu día a día.
+                </p>
+                <form onSubmit={handleSendBug} className="space-y-4">
+                  <div>
+                    <textarea
+                      required
+                      rows={4}
+                      disabled={sendingBug}
+                      placeholder="Describe el problema detalladamente..."
+                      value={bugDesc}
+                      onChange={(e) => setBugDesc(e.target.value)}
+                      className="w-full p-3 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[14px] resize-none disabled:opacity-60"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={sendingBug}
+                    className="w-full h-10 rounded-lg bg-primary text-white text-[14px] font-bold hover:bg-[#246448] transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-80"
+                  >
+                    {sendingBug ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Enviando...</span>
+                      </>
+                    ) : (
+                      "Enviar reporte"
+                    )}
+                  </button>
+                </form>
+              </>
             )}
           </div>
         </div>

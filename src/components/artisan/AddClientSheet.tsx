@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Store, User } from "lucide-react";
+import { Store, User, Loader2 } from "lucide-react";
 import { createClientFromName } from "@/lib/artisan-client";
 import type { Client } from "@/lib/artisan-data";
+import { ModalSuccessState } from "@/components/ui/ModalSuccessState";
 
 type Props = {
   open: boolean;
@@ -23,87 +24,134 @@ export function AddClientSheet({
 }: Props) {
   const [name, setName] = useState("");
   const [channel, setChannel] = useState<"PDV" | "Público">("PDV");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createdClient, setCreatedClient] = useState<Client | null>(null);
 
   if (!open) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-
-    const client = createClientFromName(name, channel, lastDeliveryLabel);
-    onSave(client);
-    onCreated(client);
+  const handleClose = () => {
     setName("");
     setChannel("PDV");
+    setCreatedClient(null);
+    setIsSubmitting(false);
     onClose();
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || isSubmitting) return;
+
+    setIsSubmitting(true);
+
+    setTimeout(() => {
+      const client = createClientFromName(name, channel, lastDeliveryLabel);
+      onSave(client);
+      onCreated(client);
+      setIsSubmitting(false);
+      setCreatedClient(client);
+    }, 600);
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center px-4">
-      <div className="w-full max-w-[calc(100vw-2rem)] sm:max-w-[390px] md:max-w-[480px] bg-surface rounded-t-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200">
-        <h3 className="text-[18px] font-bold text-primary">{title}</h3>
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <div>
-            <label className="text-[12px] font-semibold text-text-secondary block mb-1">
-              Nombre completo
-            </label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ej. Sra. Clara Gómez"
-              className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background"
-            />
-          </div>
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center px-4 backdrop-blur-xs">
+      <div className="w-full max-w-[calc(100vw-2rem)] sm:max-w-[390px] md:max-w-[480px] bg-surface rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200 mb-6">
+        {createdClient ? (
+          <ModalSuccessState
+            badgeText="Cliente Registrado"
+            title={`¡${createdClient.name} fue agregado!`}
+            description={
+              <span>
+                El cliente <strong className="font-bold text-text-primary">{createdClient.name}</strong> se ha guardado exitosamente en el canal <strong className="font-bold text-text-primary">{createdClient.channel}</strong>.
+              </span>
+            }
+            details={[
+              { label: "Nombre", value: createdClient.name },
+              { label: "Canal de Venta", value: createdClient.channel },
+              { label: "Estado", value: "Activo" },
+            ]}
+            onDone={handleClose}
+            actionText="Entendido"
+          />
+        ) : (
+          <>
+            <h3 className="text-[18px] font-bold text-primary">{title}</h3>
+            <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+              <div>
+                <label className="text-[12px] font-semibold text-text-secondary block mb-1">
+                  Nombre completo
+                </label>
+                <input
+                  type="text"
+                  required
+                  disabled={isSubmitting}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ej. Sra. Clara Gómez"
+                  className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60"
+                />
+              </div>
 
-          <div>
-            <label className="text-[12px] font-semibold text-text-secondary block mb-2">
-              Canal de venta
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setChannel("PDV")}
-                className={`flex items-center justify-center gap-2 rounded-xl py-3 text-[13px] font-semibold border transition ${
-                  channel === "PDV"
-                    ? "border-primary bg-primary-light text-primary"
-                    : "border-border bg-surface text-text-secondary hover:bg-muted"
-                }`}
-              >
-                <Store className="h-4 w-4" /> Punto de Venta (PDV)
-              </button>
-              <button
-                type="button"
-                onClick={() => setChannel("Público")}
-                className={`flex items-center justify-center gap-2 rounded-xl py-3 text-[13px] font-semibold border transition ${
-                  channel === "Público"
-                    ? "border-[#6D28D9] bg-[#F5F3FF] text-[#6D28D9]"
-                    : "border-border bg-surface text-text-secondary hover:bg-muted"
-                }`}
-              >
-                <User className="h-4 w-4" /> Público / Directo
-              </button>
-            </div>
-          </div>
+              <div>
+                <label className="text-[12px] font-semibold text-text-secondary block mb-2">
+                  Canal de venta
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() => setChannel("PDV")}
+                    className={`flex items-center justify-center gap-2 rounded-xl py-3 text-[13px] font-semibold border transition ${
+                      channel === "PDV"
+                        ? "border-primary bg-primary-light text-primary"
+                        : "border-border bg-surface text-text-secondary hover:bg-muted"
+                    } disabled:opacity-60`}
+                  >
+                    <Store className="h-4 w-4" /> Punto de Venta (PDV)
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() => setChannel("Público")}
+                    className={`flex items-center justify-center gap-2 rounded-xl py-3 text-[13px] font-semibold border transition ${
+                      channel === "Público"
+                        ? "border-[#6D28D9] bg-[#F5F3FF] text-[#6D28D9]"
+                        : "border-border bg-surface text-text-secondary hover:bg-muted"
+                    } disabled:opacity-60`}
+                  >
+                    <User className="h-4 w-4" /> Público / Directo
+                  </button>
+                </div>
+              </div>
 
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 rounded-xl border border-border py-3 text-[14px] font-semibold text-text-secondary hover:bg-muted transition"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="flex-1 rounded-xl bg-primary text-white py-3 text-[14px] font-semibold shadow-lg hover:bg-emerald-700 transition"
-            >
-              Guardar
-            </button>
-          </div>
-        </form>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={handleClose}
+                  className="flex-1 rounded-xl border border-border py-3 text-[14px] font-semibold text-text-secondary hover:bg-muted transition disabled:opacity-60"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 rounded-xl bg-primary text-white py-3 text-[14px] font-semibold shadow-lg hover:bg-emerald-700 transition flex items-center justify-center gap-2 disabled:opacity-80 cursor-pointer"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    "Guardar"
+                  )}
+                </button>
+              </div>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );
 }
+

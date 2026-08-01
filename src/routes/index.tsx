@@ -32,6 +32,7 @@ import {
   Zap,
   Send,
   CheckCircle,
+  Loader2,
 } from "lucide-react";
 import { useArtisan } from "@/lib/artisan-store";
 import { USER_NAME, formatMXN, formatMXNc, type Sale, type PaymentMethod } from "@/lib/artisan-data";
@@ -44,6 +45,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { ModalSuccessState } from "@/components/ui/ModalSuccessState";
 import { toast } from "sonner";
 import {
   ResponsiveContainer,
@@ -123,23 +125,48 @@ function Home() {
   // State for Add Inventory Modal
   const [isAddStockModalOpen, setIsAddStockModalOpen] = useState(false);
   const [addStockValues, setAddStockValues] = useState<Record<string, string>>({});
+  const [isSavingAddStock, setIsSavingAddStock] = useState(false);
+  const [addStockSuccess, setAddStockSuccess] = useState<{
+    totalAdded: number;
+    itemsCount: number;
+  } | null>(null);
 
-  const handleSaveAddStock = async () => {
-    let updatedCount = 0;
-    for (const p of products) {
-      const addedQty = parseInt(addStockValues[p.id] || "0", 10);
-      if (addedQty > 0) {
-        await updateProduct({ ...p, stock: p.stock + addedQty });
-        updatedCount += addedQty;
-      }
-    }
-    if (updatedCount > 0) {
-      toast.success(`Se agregaron ${updatedCount} piezas al inventario`);
-    } else {
-      toast.info("No se ingresaron piezas para agregar");
-    }
+  const handleCloseAddStockModal = () => {
     setAddStockValues({});
     setIsAddStockModalOpen(false);
+    setAddStockSuccess(null);
+    setIsSavingAddStock(false);
+  };
+
+  const handleSaveAddStock = async () => {
+    if (isSavingAddStock) return;
+    setIsSavingAddStock(true);
+
+    try {
+      let updatedCount = 0;
+      let itemsUpdatedCount = 0;
+      for (const p of products) {
+        const addedQty = parseInt(addStockValues[p.id] || "0", 10);
+        if (addedQty > 0) {
+          await updateProduct({ ...p, stock: p.stock + addedQty });
+          updatedCount += addedQty;
+          itemsUpdatedCount += 1;
+        }
+      }
+
+      setIsSavingAddStock(false);
+      setAddStockSuccess({
+        totalAdded: updatedCount,
+        itemsCount: itemsUpdatedCount,
+      });
+
+      if (updatedCount > 0) {
+        toast.success(`Se agregaron ${updatedCount} piezas al inventario`);
+      }
+    } catch (err) {
+      console.error(err);
+      setIsSavingAddStock(false);
+    }
   };
 
   const handleOpenCobrarModal = (sale: Sale) => {
@@ -1038,73 +1065,115 @@ function Home() {
       </Dialog>
 
       {/* Modal 3: Add Inventory Modal */}
-      <Dialog open={isAddStockModalOpen} onOpenChange={setIsAddStockModalOpen}>
+      <Dialog open={isAddStockModalOpen} onOpenChange={(open) => !open && handleCloseAddStockModal()}>
         <DialogContent className="max-w-lg max-h-[85vh] flex flex-col p-6 rounded-2xl">
-          <DialogHeader className="pb-3 border-b border-border">
-            <DialogTitle className="text-xl font-bold text-text-primary flex items-center gap-2">
-              <Package className="h-5 w-5 text-primary" />
-              ¿Cuántas piezas deseas agregar a tu inventario?
-            </DialogTitle>
-            <DialogDescription className="text-xs text-text-muted mt-1">
-              Ingresa la cantidad de piezas nuevas a sumar al stock actual de cada producto.
-            </DialogDescription>
-          </DialogHeader>
+          {addStockSuccess ? (
+            <ModalSuccessState
+              badgeText="Inventario Actualizado"
+              title={
+                addStockSuccess.totalAdded > 0
+                  ? `¡${addStockSuccess.totalAdded} piezas agregadas!`
+                  : "Sin cambios en el inventario"
+              }
+              description={
+                addStockSuccess.totalAdded > 0 ? (
+                  <span>
+                    Se añadieron con éxito <strong className="font-bold text-text-primary">+{addStockSuccess.totalAdded} unidades</strong> repartidas en <strong className="font-bold text-text-primary">{addStockSuccess.itemsCount} productos</strong>.
+                  </span>
+                ) : (
+                  <span>No se ingresaron cantidades adicionales para sumar al stock.</span>
+                )
+              }
+              details={
+                addStockSuccess.totalAdded > 0
+                  ? [
+                      { label: "Piezas Agregadas", value: `+${addStockSuccess.totalAdded} u.` },
+                      { label: "Productos Actualizados", value: `${addStockSuccess.itemsCount}` },
+                      { label: "Estado Inventario", value: "Sincronizado" },
+                    ]
+                  : []
+              }
+              onDone={handleCloseAddStockModal}
+              actionText="Entendido"
+            />
+          ) : (
+            <>
+              <DialogHeader className="pb-3 border-b border-border">
+                <DialogTitle className="text-xl font-bold text-text-primary flex items-center gap-2">
+                  <Package className="h-5 w-5 text-primary" />
+                  ¿Cuántas piezas deseas agregar a tu inventario?
+                </DialogTitle>
+                <DialogDescription className="text-xs text-text-muted mt-1">
+                  Ingresa la cantidad de piezas nuevas a sumar al stock actual de cada producto.
+                </DialogDescription>
+              </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto py-4 space-y-3 pr-1">
-            {products.map((p) => {
-              const addedVal = addStockValues[p.id] ?? "";
-              return (
-                <div
-                  key={p.id}
-                  className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-border bg-white hover:border-primary/40 transition"
+              <div className="flex-1 overflow-y-auto py-4 space-y-3 pr-1">
+                {products.map((p) => {
+                  const addedVal = addStockValues[p.id] ?? "";
+                  return (
+                    <div
+                      key={p.id}
+                      className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-border bg-white hover:border-primary/40 transition"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-sm text-text-primary truncate">{p.name}</p>
+                        <p className="text-xs text-text-muted mt-0.5">
+                          Stock actual: <span className="font-semibold text-text-secondary">{p.stock} unidades</span>
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-primary">+</span>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          min="0"
+                          disabled={isSavingAddStock}
+                          placeholder="0"
+                          value={addedVal}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setAddStockValues((prev) => ({ ...prev, [p.id]: val }));
+                          }}
+                          className="w-24 h-10 px-3 text-right rounded-xl border border-border outline-none transition focus:border-primary focus:ring-1 focus:ring-primary font-bold text-sm bg-gray-50/50 disabled:opacity-60"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="pt-3 border-t border-border flex gap-2">
+                <button
+                  type="button"
+                  disabled={isSavingAddStock}
+                  onClick={handleCloseAddStockModal}
+                  className="flex-1 py-2.5 rounded-xl border border-border text-xs font-semibold text-text-secondary hover:bg-gray-100 transition cursor-pointer disabled:opacity-60"
                 >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-sm text-text-primary truncate">{p.name}</p>
-                    <p className="text-xs text-text-muted mt-0.5">
-                      Stock actual: <span className="font-semibold text-text-secondary">{p.stock} unidades</span>
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-primary">+</span>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      min="0"
-                      placeholder="0"
-                      value={addedVal}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setAddStockValues((prev) => ({ ...prev, [p.id]: val }));
-                      }}
-                      className="w-24 h-10 px-3 text-right rounded-xl border border-border outline-none transition focus:border-primary focus:ring-1 focus:ring-primary font-bold text-sm bg-gray-50/50"
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="pt-3 border-t border-border flex gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setAddStockValues({});
-                setIsAddStockModalOpen(false);
-              }}
-              className="flex-1 py-2.5 rounded-xl border border-border text-xs font-semibold text-text-secondary hover:bg-gray-100 transition cursor-pointer"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={handleSaveAddStock}
-              className="flex-1 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-[#1f523b] transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-            >
-              <Package className="h-4 w-4" />
-              Guardar Inventario
-            </button>
-          </div>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingAddStock}
+                  onClick={handleSaveAddStock}
+                  className="flex-1 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-[#1f523b] transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-80"
+                >
+                  {isSavingAddStock ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Package className="h-4 w-4" />
+                      <span>Guardar Inventario</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { Search, Plus, Package, TrendingUp, Archive, Pencil } from "lucide-react";
+import { Search, Plus, Package, TrendingUp, Archive, Pencil, Loader2 } from "lucide-react";
 import { useArtisan } from "@/lib/artisan-store";
 import { formatMXN, formatMXNc, type Product } from "@/lib/artisan-data";
+import { ModalSuccessState } from "@/components/ui/ModalSuccessState";
 
 export const Route = createFileRoute("/productos")({
   head: () => ({ meta: [{ title: "Productos — Artisan" }] }),
@@ -20,6 +21,8 @@ function Productos() {
   const [distPrice, setDistPrice] = useState("");
   const [pubPrice, setPubPrice] = useState("");
   const [stock, setStock] = useState("");
+  const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
+  const [addedProductSuccess, setAddedProductSuccess] = useState<Product | null>(null);
 
   // Edit Form states
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -28,6 +31,8 @@ function Productos() {
   const [editDistPrice, setEditDistPrice] = useState("");
   const [editPubPrice, setEditPubPrice] = useState("");
   const [editStock, setEditStock] = useState("");
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+  const [editedProductSuccess, setEditedProductSuccess] = useState<Product | null>(null);
 
   const filtered = products.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()));
 
@@ -40,31 +45,40 @@ function Productos() {
     return products.reduce((acc, p) => acc + p.stock * p.publicPrice, 0);
   }, [products]);
 
-  const handleCreateProduct = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-
-    const newProd: Product = {
-      id: name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, ""),
-      name: name.trim(),
-      cost: parseFloat(cost) || 0,
-      distributorPrice: parseFloat(distPrice) || 0,
-      publicPrice: parseFloat(pubPrice) || 0,
-      stock: parseInt(stock) || 0,
-    };
-
-    addProduct(newProd);
-
-    // Reset fields
+  const handleCloseAddModal = () => {
     setName("");
     setCost("");
     setDistPrice("");
     setPubPrice("");
     setStock("");
+    setIsSubmittingAdd(false);
+    setAddedProductSuccess(null);
     setShowAddForm(false);
+  };
+
+  const handleCreateProduct = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || isSubmittingAdd) return;
+
+    setIsSubmittingAdd(true);
+
+    setTimeout(() => {
+      const newProd: Product = {
+        id: name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, ""),
+        name: name.trim(),
+        cost: parseFloat(cost) || 0,
+        distributorPrice: parseFloat(distPrice) || 0,
+        publicPrice: parseFloat(pubPrice) || 0,
+        stock: parseInt(stock) || 0,
+      };
+
+      addProduct(newProd);
+      setIsSubmittingAdd(false);
+      setAddedProductSuccess(newProd);
+    }, 600);
   };
 
   const handleStartEdit = (p: Product) => {
@@ -74,23 +88,36 @@ function Productos() {
     setEditDistPrice(String(p.distributorPrice));
     setEditPubPrice(String(p.publicPrice));
     setEditStock(String(p.stock));
+    setEditedProductSuccess(null);
+    setIsSubmittingEdit(false);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingProduct(null);
+    setEditedProductSuccess(null);
+    setIsSubmittingEdit(false);
   };
 
   const handleSaveProduct = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingProduct || !editName.trim()) return;
+    if (!editingProduct || !editName.trim() || isSubmittingEdit) return;
 
-    const updated: Product = {
-      id: editingProduct.id,
-      name: editName.trim(),
-      cost: parseFloat(editCost) || 0,
-      distributorPrice: parseFloat(editDistPrice) || 0,
-      publicPrice: parseFloat(editPubPrice) || 0,
-      stock: parseInt(editStock) || 0,
-    };
+    setIsSubmittingEdit(true);
 
-    updateProduct(updated);
-    setEditingProduct(null);
+    setTimeout(() => {
+      const updated: Product = {
+        id: editingProduct.id,
+        name: editName.trim(),
+        cost: parseFloat(editCost) || 0,
+        distributorPrice: parseFloat(editDistPrice) || 0,
+        publicPrice: parseFloat(editPubPrice) || 0,
+        stock: parseInt(editStock) || 0,
+      };
+
+      updateProduct(updated);
+      setIsSubmittingEdit(false);
+      setEditedProductSuccess(updated);
+    }, 600);
   };
 
   return (
@@ -218,204 +245,274 @@ function Productos() {
 
       {/* Slide-up Add Product Modal */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center px-4">
-          <div className="w-full max-w-[calc(100vw-2rem)] sm:max-w-[390px] md:max-w-[480px] bg-surface rounded-t-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200">
-            <h3 className="text-[18px] font-bold text-primary">Agregar nuevo producto</h3>
-            <form onSubmit={handleCreateProduct} className="mt-4 space-y-4">
-              <div>
-                <label className="text-[12px] font-semibold text-text-secondary block mb-1">
-                  Nombre del producto
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ej. Pan Pita Integral Grande"
-                  className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background"
-                />
-              </div>
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center px-4 backdrop-blur-xs">
+          <div className="w-full max-w-[calc(100vw-2rem)] sm:max-w-[390px] md:max-w-[480px] bg-surface rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200 mb-6">
+            {addedProductSuccess ? (
+              <ModalSuccessState
+                badgeText="Catálogo Actualizado"
+                title={`¡${addedProductSuccess.name} agregado!`}
+                description={
+                  <span>
+                    El producto <strong className="font-bold text-text-primary">{addedProductSuccess.name}</strong> ha sido guardado exitosamente con un stock inicial de <strong className="font-bold text-text-primary">{addedProductSuccess.stock} u.</strong>
+                  </span>
+                }
+                details={[
+                  { label: "Precio Distribuidor", value: formatMXN(addedProductSuccess.distributorPrice) },
+                  { label: "Precio Público", value: formatMXN(addedProductSuccess.publicPrice) },
+                  { label: "Stock Inicial", value: `${addedProductSuccess.stock} unidades` },
+                ]}
+                onDone={handleCloseAddModal}
+                actionText="Entendido"
+              />
+            ) : (
+              <>
+                <h3 className="text-[18px] font-bold text-primary">Agregar nuevo producto</h3>
+                <form onSubmit={handleCreateProduct} className="mt-4 space-y-4">
+                  <div>
+                    <label className="text-[12px] font-semibold text-text-secondary block mb-1">
+                      Nombre del producto
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      disabled={isSubmittingAdd}
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Ej. Pan Pita Integral Grande"
+                      className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[12px] font-semibold text-text-secondary block mb-1">
-                    Costo de producción ($)
-                  </label>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.01"
-                    required
-                    value={cost}
-                    onChange={(e) => setCost(e.target.value)}
-                    placeholder="20.50"
-                    className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background"
-                  />
-                </div>
-                <div>
-                  <label className="text-[12px] font-semibold text-text-secondary block mb-1">
-                    Stock Inicial
-                  </label>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    required
-                    value={stock}
-                    onChange={(e) => setStock(e.target.value)}
-                    placeholder="50"
-                    className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background"
-                  />
-                </div>
-              </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[12px] font-semibold text-text-secondary block mb-1">
+                        Costo de producción ($)
+                      </label>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.01"
+                        required
+                        disabled={isSubmittingAdd}
+                        value={cost}
+                        onChange={(e) => setCost(e.target.value)}
+                        placeholder="20.50"
+                        className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[12px] font-semibold text-text-secondary block mb-1">
+                        Stock Inicial
+                      </label>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        required
+                        disabled={isSubmittingAdd}
+                        value={stock}
+                        onChange={(e) => setStock(e.target.value)}
+                        placeholder="50"
+                        className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60"
+                      />
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[12px] font-semibold text-text-secondary block mb-1">
-                    Precio Distribuidor ($)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={distPrice}
-                    onChange={(e) => setDistPrice(e.target.value)}
-                    placeholder="60.00"
-                    className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background"
-                  />
-                </div>
-                <div>
-                  <label className="text-[12px] font-semibold text-text-secondary block mb-1">
-                    Precio Público ($)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={pubPrice}
-                    onChange={(e) => setPubPrice(e.target.value)}
-                    placeholder="75.00"
-                    className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background"
-                  />
-                </div>
-              </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[12px] font-semibold text-text-secondary block mb-1">
+                        Precio Distribuidor ($)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        disabled={isSubmittingAdd}
+                        value={distPrice}
+                        onChange={(e) => setDistPrice(e.target.value)}
+                        placeholder="60.00"
+                        className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[12px] font-semibold text-text-secondary block mb-1">
+                        Precio Público ($)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        disabled={isSubmittingAdd}
+                        value={pubPrice}
+                        onChange={(e) => setPubPrice(e.target.value)}
+                        placeholder="75.00"
+                        className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60"
+                      />
+                    </div>
+                  </div>
 
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddForm(false)}
-                  className="flex-1 rounded-xl border border-border py-3 text-[14px] font-semibold text-text-secondary hover:bg-muted transition"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 rounded-xl bg-primary text-white py-3 text-[14px] font-semibold shadow-lg hover:bg-emerald-700 transition"
-                >
-                  Guardar
-                </button>
-              </div>
-            </form>
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      disabled={isSubmittingAdd}
+                      onClick={handleCloseAddModal}
+                      className="flex-1 rounded-xl border border-border py-3 text-[14px] font-semibold text-text-secondary hover:bg-muted transition disabled:opacity-60"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmittingAdd}
+                      className="flex-1 rounded-xl bg-primary text-white py-3 text-[14px] font-semibold shadow-lg hover:bg-emerald-700 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-80"
+                    >
+                      {isSubmittingAdd ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Guardando...</span>
+                        </>
+                      ) : (
+                        "Guardar"
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
           </div>
         </div>
       )}
 
       {/* Slide-up Edit Product Modal */}
       {editingProduct && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center px-4">
-          <div className="w-full max-w-[calc(100vw-2rem)] sm:max-w-[390px] md:max-w-[480px] bg-surface rounded-t-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200">
-            <h3 className="text-[18px] font-bold text-primary">Editar producto</h3>
-            <form onSubmit={handleSaveProduct} className="mt-4 space-y-4">
-              <div>
-                <label className="text-[12px] font-semibold text-text-secondary block mb-1">
-                  Nombre del producto
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  placeholder="Ej. Pan Pita Integral Grande"
-                  className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background"
-                />
-              </div>
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center px-4 backdrop-blur-xs">
+          <div className="w-full max-w-[calc(100vw-2rem)] sm:max-w-[390px] md:max-w-[480px] bg-surface rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200 mb-6">
+            {editedProductSuccess ? (
+              <ModalSuccessState
+                badgeText="Inventario Actualizado"
+                title={`¡${editedProductSuccess.name} actualizado!`}
+                description={
+                  <span>
+                    Se han guardado los cambios y ajustado las existencias a <strong className="font-bold text-text-primary">{editedProductSuccess.stock} unidades</strong>.
+                  </span>
+                }
+                details={[
+                  { label: "Producto", value: editedProductSuccess.name },
+                  { label: "Stock Disponible", value: `${editedProductSuccess.stock} unidades` },
+                  { label: "Precio Público", value: formatMXN(editedProductSuccess.publicPrice) },
+                ]}
+                onDone={handleCloseEditModal}
+                actionText="Entendido"
+              />
+            ) : (
+              <>
+                <h3 className="text-[18px] font-bold text-primary">Editar producto e inventario</h3>
+                <form onSubmit={handleSaveProduct} className="mt-4 space-y-4">
+                  <div>
+                    <label className="text-[12px] font-semibold text-text-secondary block mb-1">
+                      Nombre del producto
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      disabled={isSubmittingEdit}
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Ej. Pan Pita Integral Grande"
+                      className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[12px] font-semibold text-text-secondary block mb-1">
-                    Costo de producción ($)
-                  </label>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.01"
-                    required
-                    value={editCost}
-                    onChange={(e) => setEditCost(e.target.value)}
-                    className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background"
-                  />
-                </div>
-                <div>
-                  <label className="text-[12px] font-semibold text-text-secondary block mb-1">
-                    Inventario / Stock
-                  </label>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    required
-                    value={editStock}
-                    onChange={(e) => setEditStock(e.target.value)}
-                    className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background animate-pulse border-primary/50 ring-2 ring-primary/10"
-                  />
-                </div>
-              </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[12px] font-semibold text-text-secondary block mb-1">
+                        Costo de producción ($)
+                      </label>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.01"
+                        required
+                        disabled={isSubmittingEdit}
+                        value={editCost}
+                        onChange={(e) => setEditCost(e.target.value)}
+                        className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[12px] font-semibold text-text-secondary block mb-1">
+                        Inventario / Stock
+                      </label>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        required
+                        disabled={isSubmittingEdit}
+                        value={editStock}
+                        onChange={(e) => setEditStock(e.target.value)}
+                        className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60 ring-2 ring-primary/20"
+                      />
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[12px] font-semibold text-text-secondary block mb-1">
-                    Precio Distribuidor ($)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={editDistPrice}
-                    onChange={(e) => setEditDistPrice(e.target.value)}
-                    className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background"
-                  />
-                </div>
-                <div>
-                  <label className="text-[12px] font-semibold text-text-secondary block mb-1">
-                    Precio Público ($)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={editPubPrice}
-                    onChange={(e) => setEditPubPrice(e.target.value)}
-                    className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background"
-                  />
-                </div>
-              </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[12px] font-semibold text-text-secondary block mb-1">
+                        Precio Distribuidor ($)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        disabled={isSubmittingEdit}
+                        value={editDistPrice}
+                        onChange={(e) => setEditDistPrice(e.target.value)}
+                        className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[12px] font-semibold text-text-secondary block mb-1">
+                        Precio Público ($)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        disabled={isSubmittingEdit}
+                        value={editPubPrice}
+                        onChange={(e) => setEditPubPrice(e.target.value)}
+                        className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60"
+                      />
+                    </div>
+                  </div>
 
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingProduct(null)}
-                  className="flex-1 rounded-xl border border-border py-3 text-[14px] font-semibold text-text-secondary hover:bg-muted transition"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 rounded-xl bg-primary text-white py-3 text-[14px] font-semibold shadow-lg hover:bg-emerald-700 transition"
-                >
-                  Guardar Cambios
-                </button>
-              </div>
-            </form>
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      disabled={isSubmittingEdit}
+                      onClick={handleCloseEditModal}
+                      className="flex-1 rounded-xl border border-border py-3 text-[14px] font-semibold text-text-secondary hover:bg-muted transition disabled:opacity-60"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmittingEdit}
+                      className="flex-1 rounded-xl bg-primary text-white py-3 text-[14px] font-semibold shadow-lg hover:bg-emerald-700 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-80"
+                    >
+                      {isSubmittingEdit ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Guardando...</span>
+                        </>
+                      ) : (
+                        "Guardar Cambios"
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
           </div>
         </div>
       )}
