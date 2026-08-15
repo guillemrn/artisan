@@ -162,7 +162,8 @@ function Buscar() {
             {results.products.map((p) => (
               <li key={p.id}>
                 <Link
-                  to="/productos"
+                  to="/productos/$productId"
+                  params={{ productId: p.id }}
                   className="flex items-center gap-3 rounded-2xl border border-border bg-white px-4 py-3 transition hover:border-primary/40"
                 >
                   <Package className="h-5 w-5 text-primary shrink-0" />

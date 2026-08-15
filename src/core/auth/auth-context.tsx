@@ -70,18 +70,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      setLoading(false);
-    });
+    let isMounted = true;
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!isMounted) return;
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Auth getSession error:", err);
+        if (isMounted) setLoading(false);
+      });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      if (!isMounted) return;
       setSession(newSession);
       setUser(newSession?.user ?? null);
     });
 
-    return () => listener.subscription.unsubscribe();
+    // Safety timeout in case getSession hangs
+    const timer = setTimeout(() => {
+      if (isMounted) setLoading(false);
+    }, 2000);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   const signInWithGoogle = async () => {

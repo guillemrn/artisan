@@ -1185,29 +1185,29 @@ function Kpi({
   value,
   sub,
   icon,
-  tone,
   onClick,
 }: {
   label: string;
   value: string;
   sub: string;
   icon: React.ReactNode;
-  tone: string;
+  tone?: string;
   onClick?: () => void;
 }) {
   return (
     <div
       onClick={onClick}
-      className={`${tone} rounded-2xl border border-border/80 p-4 shadow-sm relative flex flex-col justify-between h-[104px] ${onClick ? "cursor-pointer hover:border-amber-400 hover:shadow-md transition group select-none" : ""
-        }`}
+      className={`rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)] relative flex flex-col justify-between min-h-[108px] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.03),0_16px_32px_-6px_rgba(0,0,0,0.06)] ${
+        onClick ? "cursor-pointer hover:border-primary/30 group select-none" : ""
+      }`}
     >
       <div className="flex justify-between items-center">
-        <p className="text-[10px] font-bold tracking-wider text-text-muted">{label}</p>
-        <span className="p-1 rounded-lg bg-white/70 shadow-sm border border-border/40">{icon}</span>
+        <p className="text-[10px] font-bold tracking-wider text-text-muted/90 uppercase">{label}</p>
+        <span className="p-1.5 rounded-xl bg-background border border-black/[0.04] shadow-2xs">{icon}</span>
       </div>
-      <div>
-        <p className="text-[20px] font-bold leading-tight text-text-primary font-display truncate">{value}</p>
-        <p className="text-[11px] font-medium text-text-secondary truncate mt-0.5">{sub}</p>
+      <div className="mt-2">
+        <p className="text-[22px] font-extrabold leading-tight text-text-primary font-display truncate">{value}</p>
+        <p className="text-[11px] font-semibold text-text-muted truncate mt-0.5">{sub}</p>
       </div>
     </div>
   );

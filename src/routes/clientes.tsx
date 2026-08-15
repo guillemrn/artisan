@@ -80,16 +80,16 @@ function Clientes() {
       </div>
 
       <div className="mt-5 relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar por nombre..."
-          className="h-11 w-full rounded-xl border border-border bg-white pl-9 pr-3 text-[14px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
+          className="h-11 w-full rounded-2xl border border-black/[0.06] bg-white pl-10 pr-4 text-[14px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 shadow-2xs"
         />
       </div>
 
-      <ul className="mt-4 grid gap-3 pb-24 md:grid-cols-2 xl:grid-cols-3">
+      <ul className="mt-4 grid gap-3.5 pb-24 md:grid-cols-2 xl:grid-cols-3">
         {filtered.map((c) => {
           const stats = clientStats[c.id] || { totalAmount: 0, count: 0 };
           return (
@@ -97,13 +97,13 @@ function Clientes() {
               <Link
                 to="/clientes/$clientId"
                 params={{ clientId: c.id }}
-                className="flex items-center justify-between rounded-2xl border border-border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(31,43,46,0.08)]"
+                className="flex items-center justify-between rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.03),0_16px_32px_-6px_rgba(0,0,0,0.06)]"
               >
               <div className="flex items-center gap-3 min-w-0">
                 <div
-                  className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${
+                  className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${
                     c.channel === "PDV"
-                      ? "bg-primary-light text-primary"
+                      ? "bg-primary/10 text-primary"
                       : "bg-[#FBF0E8] text-[#C9784A]"
                   }`}
                 >
@@ -123,7 +123,7 @@ function Clientes() {
                 <span
                   className={`rounded-full text-[10px] font-semibold px-2 py-0.5 ${
                     c.channel === "PDV"
-                      ? "bg-primary-light text-primary"
+                      ? "bg-primary/10 text-primary"
                       : "bg-[#FBF0E8] text-[#C9784A]"
                   }`}
                 >

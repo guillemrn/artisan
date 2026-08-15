@@ -462,21 +462,21 @@ function StepConfirm({
 }) {
   return (
     <div className="mt-5 space-y-3">
-      <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
         <p className="text-[12px] text-text-muted">Cliente</p>
-        <p className="text-[15px] font-semibold">{clientName}</p>
-        <span className="mt-1 inline-block rounded-full bg-primary-light text-primary text-[10px] font-semibold px-2 py-0.5">
+        <p className="text-[15px] font-bold font-display text-text-primary">{clientName}</p>
+        <span className="mt-1 inline-block rounded-full bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5">
           {channel}
         </span>
       </div>
 
-      <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
         <table className="w-full text-[13px]">
           <thead>
-            <tr className="text-text-muted text-[11px] uppercase">
-              <th className="text-left font-semibold pb-2">Producto</th>
-              <th className="text-center font-semibold pb-2">Movimiento</th>
-              <th className="text-right font-semibold pb-2">Subtotal</th>
+            <tr className="text-text-muted text-[11px] font-bold uppercase tracking-wider">
+              <th className="text-left font-bold pb-2">Producto</th>
+              <th className="text-center font-bold pb-2">Movimiento</th>
+              <th className="text-right font-bold pb-2">Subtotal</th>
             </tr>
           </thead>
           <tbody>
@@ -486,16 +486,16 @@ function StepConfirm({
               return (
                 <tr key={i.productName} className="border-t border-border/80">
                   <td className="py-2">
-                    <p className="font-medium">{i.productName}</p>
+                    <p className="font-semibold text-text-primary">{i.productName}</p>
                     <p className="text-[11px] text-text-muted">{formatMXNc(i.unitPrice)} c/u</p>
                   </td>
                   <td className="text-center py-2 text-[12px] leading-tight">
-                    {i.qty > 0 && <div className="font-semibold text-emerald-700">Venta: {i.qty}</div>}
-                    {(i.returnQty ?? 0) > 0 && <div className="font-semibold text-warning">Cambio: {i.returnQty}</div>}
+                    {i.qty > 0 && <div className="font-bold text-emerald-600">Venta: {i.qty}</div>}
+                    {(i.returnQty ?? 0) > 0 && <div className="font-bold text-amber-600">Cambio: {i.returnQty}</div>}
                   </td>
-                  <td className="text-right font-semibold py-2">
-                    {i.qty > 0 && <div className="text-emerald-700">+{formatMXN(itemSubtotal)}</div>}
-                    {(i.returnQty ?? 0) > 0 && <div className="text-warning">-{formatMXN(itemReturnCredit)}</div>}
+                  <td className="text-right font-bold py-2">
+                    {i.qty > 0 && <div className="text-emerald-600">+{formatMXN(itemSubtotal)}</div>}
+                    {(i.returnQty ?? 0) > 0 && <div className="text-amber-600">-{formatMXN(itemReturnCredit)}</div>}
                   </td>
                 </tr>
               );
@@ -504,10 +504,10 @@ function StepConfirm({
         </table>
 
         <div className="mt-3 border-t border-border pt-3 space-y-1.5 text-[13px]">
-          {/* Internal Business Metrics (smaller/muted for lower cognitive load) */}
-          <div className="bg-gray-50 rounded-xl p-3 mb-2 space-y-1 border border-border/40 text-[12px]">
+          {/* Internal Business Metrics */}
+          <div className="bg-background rounded-2xl p-3 mb-2 space-y-1 border border-black/[0.04] text-[12px]">
             <Row label="Costo de producción" value={formatMXN(cost)} muted />
-            <Row label="Ganancia estimada" value={formatMXN(profit)} accent="text-emerald-700" />
+            <Row label="Ganancia estimada" value={formatMXN(profit)} accent="text-emerald-600 font-bold" />
             <Row label="Margen estimado" value={`${margin}%`} muted />
           </div>
 
@@ -516,7 +516,7 @@ function StepConfirm({
             <Row
               label="Cambios registrados"
               value={`${items.reduce((acc, x) => acc + (x.returnQty ?? 0), 0)} paquetes`}
-              accent="text-warning font-semibold"
+              accent="text-amber-600 font-bold"
             />
           )}
 
@@ -530,17 +530,17 @@ function StepConfirm({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-        <p className="text-[12px] font-semibold text-text-muted mb-2.5">MÉTODO DE PAGO</p>
+      <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2.5">MÉTODO DE PAGO</p>
         <div className="flex flex-wrap gap-2">
           {(["Efectivo", "Transferencia", "Pendiente", "Consignación", "Cortesía"] as PaymentMethod[]).map((p) => (
             <button
               key={p}
               onClick={() => setPayment(p)}
-              className={`rounded-xl px-4 py-2.5 text-[12px] font-semibold border transition ${
+              className={`rounded-xl px-4 py-2.5 text-[12px] font-bold transition ${
                 payment === p
-                  ? "bg-primary text-white border-primary shadow-sm"
-                  : "bg-surface text-text-secondary border-border hover:bg-muted"
+                  ? "bg-primary text-white border border-primary shadow-2xs"
+                  : "bg-background text-text-secondary border border-black/[0.06] hover:bg-muted"
               }`}
             >
               {p}

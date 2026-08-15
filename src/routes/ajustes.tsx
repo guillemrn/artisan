@@ -117,12 +117,12 @@ function Ajustes() {
       </div>
 
       {/* Profile Card */}
-      <div className="mt-5 flex items-center gap-4 rounded-2xl border border-border bg-white p-4 shadow-sm">
-        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-primary text-lg font-bold text-white">
+      <div className="mt-5 flex items-center gap-4 rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
+        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-primary text-lg font-bold text-white shadow-xs">
           {initials}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="truncate text-[16px] font-bold text-text-primary">{displayName}</p>
+          <p className="truncate text-[16px] font-bold text-text-primary font-display">{displayName}</p>
           <p className="truncate text-[13px] text-text-secondary">
             {displayBusiness} ({displayEmail})
           </p>
@@ -134,13 +134,13 @@ function Ajustes() {
         {/* NEGOCIO */}
         <div>
           <p className="mb-2 px-1 text-[11px] font-bold uppercase tracking-widest text-text-muted">Negocio</p>
-          <ul className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+          <ul className="overflow-hidden rounded-2xl border border-black/[0.05] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
             <li>
               <button
                 onClick={() => setProfileModalOpen(true)}
-                className="w-full flex items-center gap-3 border-b border-border/70 px-4 py-3.5 text-left last:border-b-0 hover:bg-muted transition"
+                className="w-full flex items-center gap-3 border-b border-border/70 px-4 py-3.5 text-left last:border-b-0 hover:bg-muted/70 transition"
               >
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-light text-primary">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
                   <Store className="h-4 w-4" />
                 </span>
                 <div className="flex-1 min-w-0">
@@ -156,13 +156,13 @@ function Ajustes() {
         {/* SOPORTE */}
         <div>
           <p className="mb-2 px-1 text-[11px] font-bold uppercase tracking-widest text-text-muted">Ayuda & Soporte</p>
-          <ul className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+          <ul className="overflow-hidden rounded-2xl border border-black/[0.05] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
             <li>
               <button
                 onClick={() => setBugModalOpen(true)}
-                className="w-full flex items-center gap-3 border-b border-border/70 px-4 py-3.5 text-left last:border-b-0 hover:bg-muted transition"
+                className="w-full flex items-center gap-3 border-b border-border/70 px-4 py-3.5 text-left last:border-b-0 hover:bg-muted/70 transition"
               >
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-light text-primary">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
                   <Bug className="h-4 w-4" />
                 </span>
                 <div className="flex-1 min-w-0">

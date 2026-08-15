@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { Search, Plus, Package, TrendingUp, Archive, Pencil, Loader2 } from "lucide-react";
 import { useArtisan } from "@/lib/artisan-store";
@@ -140,47 +140,47 @@ function Productos() {
         </button>
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-3">
-        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-          <div className="mb-1 flex items-center gap-1 text-text-muted">
+      <div className="mt-5 grid grid-cols-3 gap-3.5">
+        <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
+          <div className="mb-1.5 flex items-center gap-1.5 text-text-muted">
             <Package className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-wide">Catálogo</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Catálogo</span>
           </div>
-          <p className="text-[22px] font-bold leading-tight text-text-primary">{products.length}</p>
+          <p className="text-[22px] font-extrabold leading-tight text-text-primary font-display">{products.length}</p>
         </div>
 
-        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-          <div className="mb-1 flex items-center gap-1 text-primary">
+        <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
+          <div className="mb-1.5 flex items-center gap-1.5 text-primary">
             <Archive className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-wide">Costo</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Costo</span>
           </div>
-          <p className="truncate text-[18px] font-bold leading-tight text-primary">
+          <p className="truncate text-[18px] font-extrabold leading-tight text-primary font-display">
             {formatMXN(totalStockVal)}
           </p>
         </div>
 
-        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-          <div className="mb-1 flex items-center gap-1 text-[#C9784A]">
+        <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
+          <div className="mb-1.5 flex items-center gap-1.5 text-[#C9784A]">
             <TrendingUp className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-wide">Venta</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Venta</span>
           </div>
-          <p className="truncate text-[18px] font-bold leading-tight text-[#C9784A]">
+          <p className="truncate text-[18px] font-extrabold leading-tight text-[#C9784A] font-display">
             {formatMXN(potentialRevenue)}
           </p>
         </div>
       </div>
 
       <div className="mt-5 relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar por nombre de producto..."
-          className="h-11 w-full rounded-xl border border-border bg-white pl-9 pr-3 text-[14px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
+          className="h-11 w-full rounded-2xl border border-black/[0.06] bg-white pl-10 pr-4 text-[14px] outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 shadow-2xs"
         />
       </div>
 
-      <ul className="mt-4 grid gap-3 pb-24 md:grid-cols-2 xl:grid-cols-3">
+      <ul className="mt-4 grid gap-3.5 pb-24 md:grid-cols-2 xl:grid-cols-3">
         {filtered.map((p) => {
           let stockStatus: "ok" | "low" | "none" = "ok";
           if (p.stock === 0) stockStatus = "none";
@@ -189,14 +189,24 @@ function Productos() {
           return (
             <li
               key={p.id}
-              className="flex flex-col gap-3 rounded-2xl border border-border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(31,43,46,0.08)] relative"
+              className="flex flex-col gap-3 rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.03),0_16px_32px_-6px_rgba(0,0,0,0.06)] relative"
             >
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-[15px] font-bold text-text-primary">{p.name}</h3>
+                    <Link
+                      to="/productos/$productId"
+                      params={{ productId: p.id }}
+                      className="text-[15px] font-bold text-text-primary hover:text-primary transition"
+                    >
+                      {p.name}
+                    </Link>
                     <button
-                      onClick={() => handleStartEdit(p)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleStartEdit(p);
+                      }}
                       className="p-1 rounded-md text-text-muted hover:text-primary hover:bg-muted transition cursor-pointer"
                       title="Editar producto"
                     >
@@ -205,7 +215,9 @@ function Productos() {
                   </div>
                   <p className="text-[12px] text-text-muted mt-0.5">Stock: {p.stock} unidades</p>
                 </div>
-                <span
+                <Link
+                  to="/productos/$productId"
+                  params={{ productId: p.id }}
                   className={`rounded-full text-[10px] font-bold px-2.5 py-0.5 ${
                     stockStatus === "ok"
                       ? "bg-primary-light text-primary"
@@ -219,10 +231,14 @@ function Productos() {
                     : stockStatus === "low"
                       ? "Bajo Stock"
                       : "Agotado"}
-                </span>
+                </Link>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 border-t border-border/70 pt-2 text-[11px]">
+              <Link
+                to="/productos/$productId"
+                params={{ productId: p.id }}
+                className="grid grid-cols-3 gap-2 border-t border-border/70 pt-2 text-[11px]"
+              >
                 <div>
                   <span className="text-text-muted block">Costo unitario</span>
                   <span className="font-semibold text-text-secondary">{formatMXNc(p.cost)}</span>
@@ -237,7 +253,7 @@ function Productos() {
                   <span className="text-text-muted block">P. Público</span>
                   <span className="font-semibold text-[#C9784A]">{formatMXNc(p.publicPrice)}</span>
                 </div>
-              </div>
+              </Link>
             </li>
           );
         })}
@@ -245,8 +261,8 @@ function Productos() {
 
       {/* Slide-up Add Product Modal */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center px-4 backdrop-blur-xs">
-          <div className="w-full max-w-[calc(100vw-2rem)] sm:max-w-[390px] md:max-w-[480px] bg-surface rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200 mb-6">
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center px-4 backdrop-blur-xs">
+          <div className="w-full max-w-[calc(100vw-2rem)] sm:max-w-[440px] md:max-w-[540px] bg-surface rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200 mb-6 sm:mb-0">
             {addedProductSuccess ? (
               <ModalSuccessState
                 badgeText="Catálogo Actualizado"
@@ -384,8 +400,8 @@ function Productos() {
 
       {/* Slide-up Edit Product Modal */}
       {editingProduct && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center px-4 backdrop-blur-xs">
-          <div className="w-full max-w-[calc(100vw-2rem)] sm:max-w-[390px] md:max-w-[480px] bg-surface rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200 mb-6">
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center px-4 backdrop-blur-xs">
+          <div className="w-full max-w-[calc(100vw-2rem)] sm:max-w-[440px] md:max-w-[540px] bg-surface rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200 mb-6 sm:mb-0">
             {editedProductSuccess ? (
               <ModalSuccessState
                 badgeText="Inventario Actualizado"

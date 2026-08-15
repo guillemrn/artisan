@@ -183,42 +183,42 @@ function VentasPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white border border-border/80 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+        <div className="bg-white border border-black/[0.05] p-4.5 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)] flex flex-col justify-between">
           <div className="flex justify-between items-center">
             <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Total Registradas</span>
-            <span className="p-1.5 rounded-lg bg-primary-light text-primary">
+            <span className="p-1.5 rounded-xl bg-primary/10 text-primary">
               <Receipt className="h-4 w-4" />
             </span>
           </div>
           <div className="mt-2">
-            <p className="text-2xl font-bold text-text-primary font-display">{formatMXN(summaryMetrics.totalAmount)}</p>
-            <p className="text-xs text-text-secondary mt-0.5">{summaryMetrics.totalCount} ventas en total</p>
+            <p className="text-2xl font-extrabold text-text-primary font-display">{formatMXN(summaryMetrics.totalAmount)}</p>
+            <p className="text-xs text-text-muted mt-0.5 font-medium">{summaryMetrics.totalCount} ventas en total</p>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-emerald-50 to-white border border-border/80 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+        <div className="bg-white border border-black/[0.05] p-4.5 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)] flex flex-col justify-between">
           <div className="flex justify-between items-center">
             <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Cobradas / Entregadas</span>
-            <span className="p-1.5 rounded-lg bg-emerald-100 text-emerald-700">
+            <span className="p-1.5 rounded-xl bg-emerald-500/10 text-emerald-600">
               <CheckCircle2 className="h-4 w-4" />
             </span>
           </div>
           <div className="mt-2">
-            <p className="text-2xl font-bold text-emerald-800 font-display">{formatMXN(summaryMetrics.deliveredAmount)}</p>
-            <p className="text-xs text-emerald-700 font-medium mt-0.5">{summaryMetrics.deliveredCount} ventas cobradas</p>
+            <p className="text-2xl font-extrabold text-emerald-600 font-display">{formatMXN(summaryMetrics.deliveredAmount)}</p>
+            <p className="text-xs text-emerald-600/80 font-medium mt-0.5">{summaryMetrics.deliveredCount} ventas cobradas</p>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-amber-50 to-white border border-border/80 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+        <div className="bg-white border border-black/[0.05] p-4.5 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)] flex flex-col justify-between">
           <div className="flex justify-between items-center">
             <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Por Cobrar</span>
-            <span className="p-1.5 rounded-lg bg-amber-100 text-amber-700">
+            <span className="p-1.5 rounded-xl bg-amber-500/10 text-amber-600">
               <Clock className="h-4 w-4" />
             </span>
           </div>
           <div className="mt-2">
-            <p className="text-2xl font-bold text-amber-800 font-display">{formatMXN(summaryMetrics.pendingAmount)}</p>
-            <p className="text-xs text-amber-700 font-medium mt-0.5">{summaryMetrics.pendingCount} pendientes</p>
+            <p className="text-2xl font-extrabold text-amber-600 font-display">{formatMXN(summaryMetrics.pendingAmount)}</p>
+            <p className="text-xs text-amber-600/80 font-medium mt-0.5">{summaryMetrics.pendingCount} pendientes</p>
           </div>
         </div>
       </div>

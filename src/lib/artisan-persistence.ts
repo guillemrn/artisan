@@ -55,74 +55,79 @@ export function saveArtisanData(data: ArtisanData): void {
 }
 
 export async function fetchArtisanData(): Promise<ArtisanData> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    return loadArtisanData();
-  }
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return loadArtisanData();
+    }
 
-  // Fetch from Supabase
-  const [productsRes, clientsRes, salesRes] = await Promise.all([
-    supabase.from("products").select("*").order("created_at", { ascending: true }),
-    supabase.from("clients").select("*").order("created_at", { ascending: true }),
-    supabase.from("sales").select("*").order("created_at", { ascending: false }),
-  ]);
+    // Fetch from Supabase
+    const [productsRes, clientsRes, salesRes] = await Promise.all([
+      supabase.from("products").select("*").order("created_at", { ascending: true }),
+      supabase.from("clients").select("*").order("created_at", { ascending: true }),
+      supabase.from("sales").select("*").order("created_at", { ascending: false }),
+    ]);
 
-  const dbProducts = productsRes.data ?? [];
-  const dbClients = clientsRes.data ?? [];
-  const dbSales = salesRes.data ?? [];
+    const dbProducts = productsRes.data ?? [];
+    const dbClients = clientsRes.data ?? [];
+    const dbSales = salesRes.data ?? [];
 
-  // Map database models to client types
-  const products: Product[] = dbProducts.map(p => ({
-    id: p.id,
-    name: p.name,
-    cost: Number(p.cost),
-    distributorPrice: Number(p.distributor_price),
-    publicPrice: Number(p.public_price),
-    stock: p.stock,
-  }));
+    // Map database models to client types
+    const products: Product[] = dbProducts.map(p => ({
+      id: p.id,
+      name: p.name,
+      cost: Number(p.cost),
+      distributorPrice: Number(p.distributor_price),
+      publicPrice: Number(p.public_price),
+      stock: p.stock,
+    }));
 
-  const clients: Client[] = dbClients.map(c => ({
-    id: c.id,
-    name: c.name,
-    channel: c.channel as "PDV" | "Público",
-    lastDelivery: c.last_delivery || undefined,
-  }));
+    const clients: Client[] = dbClients.map(c => ({
+      id: c.id,
+      name: c.name,
+      channel: c.channel as "PDV" | "Público",
+      lastDelivery: c.last_delivery || undefined,
+    }));
 
-  const salesMap = new Map<string, Sale>();
+    const salesMap = new Map<string, Sale>();
 
-  dbSales.forEach(s => {
-    const dbItems = s.items as any[] ?? [];
-    const actualPayment = dbItems[0]?._paymentMethod || s.payment;
-    
-    const cleanedItems: SaleItem[] = dbItems.map((item: any) => {
-      const { _paymentMethod, ...cleanItem } = item;
-      return cleanItem as SaleItem;
+    dbSales.forEach(s => {
+      const dbItems = s.items as any[] ?? [];
+      const actualPayment = dbItems[0]?._paymentMethod || s.payment;
+      
+      const cleanedItems: SaleItem[] = dbItems.map((item: any) => {
+        const { _paymentMethod, ...cleanItem } = item;
+        return cleanItem as SaleItem;
+      });
+
+      const normalizedCreatedAt = normalizeIsoDate(s.created_at);
+
+      const sale: Sale = {
+        id: s.id,
+        clientId: s.client_id,
+        clientName: s.client_name,
+        channel: s.channel as "PDV" | "Público",
+        items: cleanedItems,
+        total: Number(s.total),
+        cost: Number(s.cost),
+        profit: Number(s.profit),
+        payment: actualPayment as PaymentMethod,
+        status: s.status as "Pendiente" | "Entregado",
+        createdAt: normalizedCreatedAt,
+      };
+
+      salesMap.set(sale.id, sale);
     });
 
-    const normalizedCreatedAt = normalizeIsoDate(s.created_at);
+    const sales = Array.from(salesMap.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
 
-    const sale: Sale = {
-      id: s.id,
-      clientId: s.client_id,
-      clientName: s.client_name,
-      channel: s.channel as "PDV" | "Público",
-      items: cleanedItems,
-      total: Number(s.total),
-      cost: Number(s.cost),
-      profit: Number(s.profit),
-      payment: actualPayment as PaymentMethod,
-      status: s.status as "Pendiente" | "Entregado",
-      createdAt: normalizedCreatedAt,
-    };
-
-    salesMap.set(sale.id, sale);
-  });
-
-  const sales = Array.from(salesMap.values()).sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
-
-  return { products, clients, sales };
+    return { products, clients, sales };
+  } catch (err) {
+    console.error("Error fetching artisan data:", err);
+    return loadArtisanData();
+  }
 }
 
 export const artisanQueryKeys = {

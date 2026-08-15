@@ -116,52 +116,45 @@ function ClientDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
-        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-          <div className="mb-1 flex items-center gap-1 text-primary">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-8">
+        <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
+          <div className="mb-1.5 flex items-center gap-1.5 text-primary">
             <Banknote className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-wide">Ventas Totales</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Ventas Totales</span>
           </div>
-          <p className="text-[22px] font-bold leading-tight text-text-primary">{formatMXN(stats.totalSales)}</p>
-          <p className="text-[12px] text-text-muted mt-1">{stats.count} {stats.count === 1 ? 'ticket' : 'tickets'}</p>
+          <p className="text-[22px] font-extrabold leading-tight text-text-primary font-display">{formatMXN(stats.totalSales)}</p>
+          <p className="text-[12px] text-text-muted font-medium mt-1">{stats.count} {stats.count === 1 ? 'ticket' : 'tickets'}</p>
         </div>
 
-        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm relative overflow-hidden">
-          <div className="mb-1 flex items-center gap-1 text-green-600">
+        <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)] relative overflow-hidden">
+          <div className="mb-1.5 flex items-center gap-1.5 text-emerald-600">
             <TrendingUp className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-wide">Rentabilidad (ROI)</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Rentabilidad (ROI)</span>
           </div>
-          <p className="text-[22px] font-bold leading-tight text-green-600">{stats.roi}%</p>
-          <p className="text-[12px] text-text-muted mt-1 truncate">Ganancia: {formatMXN(stats.totalProfit)}</p>
-          {/* Decorative mini sparkline bg */}
-          <div className="absolute bottom-0 left-0 right-0 h-8 opacity-10 flex items-end gap-1 px-2 pb-1">
-             <div className="w-full bg-green-500 h-[30%] rounded-t-sm"></div>
-             <div className="w-full bg-green-500 h-[50%] rounded-t-sm"></div>
-             <div className="w-full bg-green-500 h-[40%] rounded-t-sm"></div>
-             <div className="w-full bg-green-500 h-[80%] rounded-t-sm"></div>
-             <div className="w-full bg-green-500 h-[70%] rounded-t-sm"></div>
-             <div className="w-full bg-green-500 h-[100%] rounded-t-sm"></div>
-          </div>
+          <p className="text-[22px] font-extrabold leading-tight text-emerald-600 font-display">{stats.roi}%</p>
+          <p className="text-[12px] text-text-muted font-medium mt-1 truncate">Ganancia: {formatMXN(stats.totalProfit)}</p>
         </div>
 
-        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-          <div className="mb-1 flex items-center gap-1 text-[#C9784A]">
+        <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
+          <div className="mb-1.5 flex items-center gap-1.5 text-[#C9784A]">
             <Package className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-wide">Producto Estrella</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Producto Estrella</span>
           </div>
-          <p className="text-[18px] font-bold leading-tight text-text-primary truncate">{stats.topProduct.name}</p>
-          <p className="text-[12px] text-text-muted mt-1">{stats.topProduct.qty} unidades</p>
+          <p className="text-[18px] font-extrabold leading-tight text-text-primary font-display truncate">{stats.topProduct.name}</p>
+          <p className="text-[12px] text-text-muted font-medium mt-1">{stats.topProduct.qty} unidades</p>
         </div>
         
-        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-          <div className="mb-1 flex items-center gap-1 text-warning-dark">
+        <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
+          <div className="mb-1.5 flex items-center gap-1.5 text-amber-600">
             <AlertCircle className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-wide">Deuda Pendiente</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Deuda Pendiente</span>
           </div>
-          <p className={`text-[22px] font-bold leading-tight ${stats.totalDebt > 0 ? "text-warning-dark" : "text-text-primary"}`}>
+          <p className={`text-[22px] font-extrabold leading-tight font-display ${stats.totalDebt > 0 ? "text-amber-600" : "text-text-primary"}`}>
             {formatMXN(stats.totalDebt)}
           </p>
-          <p className="text-[12px] text-text-muted mt-1">Por cobrar</p>
+          <p className="text-[12px] text-text-muted font-medium mt-1">
+            {stats.totalDebt > 0 ? "Saldo por cobrar" : "Sin deuda pendiente"}
+          </p>
         </div>
       </div>
 
