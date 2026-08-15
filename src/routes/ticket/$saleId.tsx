@@ -87,7 +87,7 @@ function Ticket() {
       <div className="page-shell text-center md:px-0 md:pt-8">
         <p className="text-text-secondary">No se encontró el ticket.</p>
         <Link
-          to="/"
+          to="/app"
           className="mt-4 inline-block rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white"
         >
           Volver al inicio

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ActividadRouteImport } from './routes/actividad'
 import { Route as AjustesRouteImport } from './routes/ajustes'
+import { Route as AppRouteImport } from './routes/app'
 import { Route as BuscarRouteImport } from './routes/buscar'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as HistorialRouteImport } from './routes/historial'
@@ -37,6 +38,11 @@ const ActividadRoute = ActividadRouteImport.update({
 const AjustesRoute = AjustesRouteImport.update({
   id: '/ajustes',
   path: '/ajustes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BuscarRoute = BuscarRouteImport.update({
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/actividad': typeof ActividadRoute
   '/ajustes': typeof AjustesRoute
+  '/app': typeof AppRoute
   '/buscar': typeof BuscarRoute
   '/clientes': typeof ClientesRoute
   '/historial': typeof HistorialRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/actividad': typeof ActividadRoute
   '/ajustes': typeof AjustesRoute
+  '/app': typeof AppRoute
   '/buscar': typeof BuscarRoute
   '/clientes': typeof ClientesRoute
   '/historial': typeof HistorialRoute
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/actividad': typeof ActividadRoute
   '/ajustes': typeof AjustesRoute
+  '/app': typeof AppRoute
   '/buscar': typeof BuscarRoute
   '/clientes': typeof ClientesRoute
   '/historial': typeof HistorialRoute
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
     | '/'
     | '/actividad'
     | '/ajustes'
+    | '/app'
     | '/buscar'
     | '/clientes'
     | '/historial'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/'
     | '/actividad'
     | '/ajustes'
+    | '/app'
     | '/buscar'
     | '/clientes'
     | '/historial'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/'
     | '/actividad'
     | '/ajustes'
+    | '/app'
     | '/buscar'
     | '/clientes'
     | '/historial'
@@ -199,6 +211,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActividadRoute: typeof ActividadRoute
   AjustesRoute: typeof AjustesRoute
+  AppRoute: typeof AppRoute
   BuscarRoute: typeof BuscarRoute
   ClientesRoute: typeof ClientesRoute
   HistorialRoute: typeof HistorialRoute
@@ -233,6 +246,13 @@ declare module '@tanstack/react-router' {
       path: '/ajustes'
       fullPath: '/ajustes'
       preLoaderRoute: typeof AjustesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/buscar': {
@@ -319,6 +339,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActividadRoute: ActividadRoute,
   AjustesRoute: AjustesRoute,
+  AppRoute: AppRoute,
   BuscarRoute: BuscarRoute,
   ClientesRoute: ClientesRoute,
   HistorialRoute: HistorialRoute,

@@ -110,7 +110,7 @@ function NuevaVenta() {
       <div className="flex items-center gap-3 rounded-2xl border border-border bg-white p-3 shadow-sm md:p-4">
         {step === 1 ? (
           <Link
-            to="/"
+            to="/app"
             className="grid h-10 w-10 place-items-center rounded-xl border border-border text-text-secondary transition hover:bg-muted"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -217,7 +217,7 @@ function NuevaVenta() {
             <button
               onClick={() => {
                 resetDraft();
-                navigate({ to: "/" });
+                navigate({ to: "/app" });
               }}
               className="flex-1 py-3 text-[14px] font-semibold text-text-secondary"
             >

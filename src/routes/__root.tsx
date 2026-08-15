@@ -85,11 +85,15 @@ function AuthGate() {
 
   if (!user) {
     if (pathname === "/" || pathname === "/login") return <Outlet />;
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   if (pathname === "/login") {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/app" replace />;
+  }
+
+  if (pathname === "/") {
+    return <Outlet />;
   }
 
   return (

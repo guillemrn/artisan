@@ -119,8 +119,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-text-muted">Navegación principal</p>
 
             <DrawerItem
-              to="/"
-              active={isActive("/")}
+              to="/app"
+              active={isActive("/app")}
               icon={<Home className="h-4.5 w-4.5" />}
               label="Inicio"
               onClick={() => setMobileMenuOpen(false)}
@@ -209,8 +209,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <nav className="mt-6 flex flex-col gap-1">
           <SideItem
-            to="/"
-            active={isActive("/")}
+            to="/app"
+            active={isActive("/app")}
             icon={<Home className="h-4.5 w-4.5" />}
             label="Inicio"
             collapsed={collapsed}
@@ -269,7 +269,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               <Menu className="h-5 w-5 text-primary" />
             </button>
-            <Link to="/" className="flex items-center">
+            <Link to="/app" className="flex items-center">
               <Logo variant="full" className="h-7 w-auto" />
             </Link>
           </div>
@@ -329,8 +329,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         <nav className="fixed bottom-0 left-0 w-full border-t border-black/[0.06] bg-white/92 backdrop-blur-md md:hidden z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
           <div className="grid grid-cols-5 items-end px-2 pt-2 pb-3">
             <NavItem
-              to="/"
-              active={isActive("/")}
+              to="/app"
+              active={isActive("/app")}
               icon={<Home className="h-5 w-5" />}
               label="Inicio"
             />

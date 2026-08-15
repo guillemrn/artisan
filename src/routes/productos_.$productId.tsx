@@ -596,7 +596,7 @@ function ProductDetail() {
                 title="¡Producto actualizado!"
                 description={`Los cambios en ${editedProductSuccess.name} fueron guardados correctamente.`}
                 badgeText="Guardado exitoso"
-                onAction={handleCloseEdit}
+                onDone={handleCloseEdit}
                 actionText="Aceptar y cerrar"
               />
             ) : (
