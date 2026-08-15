@@ -39,7 +39,7 @@ const emptyDraft = (): DraftSale => ({
 type Ctx = {
   sales: Sale[];
   addSale: (s: Sale) => Promise<void>;
-  updateSaleStatus: (id: string, status: Sale["status"], payment: PaymentMethod) => void;
+  updateSaleStatus: (id: string, status: Sale["status"], payment: PaymentMethod) => Promise<void>;
   getSale: (id: string) => Sale | undefined;
   lastSaleId: string | null;
   setLastSaleId: (id: string | null) => void;
@@ -47,12 +47,12 @@ type Ctx = {
   setDraft: (u: (d: DraftSale) => DraftSale) => void;
   resetDraft: () => void;
   clients: Client[];
-  addClient: (c: Client) => void;
-  deleteClient: (id: string) => void;
+  addClient: (c: Client) => Promise<void>;
+  deleteClient: (id: string) => Promise<void>;
   products: Product[];
-  addProduct: (p: Product) => void;
-  updateProduct: (p: Product) => void;
-  deleteProduct: (id: string) => void;
+  addProduct: (p: Product) => Promise<void>;
+  updateProduct: (p: Product) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
   isLoading: boolean;
 };
 
@@ -70,10 +70,25 @@ function updateClientLastDelivery(clients: Client[], clientId: string): Client[]
   return clients.map((c) => (c.id === clientId ? { ...c, lastDelivery: "Hoy" } : c));
 }
 
+async function requireActiveSession() {
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+
+  if (error) {
+    throw new Error(`No se pudo validar tu sesión: ${error.message}`);
+  }
+  if (!session) {
+    throw new Error("No hay una sesión de usuario activa");
+  }
+  return session;
+}
+
 export function ArtisanProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const { isDemo } = useAuth();
-  
+
   const { data, isLoading } = useQuery({
     queryKey: artisanQueryKeys.data(),
     queryFn: fetchArtisanData,
@@ -105,7 +120,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         });
 
         const mergedSales = Array.from(salesMap.values()).sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         );
 
         const merged: ArtisanData = {
@@ -144,8 +159,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error("No hay una sesión de usuario activa");
+        const session = await requireActiveSession();
 
         // Inject metadata into items to circumvent database check constraint
         const itemsWithMetadata = s.items.map((item, idx) => {
@@ -168,11 +182,12 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           total: s.total,
           cost: s.cost,
           profit: s.profit,
-          payment: s.payment === "Consignación" 
-            ? "Pendiente" 
-            : s.payment === "Cortesía" 
-              ? "Efectivo" 
-              : s.payment,
+          payment:
+            s.payment === "Consignación"
+              ? "Pendiente"
+              : s.payment === "Cortesía"
+                ? "Efectivo"
+                : s.payment,
           status: s.status,
           created_at: s.createdAt,
           user_id: session.user.id,
@@ -184,27 +199,33 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         }
 
         // Update client last delivery
-        const { error: clientError } = await supabase.from("clients")
+        const { error: clientError } = await supabase
+          .from("clients")
           .update({ last_delivery: "Hoy" })
           .eq("id", s.clientId);
 
         if (clientError) {
-          console.error("Error updating client last delivery:", clientError);
+          throw new Error(
+            `La venta se guardó, pero no se pudo actualizar el cliente: ${clientError.message}`,
+          );
         }
 
         // Update product stock levels
         await Promise.all(
           s.items.map(async (item) => {
-            const prod = products.find(p => p.id === item.productId);
+            const prod = products.find((p) => p.id === item.productId);
             if (prod) {
-              const { error: prodError } = await supabase.from("products")
+              const { error: prodError } = await supabase
+                .from("products")
                 .update({ stock: Math.max(0, prod.stock - item.qty - (item.returnQty ?? 0)) })
                 .eq("id", item.productId);
               if (prodError) {
-                console.error(`Error updating stock for product ${item.productId}:`, prodError);
+                throw new Error(
+                  `La venta se guardó, pero no se pudo actualizar el inventario de ${prod.name}: ${prodError.message}`,
+                );
               }
             }
-          })
+          }),
         );
 
         persist({
@@ -221,7 +242,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         if (isDemo) {
           persist({
             sales: sales.map((sale) =>
-              sale.id === id ? { ...sale, status, payment, createdAt: now } : sale
+              sale.id === id ? { ...sale, status, payment, createdAt: now } : sale,
             ),
             clients,
             products,
@@ -241,7 +262,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
 
         persist({
           sales: sales.map((sale) =>
-            sale.id === id ? { ...sale, status, payment, createdAt: now } : sale
+            sale.id === id ? { ...sale, status, payment, createdAt: now } : sale,
           ),
           clients,
           products,
@@ -257,8 +278,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error("No hay una sesión de usuario activa");
+        const session = await requireActiveSession();
 
         const { error } = await supabase.from("clients").insert({
           id: c.id,
@@ -296,8 +316,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error("No hay una sesión de usuario activa");
+        const session = await requireActiveSession();
 
         const { error } = await supabase.from("products").insert({
           id: p.id,
@@ -363,9 +382,8 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         });
       },
     }),
-    [sales, clients, products, draft, lastSaleId, isLoading, persist, isDemo],
+    [sales, clients, products, draft, lastSaleId, isLoading, persist, isDemo, queryClient],
   );
-
 
   return <ArtisanContext.Provider value={value}>{children}</ArtisanContext.Provider>;
 }

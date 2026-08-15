@@ -12,6 +12,7 @@ import {
   X,
   Activity,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { USER_NAME } from "@/lib/artisan-data";
 import { useAuth } from "@/core/auth/auth-context";
@@ -26,21 +27,27 @@ export const Route = createFileRoute("/ajustes")({
 
 function Ajustes() {
   const { user, signOut, isDemo } = useAuth();
-  
+
   // Profile edit states
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [fullName, setFullName] = useState(user?.user_metadata?.full_name ?? USER_NAME);
-  const [businessName, setBusinessName] = useState(user?.user_metadata?.business_name ?? "Mi Negocio");
+  const [businessName, setBusinessName] = useState(
+    user?.user_metadata?.business_name ?? "Mi Negocio",
+  );
   const [phone, setPhone] = useState(user?.user_metadata?.phone ?? "");
-  const [businessType, setBusinessType] = useState(user?.user_metadata?.business_type ?? "Panadería");
+  const [businessType, setBusinessType] = useState(
+    user?.user_metadata?.business_type ?? "Panadería",
+  );
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   // Bug report states
   const [bugModalOpen, setBugModalOpen] = useState(false);
   const [bugDesc, setBugDesc] = useState("");
   const [sendingBug, setSendingBug] = useState(false);
   const [bugSuccess, setBugSuccess] = useState(false);
+  const [bugError, setBugError] = useState<string | null>(null);
 
   const displayName = user?.user_metadata?.full_name ?? user?.email ?? USER_NAME;
   const displayBusiness = user?.user_metadata?.business_name ?? "Mi Emprendimiento";
@@ -51,9 +58,10 @@ function Ajustes() {
     e.preventDefault();
     if (savingProfile) return;
     setSavingProfile(true);
+    setProfileError(null);
     try {
       if (!isDemo) {
-        await supabase.auth.updateUser({
+        const { error } = await supabase.auth.updateUser({
           data: {
             full_name: fullName,
             business_name: businessName,
@@ -61,12 +69,16 @@ function Ajustes() {
             business_type: businessType,
           },
         });
+        if (error) throw error;
       } else {
         await new Promise((resolve) => setTimeout(resolve, 600));
       }
       setProfileSuccess(true);
     } catch (err) {
       console.error("Error updating profile", err);
+      setProfileError(
+        err instanceof Error ? err.message : "No se pudo actualizar el perfil. Intenta de nuevo.",
+      );
     } finally {
       setSavingProfile(false);
     }
@@ -74,7 +86,9 @@ function Ajustes() {
 
   const handleSendBug = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!bugDesc.trim()) return;
     setSendingBug(true);
+    setBugError(null);
     try {
       if (isDemo) {
         // Mock send
@@ -82,12 +96,13 @@ function Ajustes() {
       } else {
         // Write to Supabase feedback table if it exists, or mailto fallback
         // To be safe, we insert into a feedback table
-        await supabase.from("feedback").insert({
+        const { error } = await supabase.from("feedback").insert({
           user_id: user?.id,
           email: user?.email,
           message: bugDesc,
           created_at: new Date().toISOString(),
         });
+        if (error) throw error;
       }
       setBugSuccess(true);
       setBugDesc("");
@@ -97,10 +112,13 @@ function Ajustes() {
       }, 2000);
     } catch (err) {
       // Fallback to mailto link if insert fails (e.g. table doesn't exist)
+      console.error("Error sending bug report", err);
+      setBugError(
+        "No se pudo enviar directo desde la app. Abrí tu correo para enviarlo manualmente.",
+      );
       const subject = encodeURIComponent("Bug Report - Artisan App");
       const body = encodeURIComponent(bugDesc);
       window.location.href = `mailto:soporte@artisan.app?subject=${subject}&body=${body}`;
-      setBugModalOpen(false);
     } finally {
       setSendingBug(false);
     }
@@ -122,7 +140,9 @@ function Ajustes() {
           {initials}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="truncate text-[16px] font-bold text-text-primary font-display">{displayName}</p>
+          <p className="truncate text-[16px] font-bold text-text-primary font-display">
+            {displayName}
+          </p>
           <p className="truncate text-[13px] text-text-secondary">
             {displayBusiness} ({displayEmail})
           </p>
@@ -133,7 +153,9 @@ function Ajustes() {
       <div className="mt-6 space-y-4">
         {/* NEGOCIO */}
         <div>
-          <p className="mb-2 px-1 text-[11px] font-bold uppercase tracking-widest text-text-muted">Negocio</p>
+          <p className="mb-2 px-1 text-[11px] font-bold uppercase tracking-widest text-text-muted">
+            Negocio
+          </p>
           <ul className="overflow-hidden rounded-2xl border border-black/[0.05] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
             <li>
               <button
@@ -145,7 +167,9 @@ function Ajustes() {
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-semibold text-text-primary">Perfil del negocio</p>
-                  <p className="text-[12px] text-text-muted truncate">Editar nombre, negocio y categoría</p>
+                  <p className="text-[12px] text-text-muted truncate">
+                    Editar nombre, negocio y categoría
+                  </p>
                 </div>
                 <ChevronRight className="h-4 w-4 text-text-muted" />
               </button>
@@ -155,7 +179,9 @@ function Ajustes() {
 
         {/* SOPORTE */}
         <div>
-          <p className="mb-2 px-1 text-[11px] font-bold uppercase tracking-widest text-text-muted">Ayuda & Soporte</p>
+          <p className="mb-2 px-1 text-[11px] font-bold uppercase tracking-widest text-text-muted">
+            Ayuda & Soporte
+          </p>
           <ul className="overflow-hidden rounded-2xl border border-black/[0.05] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
             <li>
               <button
@@ -166,8 +192,12 @@ function Ajustes() {
                   <Bug className="h-4 w-4" />
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-semibold text-text-primary">Reportar un problema / Bug</p>
-                  <p className="text-[12px] text-text-muted truncate">Envíanos comentarios para mejorar la app</p>
+                  <p className="text-[14px] font-semibold text-text-primary">
+                    Reportar un problema / Bug
+                  </p>
+                  <p className="text-[12px] text-text-muted truncate">
+                    Envíanos comentarios para mejorar la app
+                  </p>
                 </div>
                 <ChevronRight className="h-4 w-4 text-text-muted" />
               </button>
@@ -178,7 +208,9 @@ function Ajustes() {
                   <Info className="h-4 w-4" />
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-semibold text-text-primary">Versión de aplicación</p>
+                  <p className="text-[14px] font-semibold text-text-primary">
+                    Versión de aplicación
+                  </p>
                   <p className="text-[12px] text-text-muted truncate">0.2.0 — MVP Connect</p>
                 </div>
               </div>
@@ -188,7 +220,9 @@ function Ajustes() {
 
         {/* LOG DE EVENTOS (ACTIVIDAD RECIENTE) */}
         <div>
-          <p className="mb-2 px-1 text-[11px] font-bold uppercase tracking-widest text-text-muted">Actividad Reciente</p>
+          <p className="mb-2 px-1 text-[11px] font-bold uppercase tracking-widest text-text-muted">
+            Actividad Reciente
+          </p>
           <ul className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
             <li>
               <Link
@@ -200,7 +234,9 @@ function Ajustes() {
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-semibold text-text-primary">Log de eventos</p>
-                  <p className="text-[12px] text-text-muted truncate">Ver historial completo de movimientos</p>
+                  <p className="text-[12px] text-text-muted truncate">
+                    Ver historial completo de movimientos
+                  </p>
                 </div>
                 <ChevronRight className="h-4 w-4 text-text-muted" />
               </Link>
@@ -210,7 +246,9 @@ function Ajustes() {
 
         {/* CUENTA */}
         <div>
-          <p className="mb-2 px-1 text-[11px] font-bold uppercase tracking-widest text-text-muted">Cuenta</p>
+          <p className="mb-2 px-1 text-[11px] font-bold uppercase tracking-widest text-text-muted">
+            Cuenta
+          </p>
           <ul className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
             <li>
               <button
@@ -238,6 +276,7 @@ function Ajustes() {
               onClick={() => {
                 setProfileModalOpen(false);
                 setProfileSuccess(false);
+                setProfileError(null);
               }}
               className="absolute right-4 top-4 text-text-muted hover:text-text-primary z-10"
             >
@@ -250,7 +289,9 @@ function Ajustes() {
                 title="¡Perfil actualizado con éxito!"
                 description={
                   <span>
-                    Los datos de <strong className="font-bold text-text-primary">{businessName}</strong> han sido guardados correctamente.
+                    Los datos de{" "}
+                    <strong className="font-bold text-text-primary">{businessName}</strong> han sido
+                    guardados correctamente.
                   </span>
                 }
                 details={[
@@ -267,10 +308,20 @@ function Ajustes() {
               />
             ) : (
               <>
-                <h3 className="font-display text-[18px] font-bold text-text-primary mb-4">Editar Perfil del Negocio</h3>
+                <h3 className="font-display text-[18px] font-bold text-text-primary mb-4">
+                  Editar Perfil del Negocio
+                </h3>
                 <form onSubmit={handleSaveProfile} className="space-y-4">
+                  {profileError && (
+                    <div className="flex items-start gap-2 rounded-xl border border-danger/20 bg-red-50 px-3 py-2.5 text-[13px] text-danger">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <p>{profileError}</p>
+                    </div>
+                  )}
                   <div>
-                    <label className="block text-[12px] font-bold text-text-primary mb-1">Tu Nombre</label>
+                    <label className="block text-[12px] font-bold text-text-primary mb-1">
+                      Tu Nombre
+                    </label>
                     <div className="relative">
                       <input
                         type="text"
@@ -284,7 +335,9 @@ function Ajustes() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[12px] font-bold text-text-primary mb-1">Nombre del Negocio</label>
+                    <label className="block text-[12px] font-bold text-text-primary mb-1">
+                      Nombre del Negocio
+                    </label>
                     <div className="relative">
                       <input
                         type="text"
@@ -299,7 +352,9 @@ function Ajustes() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[12px] font-bold text-text-primary mb-1">Teléfono</label>
+                      <label className="block text-[12px] font-bold text-text-primary mb-1">
+                        Teléfono
+                      </label>
                       <div className="relative">
                         <input
                           type="tel"
@@ -312,7 +367,9 @@ function Ajustes() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-[12px] font-bold text-text-primary mb-1">Categoría</label>
+                      <label className="block text-[12px] font-bold text-text-primary mb-1">
+                        Categoría
+                      </label>
                       <div className="relative">
                         <select
                           disabled={savingProfile}
@@ -360,6 +417,7 @@ function Ajustes() {
               onClick={() => {
                 setBugModalOpen(false);
                 setBugSuccess(false);
+                setBugError(null);
               }}
               className="absolute right-4 top-4 text-text-muted hover:text-text-primary z-10"
             >
@@ -378,11 +436,19 @@ function Ajustes() {
               />
             ) : (
               <>
-                <h3 className="font-display text-[18px] font-bold text-text-primary mb-2">Reportar un problema</h3>
+                <h3 className="font-display text-[18px] font-bold text-text-primary mb-2">
+                  Reportar un problema
+                </h3>
                 <p className="text-[12px] text-text-muted mb-4">
                   Cuéntanos qué falló o qué podemos mejorar para ayudarte en tu día a día.
                 </p>
                 <form onSubmit={handleSendBug} className="space-y-4">
+                  {bugError && (
+                    <div className="flex items-start gap-2 rounded-xl border border-danger/20 bg-red-50 px-3 py-2.5 text-[13px] text-danger">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <p>{bugError}</p>
+                    </div>
+                  )}
                   <div>
                     <textarea
                       required
@@ -417,4 +483,3 @@ function Ajustes() {
     </div>
   );
 }
-

@@ -56,7 +56,14 @@ export function saveArtisanData(data: ArtisanData): void {
 
 export async function fetchArtisanData(): Promise<ArtisanData> {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+    if (sessionError) {
+      throw new Error(`No se pudo validar la sesión: ${sessionError.message}`);
+    }
+
     if (!session) {
       return loadArtisanData();
     }
@@ -68,12 +75,17 @@ export async function fetchArtisanData(): Promise<ArtisanData> {
       supabase.from("sales").select("*").order("created_at", { ascending: false }),
     ]);
 
+    const firstError = productsRes.error ?? clientsRes.error ?? salesRes.error;
+    if (firstError) {
+      throw new Error(`No se pudieron cargar los datos del negocio: ${firstError.message}`);
+    }
+
     const dbProducts = productsRes.data ?? [];
     const dbClients = clientsRes.data ?? [];
     const dbSales = salesRes.data ?? [];
 
     // Map database models to client types
-    const products: Product[] = dbProducts.map(p => ({
+    const products: Product[] = dbProducts.map((p) => ({
       id: p.id,
       name: p.name,
       cost: Number(p.cost),
@@ -82,7 +94,7 @@ export async function fetchArtisanData(): Promise<ArtisanData> {
       stock: p.stock,
     }));
 
-    const clients: Client[] = dbClients.map(c => ({
+    const clients: Client[] = dbClients.map((c) => ({
       id: c.id,
       name: c.name,
       channel: c.channel as "PDV" | "Público",
@@ -91,10 +103,10 @@ export async function fetchArtisanData(): Promise<ArtisanData> {
 
     const salesMap = new Map<string, Sale>();
 
-    dbSales.forEach(s => {
-      const dbItems = s.items as any[] ?? [];
+    dbSales.forEach((s) => {
+      const dbItems = (s.items as any[]) ?? [];
       const actualPayment = dbItems[0]?._paymentMethod || s.payment;
-      
+
       const cleanedItems: SaleItem[] = dbItems.map((item: any) => {
         const { _paymentMethod, ...cleanItem } = item;
         return cleanItem as SaleItem;
@@ -120,7 +132,7 @@ export async function fetchArtisanData(): Promise<ArtisanData> {
     });
 
     const sales = Array.from(salesMap.values()).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
 
     return { products, clients, sales };
@@ -134,4 +146,3 @@ export const artisanQueryKeys = {
   all: ["artisan"] as const,
   data: () => [...artisanQueryKeys.all, "data"] as const,
 };
-

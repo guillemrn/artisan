@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Store, User, Loader2 } from "lucide-react";
+import { Store, User, Loader2, AlertCircle } from "lucide-react";
 import { createClientFromName } from "@/lib/artisan-client";
 import type { Client } from "@/lib/artisan-data";
 import { ModalSuccessState } from "@/components/ui/ModalSuccessState";
@@ -9,7 +9,7 @@ type Props = {
   onClose: () => void;
   onCreated: (client: Client) => void;
   /** Called after the client is created (e.g. to add to store) */
-  onSave: (client: Client) => void;
+  onSave: (client: Client) => Promise<void>;
   title?: string;
   lastDeliveryLabel?: string;
 };
@@ -26,6 +26,7 @@ export function AddClientSheet({
   const [channel, setChannel] = useState<"PDV" | "Público">("PDV");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdClient, setCreatedClient] = useState<Client | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!open) return null;
 
@@ -34,22 +35,27 @@ export function AddClientSheet({
     setChannel("PDV");
     setCreatedClient(null);
     setIsSubmitting(false);
+    setErrorMessage(null);
     onClose();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || isSubmitting) return;
 
     setIsSubmitting(true);
+    setErrorMessage(null);
 
-    setTimeout(() => {
+    try {
       const client = createClientFromName(name, channel, lastDeliveryLabel);
-      onSave(client);
+      await onSave(client);
       onCreated(client);
-      setIsSubmitting(false);
       setCreatedClient(client);
-    }, 600);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "No se pudo guardar el cliente.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -61,7 +67,10 @@ export function AddClientSheet({
             title={`¡${createdClient.name} fue agregado!`}
             description={
               <span>
-                El cliente <strong className="font-bold text-text-primary">{createdClient.name}</strong> se ha guardado exitosamente en el canal <strong className="font-bold text-text-primary">{createdClient.channel}</strong>.
+                El cliente{" "}
+                <strong className="font-bold text-text-primary">{createdClient.name}</strong> se ha
+                guardado exitosamente en el canal{" "}
+                <strong className="font-bold text-text-primary">{createdClient.channel}</strong>.
               </span>
             }
             details={[
@@ -76,6 +85,12 @@ export function AddClientSheet({
           <>
             <h3 className="text-[18px] font-bold text-primary">{title}</h3>
             <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+              {errorMessage && (
+                <div className="flex items-start gap-2 rounded-xl border border-danger/20 bg-red-50 px-3 py-2.5 text-[13px] text-danger">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p>{errorMessage}</p>
+                </div>
+              )}
               <div>
                 <label className="text-[12px] font-semibold text-text-secondary block mb-1">
                   Nombre completo
@@ -154,4 +169,3 @@ export function AddClientSheet({
     </div>
   );
 }
-

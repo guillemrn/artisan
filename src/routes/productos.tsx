@@ -1,6 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { Search, Plus, Package, TrendingUp, Archive, Pencil, Loader2 } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Package,
+  TrendingUp,
+  Archive,
+  Pencil,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 import { useArtisan } from "@/lib/artisan-store";
 import { formatMXN, formatMXNc, type Product } from "@/lib/artisan-data";
 import { ModalSuccessState } from "@/components/ui/ModalSuccessState";
@@ -23,6 +32,7 @@ function Productos() {
   const [stock, setStock] = useState("");
   const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
   const [addedProductSuccess, setAddedProductSuccess] = useState<Product | null>(null);
+  const [addError, setAddError] = useState<string | null>(null);
 
   // Edit Form states
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -33,6 +43,7 @@ function Productos() {
   const [editStock, setEditStock] = useState("");
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
   const [editedProductSuccess, setEditedProductSuccess] = useState<Product | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const filtered = products.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()));
 
@@ -53,32 +64,46 @@ function Productos() {
     setStock("");
     setIsSubmittingAdd(false);
     setAddedProductSuccess(null);
+    setAddError(null);
     setShowAddForm(false);
   };
 
-  const handleCreateProduct = (e: React.FormEvent) => {
+  const parseNonNegativeNumber = (value: string, fieldName: string) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      throw new Error(`${fieldName} debe ser un número válido mayor o igual a cero.`);
+    }
+    return parsed;
+  };
+
+  const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || isSubmittingAdd) return;
 
     setIsSubmittingAdd(true);
+    setAddError(null);
 
-    setTimeout(() => {
+    try {
+      const trimmedName = name.trim();
       const newProd: Product = {
-        id: name
+        id: trimmedName
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/(^-|-$)/g, ""),
-        name: name.trim(),
-        cost: parseFloat(cost) || 0,
-        distributorPrice: parseFloat(distPrice) || 0,
-        publicPrice: parseFloat(pubPrice) || 0,
-        stock: parseInt(stock) || 0,
+        name: trimmedName,
+        cost: parseNonNegativeNumber(cost, "El costo"),
+        distributorPrice: parseNonNegativeNumber(distPrice, "El precio distribuidor"),
+        publicPrice: parseNonNegativeNumber(pubPrice, "El precio público"),
+        stock: Math.floor(parseNonNegativeNumber(stock, "El stock inicial")),
       };
 
-      addProduct(newProd);
-      setIsSubmittingAdd(false);
+      await addProduct(newProd);
       setAddedProductSuccess(newProd);
-    }, 600);
+    } catch (error) {
+      setAddError(error instanceof Error ? error.message : "No se pudo guardar el producto.");
+    } finally {
+      setIsSubmittingAdd(false);
+    }
   };
 
   const handleStartEdit = (p: Product) => {
@@ -90,34 +115,40 @@ function Productos() {
     setEditStock(String(p.stock));
     setEditedProductSuccess(null);
     setIsSubmittingEdit(false);
+    setEditError(null);
   };
 
   const handleCloseEditModal = () => {
     setEditingProduct(null);
     setEditedProductSuccess(null);
     setIsSubmittingEdit(false);
+    setEditError(null);
   };
 
-  const handleSaveProduct = (e: React.FormEvent) => {
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct || !editName.trim() || isSubmittingEdit) return;
 
     setIsSubmittingEdit(true);
+    setEditError(null);
 
-    setTimeout(() => {
+    try {
       const updated: Product = {
         id: editingProduct.id,
         name: editName.trim(),
-        cost: parseFloat(editCost) || 0,
-        distributorPrice: parseFloat(editDistPrice) || 0,
-        publicPrice: parseFloat(editPubPrice) || 0,
-        stock: parseInt(editStock) || 0,
+        cost: parseNonNegativeNumber(editCost, "El costo"),
+        distributorPrice: parseNonNegativeNumber(editDistPrice, "El precio distribuidor"),
+        publicPrice: parseNonNegativeNumber(editPubPrice, "El precio público"),
+        stock: Math.floor(parseNonNegativeNumber(editStock, "El inventario")),
       };
 
-      updateProduct(updated);
-      setIsSubmittingEdit(false);
+      await updateProduct(updated);
       setEditedProductSuccess(updated);
-    }, 600);
+    } catch (error) {
+      setEditError(error instanceof Error ? error.message : "No se pudieron guardar los cambios.");
+    } finally {
+      setIsSubmittingEdit(false);
+    }
   };
 
   return (
@@ -146,7 +177,9 @@ function Productos() {
             <Package className="h-3.5 w-3.5" />
             <span className="text-[10px] font-bold uppercase tracking-wider">Catálogo</span>
           </div>
-          <p className="text-[22px] font-extrabold leading-tight text-text-primary font-display">{products.length}</p>
+          <p className="text-[22px] font-extrabold leading-tight text-text-primary font-display">
+            {products.length}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
@@ -269,11 +302,21 @@ function Productos() {
                 title={`¡${addedProductSuccess.name} agregado!`}
                 description={
                   <span>
-                    El producto <strong className="font-bold text-text-primary">{addedProductSuccess.name}</strong> ha sido guardado exitosamente con un stock inicial de <strong className="font-bold text-text-primary">{addedProductSuccess.stock} u.</strong>
+                    El producto{" "}
+                    <strong className="font-bold text-text-primary">
+                      {addedProductSuccess.name}
+                    </strong>{" "}
+                    ha sido guardado exitosamente con un stock inicial de{" "}
+                    <strong className="font-bold text-text-primary">
+                      {addedProductSuccess.stock} u.
+                    </strong>
                   </span>
                 }
                 details={[
-                  { label: "Precio Distribuidor", value: formatMXN(addedProductSuccess.distributorPrice) },
+                  {
+                    label: "Precio Distribuidor",
+                    value: formatMXN(addedProductSuccess.distributorPrice),
+                  },
                   { label: "Precio Público", value: formatMXN(addedProductSuccess.publicPrice) },
                   { label: "Stock Inicial", value: `${addedProductSuccess.stock} unidades` },
                 ]}
@@ -284,6 +327,12 @@ function Productos() {
               <>
                 <h3 className="text-[18px] font-bold text-primary">Agregar nuevo producto</h3>
                 <form onSubmit={handleCreateProduct} className="mt-4 space-y-4">
+                  {addError && (
+                    <div className="flex items-start gap-2 rounded-xl border border-danger/20 bg-red-50 px-3 py-2.5 text-[13px] text-danger">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <p>{addError}</p>
+                    </div>
+                  )}
                   <div>
                     <label className="text-[12px] font-semibold text-text-secondary block mb-1">
                       Nombre del producto
@@ -308,6 +357,7 @@ function Productos() {
                         type="number"
                         inputMode="decimal"
                         step="0.01"
+                        min="0"
                         required
                         disabled={isSubmittingAdd}
                         value={cost}
@@ -324,6 +374,7 @@ function Productos() {
                         type="number"
                         inputMode="numeric"
                         pattern="[0-9]*"
+                        min="0"
                         required
                         disabled={isSubmittingAdd}
                         value={stock}
@@ -342,6 +393,7 @@ function Productos() {
                       <input
                         type="number"
                         step="0.01"
+                        min="0"
                         required
                         disabled={isSubmittingAdd}
                         value={distPrice}
@@ -357,6 +409,7 @@ function Productos() {
                       <input
                         type="number"
                         step="0.01"
+                        min="0"
                         required
                         disabled={isSubmittingAdd}
                         value={pubPrice}
@@ -408,7 +461,11 @@ function Productos() {
                 title={`¡${editedProductSuccess.name} actualizado!`}
                 description={
                   <span>
-                    Se han guardado los cambios y ajustado las existencias a <strong className="font-bold text-text-primary">{editedProductSuccess.stock} unidades</strong>.
+                    Se han guardado los cambios y ajustado las existencias a{" "}
+                    <strong className="font-bold text-text-primary">
+                      {editedProductSuccess.stock} unidades
+                    </strong>
+                    .
                   </span>
                 }
                 details={[
@@ -423,6 +480,12 @@ function Productos() {
               <>
                 <h3 className="text-[18px] font-bold text-primary">Editar producto e inventario</h3>
                 <form onSubmit={handleSaveProduct} className="mt-4 space-y-4">
+                  {editError && (
+                    <div className="flex items-start gap-2 rounded-xl border border-danger/20 bg-red-50 px-3 py-2.5 text-[13px] text-danger">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <p>{editError}</p>
+                    </div>
+                  )}
                   <div>
                     <label className="text-[12px] font-semibold text-text-secondary block mb-1">
                       Nombre del producto
@@ -447,6 +510,7 @@ function Productos() {
                         type="number"
                         inputMode="decimal"
                         step="0.01"
+                        min="0"
                         required
                         disabled={isSubmittingEdit}
                         value={editCost}
@@ -462,6 +526,7 @@ function Productos() {
                         type="number"
                         inputMode="numeric"
                         pattern="[0-9]*"
+                        min="0"
                         required
                         disabled={isSubmittingEdit}
                         value={editStock}
@@ -479,6 +544,7 @@ function Productos() {
                       <input
                         type="number"
                         step="0.01"
+                        min="0"
                         required
                         disabled={isSubmittingEdit}
                         value={editDistPrice}
@@ -493,6 +559,7 @@ function Productos() {
                       <input
                         type="number"
                         step="0.01"
+                        min="0"
                         required
                         disabled={isSubmittingEdit}
                         value={editPubPrice}

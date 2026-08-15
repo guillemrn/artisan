@@ -15,6 +15,7 @@ import {
   DollarSign,
   PieChart,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ModalSuccessState } from "@/components/ui/ModalSuccessState";
@@ -40,6 +41,7 @@ function ProductDetail() {
   const [editStock, setEditStock] = useState("");
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
   const [editedProductSuccess, setEditedProductSuccess] = useState<Product | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const product = products.find((p) => p.id === productId);
 
@@ -53,7 +55,13 @@ function ProductDetail() {
         totalProfitAmount: 0,
         channelPDV: { qty: 0, revenue: 0 },
         channelPublico: { qty: 0, revenue: 0 },
-        clientStatsMap: [] as { clientId: string; clientName: string; channel: "PDV" | "Público"; qty: number; total: number }[],
+        clientStatsMap: [] as {
+          clientId: string;
+          clientName: string;
+          channel: "PDV" | "Público";
+          qty: number;
+          total: number;
+        }[],
         productSales: [],
       };
     }
@@ -69,7 +77,13 @@ function ProductDetail() {
 
     const clientsMap: Record<
       string,
-      { clientId: string; clientName: string; channel: "PDV" | "Público"; qty: number; total: number }
+      {
+        clientId: string;
+        clientName: string;
+        channel: "PDV" | "Público";
+        qty: number;
+        total: number;
+      }
     > = {};
 
     const matchingSales: {
@@ -171,9 +185,13 @@ function ProductDetail() {
   else if (product.stock <= 5) stockStatus = "low";
 
   const markupPDV =
-    product.cost > 0 ? (((product.distributorPrice - product.cost) / product.cost) * 100).toFixed(1) : "0.0";
+    product.cost > 0
+      ? (((product.distributorPrice - product.cost) / product.cost) * 100).toFixed(1)
+      : "0.0";
   const markupPub =
-    product.cost > 0 ? (((product.publicPrice - product.cost) / product.cost) * 100).toFixed(1) : "0.0";
+    product.cost > 0
+      ? (((product.publicPrice - product.cost) / product.cost) * 100).toFixed(1)
+      : "0.0";
 
   const handleOpenEdit = () => {
     setEditName(product.name);
@@ -182,6 +200,7 @@ function ProductDetail() {
     setEditPubPrice(String(product.publicPrice));
     setEditStock(String(product.stock));
     setEditedProductSuccess(null);
+    setEditError(null);
     setIsSubmittingEdit(false);
     setShowEditModal(true);
   };
@@ -189,34 +208,52 @@ function ProductDetail() {
   const handleCloseEdit = () => {
     setShowEditModal(false);
     setEditedProductSuccess(null);
+    setEditError(null);
     setIsSubmittingEdit(false);
   };
 
-  const handleSaveProduct = (e: React.FormEvent) => {
+  const parseNonNegativeNumber = (value: string, fieldName: string) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      throw new Error(`${fieldName} debe ser un número válido mayor o igual a cero.`);
+    }
+    return parsed;
+  };
+
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editName.trim() || isSubmittingEdit) return;
 
     setIsSubmittingEdit(true);
+    setEditError(null);
 
-    setTimeout(() => {
+    try {
       const updated: Product = {
         id: product.id,
         name: editName.trim(),
-        cost: parseFloat(editCost) || 0,
-        distributorPrice: parseFloat(editDistPrice) || 0,
-        publicPrice: parseFloat(editPubPrice) || 0,
-        stock: parseInt(editStock) || 0,
+        cost: parseNonNegativeNumber(editCost, "El costo"),
+        distributorPrice: parseNonNegativeNumber(editDistPrice, "El precio distribuidor"),
+        publicPrice: parseNonNegativeNumber(editPubPrice, "El precio público"),
+        stock: Math.floor(parseNonNegativeNumber(editStock, "El stock")),
       };
 
-      updateProduct(updated);
-      setIsSubmittingEdit(false);
+      await updateProduct(updated);
       setEditedProductSuccess(updated);
-    }, 500);
+    } catch (error) {
+      setEditError(error instanceof Error ? error.message : "No se pudieron guardar los cambios.");
+    } finally {
+      setIsSubmittingEdit(false);
+    }
   };
 
   const formatDate = (isoStr: string) => {
     const d = new Date(isoStr);
-    return d.toLocaleDateString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleDateString("es-MX", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   return (
@@ -271,7 +308,9 @@ function ProductDetail() {
         <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
           <div className="mb-1.5 flex items-center gap-1.5 text-primary">
             <Banknote className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Ventas Totales</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+              Ventas Totales
+            </span>
           </div>
           <p className="text-[22px] font-extrabold leading-tight text-text-primary font-display">
             {formatMXN(stats.totalSalesAmount)}
@@ -284,7 +323,9 @@ function ProductDetail() {
         <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)] relative overflow-hidden">
           <div className="mb-1.5 flex items-center gap-1.5 text-emerald-600">
             <TrendingUp className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Ganancia Acumulada</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+              Ganancia Acumulada
+            </span>
           </div>
           <p className="text-[22px] font-extrabold leading-tight text-emerald-600 font-display">
             {formatMXN(stats.totalProfitAmount)}
@@ -297,7 +338,9 @@ function ProductDetail() {
         <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
           <div className="mb-1.5 flex items-center gap-1.5 text-[#C9784A]">
             <Package className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Stock Disponible</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+              Stock Disponible
+            </span>
           </div>
           <p className="text-[22px] font-extrabold leading-tight text-text-primary font-display">
             {product.stock} <span className="text-[13px] font-medium text-text-muted">uds</span>
@@ -310,7 +353,9 @@ function ProductDetail() {
         <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
           <div className="mb-1.5 flex items-center gap-1.5 text-sky-600">
             <DollarSign className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Valor Venta Stock</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+              Valor Venta Stock
+            </span>
           </div>
           <p className="text-[22px] font-extrabold leading-tight text-sky-600 font-display">
             {formatMXN(product.stock * product.publicPrice)}
@@ -326,7 +371,9 @@ function ProductDetail() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <PieChart className="h-4.5 w-4.5 text-primary" />
-            <h2 className="text-[16px] font-bold text-text-primary">Estructura de Precios y Costos</h2>
+            <h2 className="text-[16px] font-bold text-text-primary">
+              Estructura de Precios y Costos
+            </h2>
           </div>
           <button
             onClick={handleOpenEdit}
@@ -341,7 +388,9 @@ function ProductDetail() {
             <span className="text-[11px] font-bold uppercase tracking-wide text-text-muted">
               Costo de Producción
             </span>
-            <p className="text-[24px] font-bold text-text-primary mt-1">{formatMXNc(product.cost)}</p>
+            <p className="text-[24px] font-bold text-text-primary mt-1">
+              {formatMXNc(product.cost)}
+            </p>
             <p className="text-[12px] text-text-muted mt-1">Costo unitario registrado</p>
           </div>
 
@@ -451,7 +500,10 @@ function ProductDetail() {
           ) : (
             <ul className="divide-y divide-border/60">
               {stats.clientStatsMap.slice(0, 5).map((c) => (
-                <li key={c.clientId} className="py-2.5 flex items-center justify-between first:pt-0 last:pb-0">
+                <li
+                  key={c.clientId}
+                  className="py-2.5 flex items-center justify-between first:pt-0 last:pb-0"
+                >
                   <Link
                     to="/clientes/$clientId"
                     params={{ clientId: c.clientId }}
@@ -459,7 +511,9 @@ function ProductDetail() {
                   >
                     <span
                       className={`rounded-full text-[9px] font-bold px-2 py-0.5 shrink-0 ${
-                        c.channel === "PDV" ? "bg-primary-light text-primary" : "bg-[#FBF0E8] text-[#C9784A]"
+                        c.channel === "PDV"
+                          ? "bg-primary-light text-primary"
+                          : "bg-[#FBF0E8] text-[#C9784A]"
                       }`}
                     >
                       {c.channel}
@@ -497,7 +551,9 @@ function ProductDetail() {
               <button
                 onClick={() => setFilter("all")}
                 className={`rounded-lg px-3 py-1 transition ${
-                  filter === "all" ? "bg-white text-text-primary shadow-xs" : "text-text-muted hover:text-text-primary"
+                  filter === "all"
+                    ? "bg-white text-text-primary shadow-xs"
+                    : "text-text-muted hover:text-text-primary"
                 }`}
               >
                 Todas ({stats.productSales.length})
@@ -505,7 +561,9 @@ function ProductDetail() {
               <button
                 onClick={() => setFilter("month")}
                 className={`rounded-lg px-3 py-1 transition ${
-                  filter === "month" ? "bg-white text-text-primary shadow-xs" : "text-text-muted hover:text-text-primary"
+                  filter === "month"
+                    ? "bg-white text-text-primary shadow-xs"
+                    : "text-text-muted hover:text-text-primary"
                 }`}
               >
                 Último mes
@@ -554,7 +612,9 @@ function ProductDetail() {
                     <td className="py-3 whitespace-nowrap">
                       <span
                         className={`rounded-full text-[10px] font-bold px-2 py-0.5 ${
-                          s.channel === "PDV" ? "bg-primary-light text-primary" : "bg-[#FBF0E8] text-[#C9784A]"
+                          s.channel === "PDV"
+                            ? "bg-primary-light text-primary"
+                            : "bg-[#FBF0E8] text-[#C9784A]"
                         }`}
                       >
                         {s.channel}
@@ -612,6 +672,12 @@ function ProductDetail() {
                 </div>
 
                 <form onSubmit={handleSaveProduct} className="mt-4 space-y-4">
+                  {editError && (
+                    <div className="flex items-start gap-2 rounded-xl border border-danger/20 bg-red-50 px-3 py-2.5 text-[13px] text-danger">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <p>{editError}</p>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-[12px] font-bold text-text-muted uppercase">
                       Nombre del producto
@@ -633,6 +699,7 @@ function ProductDetail() {
                       <input
                         type="number"
                         step="0.01"
+                        min="0"
                         required
                         value={editCost}
                         onChange={(e) => setEditCost(e.target.value)}
@@ -646,6 +713,7 @@ function ProductDetail() {
                       </label>
                       <input
                         type="number"
+                        min="0"
                         required
                         value={editStock}
                         onChange={(e) => setEditStock(e.target.value)}
@@ -662,6 +730,7 @@ function ProductDetail() {
                       <input
                         type="number"
                         step="0.01"
+                        min="0"
                         required
                         value={editDistPrice}
                         onChange={(e) => setEditDistPrice(e.target.value)}
@@ -676,6 +745,7 @@ function ProductDetail() {
                       <input
                         type="number"
                         step="0.01"
+                        min="0"
                         required
                         value={editPubPrice}
                         onChange={(e) => setEditPubPrice(e.target.value)}

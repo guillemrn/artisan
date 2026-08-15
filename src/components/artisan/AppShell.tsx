@@ -32,7 +32,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const isActive = (p: string) => pathname === p;
+  const isActive = (p: string) => {
+    if (p === "/app") return pathname === "/app";
+    return pathname === p || pathname.startsWith(`${p}/`) || pathname.startsWith(`${p}_`);
+  };
   const displayName = user?.user_metadata?.full_name ?? USER_NAME;
   const initials = displayName.slice(0, 2).toUpperCase();
 
@@ -291,27 +294,38 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
             <input
               id="header-global-search"
-              aria-label="Buscar"
+              aria-label="Buscar ventas, clientes o productos"
               placeholder="Buscar ventas, clientes o productos..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="h-10 w-full rounded-2xl border border-black/[0.06] bg-background/80 pl-10 pr-12 text-[13px] font-medium outline-none transition focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10"
+              className="h-10 w-full rounded-2xl border border-black/[0.06] bg-background/80 pl-10 pr-16 text-[13px] font-medium outline-none transition focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10"
             />
-            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 rounded-lg border border-black/[0.08] bg-white px-1.5 py-0.5 text-[10px] font-bold text-text-muted shadow-2xs">
-              <span>⌘</span><span>K</span>
-            </div>
+            {searchInput ? (
+              <button
+                type="button"
+                onClick={() => setSearchInput("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 grid h-6 w-6 place-items-center rounded-full text-text-muted hover:text-text-primary hover:bg-muted transition"
+                aria-label="Limpiar búsqueda"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            ) : (
+              <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 rounded-lg border border-black/[0.08] bg-white px-1.5 py-0.5 text-[10px] font-bold text-text-muted shadow-2xs">
+                <span>⌘</span><span>K</span>
+              </div>
+            )}
           </form>
 
           <div className="flex items-center gap-3">
             <button
-              className="grid h-10 w-10 place-items-center rounded-2xl border border-black/[0.06] bg-white text-text-secondary transition hover:bg-muted hover:border-black/[0.1] shadow-2xs cursor-pointer"
+              className="grid h-10 w-10 place-items-center rounded-2xl border border-black/[0.06] bg-white text-text-secondary transition hover:bg-muted hover:border-black/[0.1] shadow-2xs cursor-pointer focus-visible:ring-2 focus-visible:ring-primary"
               aria-label="Notificaciones"
             >
               <Bell className="h-4 w-4" />
             </button>
             <Link
               to="/ajustes"
-              className="flex items-center gap-2.5 rounded-2xl border border-black/[0.06] bg-white p-1.5 pr-3 shadow-2xs hover:border-primary/30 transition"
+              className="flex items-center gap-2.5 rounded-2xl border border-black/[0.06] bg-white p-1.5 pr-3 shadow-2xs hover:border-primary/30 transition focus-visible:ring-2 focus-visible:ring-primary"
               aria-label="Perfil de usuario"
             >
               <div className="grid h-7 w-7 place-items-center rounded-xl bg-primary-light text-[12px] font-bold text-primary">
@@ -376,7 +390,8 @@ function SideItem({
   return (
     <Link
       to={to}
-      className={`flex items-center gap-3 rounded-2xl py-2.5 text-[13.5px] font-semibold transition-all duration-200 ${
+      aria-current={active ? "page" : undefined}
+      className={`flex items-center gap-3 rounded-2xl py-2.5 text-[13.5px] font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary ${
         active
           ? "bg-primary/10 text-primary font-bold shadow-2xs"
           : "text-text-secondary hover:bg-muted/70 hover:text-text-primary"
@@ -406,7 +421,8 @@ function DrawerItem({
     <Link
       to={to}
       onClick={onClick}
-      className={`flex items-center gap-3.5 rounded-2xl px-3.5 py-3 text-[14px] font-semibold transition-all duration-200 ${
+      aria-current={active ? "page" : undefined}
+      className={`flex items-center gap-3.5 rounded-2xl px-3.5 py-3 text-[14px] font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary ${
         active
           ? "bg-primary/10 text-primary font-bold shadow-2xs"
           : "text-text-secondary hover:bg-muted/70 hover:text-text-primary"
@@ -432,14 +448,15 @@ function NavItem({
   return (
     <Link
       to={to}
-      className={`flex flex-col items-center gap-1 py-1 text-[11px] font-semibold ${
-        active ? "text-primary" : "text-text-muted"
+      aria-current={active ? "page" : undefined}
+      className={`flex flex-col items-center gap-1 py-1 text-[11px] font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-xl ${
+        active ? "text-primary font-bold" : "text-text-muted hover:text-text-primary"
       }`}
     >
       {icon}
       <span>{label}</span>
       <span
-        className={`h-1 w-1 rounded-full ${active ? "bg-primary" : "bg-transparent"}`}
+        className={`h-1 w-1 rounded-full transition-all ${active ? "bg-primary scale-100" : "bg-transparent scale-0"}`}
         aria-hidden
       />
     </Link>

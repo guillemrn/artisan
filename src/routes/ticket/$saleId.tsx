@@ -111,7 +111,7 @@ function Ticket() {
     `${BUSINESS_NAME}\n${dateStr} ${timeStr}\nCliente: ${sale.clientName}\n\n` +
       sale.items
         .map((i) => {
-          let lines = [];
+          const lines = [];
           if (i.qty > 0) {
             lines.push(`${i.productName} x${i.qty} - ${formatMXNc(i.unitPrice * i.qty)}`);
           }
@@ -170,7 +170,10 @@ function Ticket() {
 
         <ul className="space-y-2 text-[12px]">
           {sale.items.map((i) => (
-            <li key={i.productId} className="border-b border-border/40 pb-1.5 last:border-0 last:pb-0">
+            <li
+              key={i.productId}
+              className="border-b border-border/40 pb-1.5 last:border-0 last:pb-0"
+            >
               {i.qty > 0 && (
                 <div className="flex justify-between gap-2">
                   <span className="truncate">
@@ -181,7 +184,9 @@ function Ticket() {
               )}
               {i.returnQty && i.returnQty > 0 && (
                 <div className="flex justify-between gap-2 text-warning font-semibold text-[11px] mt-0.5">
-                  <span>Cambio: {i.productName} x{i.returnQty}</span>
+                  <span>
+                    Cambio: {i.productName} x{i.returnQty}
+                  </span>
                   <span>(Merma)</span>
                 </div>
               )}

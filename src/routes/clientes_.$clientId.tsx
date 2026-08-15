@@ -1,7 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useArtisan } from "@/lib/artisan-store";
 import { formatMXN } from "@/lib/artisan-data";
-import { ArrowLeft, TrendingUp, Package, Banknote, Calendar, Receipt, AlertCircle, Filter } from "lucide-react";
+import {
+  ArrowLeft,
+  TrendingUp,
+  Package,
+  Banknote,
+  Calendar,
+  Receipt,
+  AlertCircle,
+  Filter,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 
 export const Route = createFileRoute("/clientes_/$clientId")({
@@ -14,62 +23,55 @@ function ClientDetail() {
   const { clients, sales } = useArtisan();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<"all" | "month">("all");
-  
-  const client = clients.find(c => c.id === clientId);
-  
-  if (!client) {
-    return (
-      <div className="page-shell flex flex-col items-center justify-center h-[50vh]">
-        <p className="text-text-muted mb-4">Cliente no encontrado</p>
-        <button onClick={() => navigate({ to: '/clientes' })} className="text-primary font-bold hover:underline">Volver a clientes</button>
-      </div>
-    );
-  }
+
+  const client = clients.find((c) => c.id === clientId);
 
   const clientSales = useMemo(() => {
-    return sales.filter(s => s.clientId === clientId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return sales
+      .filter((s) => s.clientId === clientId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [sales, clientId]);
-  
+
   const stats = useMemo(() => {
     let totalSales = 0;
     let totalCost = 0;
     let totalProfit = 0;
     let totalDebt = 0;
-    const productCounts: Record<string, { name: string, qty: number }> = {};
-    
-    clientSales.forEach(s => {
+    const productCounts: Record<string, { name: string; qty: number }> = {};
+
+    clientSales.forEach((s) => {
       totalSales += s.total;
       totalCost += s.cost;
       totalProfit += s.profit;
-      
+
       if (s.status === "Pendiente") {
         totalDebt += s.total;
       }
-      
-      s.items.forEach(item => {
+
+      s.items.forEach((item) => {
         if (!productCounts[item.productId]) {
           productCounts[item.productId] = { name: item.productName, qty: 0 };
         }
         productCounts[item.productId].qty += item.qty;
       });
     });
-    
+
     let topProduct = { name: "Ninguno", qty: 0 };
     for (const p in productCounts) {
       if (productCounts[p].qty > topProduct.qty) {
         topProduct = productCounts[p];
       }
     }
-    
+
     const roi = totalCost > 0 ? ((totalProfit / totalCost) * 100).toFixed(1) : "0.0";
-    
+
     return {
       totalSales,
       totalProfit,
       totalDebt,
       roi,
       topProduct,
-      count: clientSales.length
+      count: clientSales.length,
     };
   }, [clientSales]);
 
@@ -77,18 +79,37 @@ function ClientDetail() {
     if (filter === "all") return clientSales;
     const oneMonthAgo = new Date();
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-    return clientSales.filter(s => new Date(s.createdAt) >= oneMonthAgo);
+    return clientSales.filter((s) => new Date(s.createdAt) >= oneMonthAgo);
   }, [clientSales, filter]);
 
   const formatDate = (isoStr: string) => {
     const d = new Date(isoStr);
-    return d.toLocaleDateString("es-MX", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleDateString("es-MX", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
-  
+
   const formatJustDate = (isoStr: string) => {
     const d = new Date(isoStr);
     return d.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" });
   };
+
+  if (!client) {
+    return (
+      <div className="page-shell flex flex-col items-center justify-center h-[50vh]">
+        <p className="text-text-muted mb-4">Cliente no encontrado</p>
+        <button
+          onClick={() => navigate({ to: "/clientes" })}
+          className="text-primary font-bold hover:underline"
+        >
+          Volver a clientes
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="page-shell md:px-0 md:pt-8">
@@ -104,13 +125,15 @@ function ClientDetail() {
             {client.name}
           </h1>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className={`rounded-full text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 ${client.channel === "PDV" ? "bg-primary-light text-primary" : "bg-[#FBF0E8] text-[#C9784A]"}`}>
+            <span
+              className={`rounded-full text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 ${client.channel === "PDV" ? "bg-primary-light text-primary" : "bg-[#FBF0E8] text-[#C9784A]"}`}
+            >
               {client.channel}
             </span>
             {client.lastDelivery && (
-               <span className="text-[12px] text-text-muted flex items-center gap-1 whitespace-nowrap">
-                 <Calendar className="h-3 w-3" /> Última: {client.lastDelivery}
-               </span>
+              <span className="text-[12px] text-text-muted flex items-center gap-1 whitespace-nowrap">
+                <Calendar className="h-3 w-3" /> Última: {client.lastDelivery}
+              </span>
             )}
           </div>
         </div>
@@ -120,36 +143,58 @@ function ClientDetail() {
         <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
           <div className="mb-1.5 flex items-center gap-1.5 text-primary">
             <Banknote className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Ventas Totales</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+              Ventas Totales
+            </span>
           </div>
-          <p className="text-[22px] font-extrabold leading-tight text-text-primary font-display">{formatMXN(stats.totalSales)}</p>
-          <p className="text-[12px] text-text-muted font-medium mt-1">{stats.count} {stats.count === 1 ? 'ticket' : 'tickets'}</p>
+          <p className="text-[22px] font-extrabold leading-tight text-text-primary font-display">
+            {formatMXN(stats.totalSales)}
+          </p>
+          <p className="text-[12px] text-text-muted font-medium mt-1">
+            {stats.count} {stats.count === 1 ? "ticket" : "tickets"}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)] relative overflow-hidden">
           <div className="mb-1.5 flex items-center gap-1.5 text-emerald-600">
             <TrendingUp className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Rentabilidad (ROI)</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+              Rentabilidad (ROI)
+            </span>
           </div>
-          <p className="text-[22px] font-extrabold leading-tight text-emerald-600 font-display">{stats.roi}%</p>
-          <p className="text-[12px] text-text-muted font-medium mt-1 truncate">Ganancia: {formatMXN(stats.totalProfit)}</p>
+          <p className="text-[22px] font-extrabold leading-tight text-emerald-600 font-display">
+            {stats.roi}%
+          </p>
+          <p className="text-[12px] text-text-muted font-medium mt-1 truncate">
+            Ganancia: {formatMXN(stats.totalProfit)}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
           <div className="mb-1.5 flex items-center gap-1.5 text-[#C9784A]">
             <Package className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Producto Estrella</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+              Producto Estrella
+            </span>
           </div>
-          <p className="text-[18px] font-extrabold leading-tight text-text-primary font-display truncate">{stats.topProduct.name}</p>
-          <p className="text-[12px] text-text-muted font-medium mt-1">{stats.topProduct.qty} unidades</p>
+          <p className="text-[18px] font-extrabold leading-tight text-text-primary font-display truncate">
+            {stats.topProduct.name}
+          </p>
+          <p className="text-[12px] text-text-muted font-medium mt-1">
+            {stats.topProduct.qty} unidades
+          </p>
         </div>
-        
+
         <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
           <div className="mb-1.5 flex items-center gap-1.5 text-amber-600">
             <AlertCircle className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Deuda Pendiente</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+              Deuda Pendiente
+            </span>
           </div>
-          <p className={`text-[22px] font-extrabold leading-tight font-display ${stats.totalDebt > 0 ? "text-amber-600" : "text-text-primary"}`}>
+          <p
+            className={`text-[22px] font-extrabold leading-tight font-display ${stats.totalDebt > 0 ? "text-amber-600" : "text-text-primary"}`}
+          >
             {formatMXN(stats.totalDebt)}
           </p>
           <p className="text-[12px] text-text-muted font-medium mt-1">
@@ -163,13 +208,13 @@ function ClientDetail() {
           <Receipt className="h-5 w-5 text-text-muted" /> Historial de Tickets
         </h2>
         <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg w-fit">
-          <button 
+          <button
             onClick={() => setFilter("all")}
             className={`px-3 py-1.5 rounded-md text-[13px] font-medium transition ${filter === "all" ? "bg-white shadow-sm text-text-primary" : "text-text-muted hover:text-text-primary"}`}
           >
             Todo
           </button>
-          <button 
+          <button
             onClick={() => setFilter("month")}
             className={`px-3 py-1.5 rounded-md text-[13px] font-medium transition ${filter === "month" ? "bg-white shadow-sm text-text-primary" : "text-text-muted hover:text-text-primary"}`}
           >
@@ -181,7 +226,9 @@ function ClientDetail() {
       {filteredSales.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-8 text-center bg-white/50">
           <Receipt className="mx-auto h-8 w-8 text-text-muted opacity-50 mb-3" />
-          <p className="text-text-muted font-medium">No hay tickets registrados para este periodo.</p>
+          <p className="text-text-muted font-medium">
+            No hay tickets registrados para este periodo.
+          </p>
         </div>
       ) : (
         <>
@@ -191,20 +238,24 @@ function ClientDetail() {
               <li key={sale.id}>
                 <div className="rounded-2xl border border-border bg-white p-4 shadow-sm flex flex-col gap-3">
                   <div className="flex justify-between items-start">
-                     <div>
-                       <p className="font-bold text-text-primary">#{sale.id.startsWith("s") ? sale.id.toUpperCase() : sale.id}</p>
-                       <p className="text-[13px] text-text-muted flex items-center gap-1 mt-0.5">
-                         <Calendar className="h-3 w-3" /> {formatDate(sale.createdAt)}
-                       </p>
-                     </div>
-                     <div className="text-right">
-                       <p className="font-bold text-primary">{formatMXN(sale.total)}</p>
-                       <span className={`inline-block mt-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${sale.status === "Entregado" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
-                         {sale.status}
-                       </span>
-                     </div>
+                    <div>
+                      <p className="font-bold text-text-primary">
+                        #{sale.id.startsWith("s") ? sale.id.toUpperCase() : sale.id}
+                      </p>
+                      <p className="text-[13px] text-text-muted flex items-center gap-1 mt-0.5">
+                        <Calendar className="h-3 w-3" /> {formatDate(sale.createdAt)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-primary">{formatMXN(sale.total)}</p>
+                      <span
+                        className={`inline-block mt-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${sale.status === "Entregado" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}
+                      >
+                        {sale.status}
+                      </span>
+                    </div>
                   </div>
-                  
+
                   <div className="pt-2 border-t border-border flex gap-2">
                     <Link
                       to="/ticket/$saleId"
@@ -240,8 +291,15 @@ function ClientDetail() {
                       #{s.id.startsWith("s") ? s.id.toUpperCase() : s.id}
                     </td>
                     <td className="py-3.5 px-4 text-text-muted">
-                      <div className="font-semibold text-text-primary">{formatJustDate(s.createdAt)}</div>
-                      <div className="text-[11px] opacity-75">{new Date(s.createdAt).toLocaleTimeString("es-MX", {hour:"2-digit", minute:"2-digit"})}</div>
+                      <div className="font-semibold text-text-primary">
+                        {formatJustDate(s.createdAt)}
+                      </div>
+                      <div className="text-[11px] opacity-75">
+                        {new Date(s.createdAt).toLocaleTimeString("es-MX", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4 max-w-[220px]">
                       <div className="space-y-1 truncate">
@@ -258,9 +316,13 @@ function ClientDetail() {
                     </td>
                     <td className="py-3.5 px-4 text-text-secondary font-medium">{s.payment}</td>
                     <td className="py-3.5 px-4">
-                      <span className={`inline-flex items-center gap-1 rounded-full text-[11px] font-medium px-2 py-0.5 ${
-                        s.status === "Entregado" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
-                      }`}>
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full text-[11px] font-medium px-2 py-0.5 ${
+                          s.status === "Entregado"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-orange-100 text-orange-700"
+                        }`}
+                      >
                         {s.status}
                       </span>
                     </td>
