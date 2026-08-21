@@ -6,14 +6,12 @@ import {
   Users,
   Package,
   Search,
-  Bell,
   ChevronLeft,
   ChevronRight,
   Receipt,
   Menu,
   X,
   LogOut,
-  Sparkles,
 } from "lucide-react";
 import { useState, useEffect, type FormEvent, type ReactNode } from "react";
 import { Logo } from "@/components/ui/logo";
@@ -78,15 +76,15 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <aside className="fixed inset-y-0 left-0 z-50 flex w-[300px] max-w-[85vw] flex-col bg-white shadow-2xl animate-drawer-in md:hidden border-r border-black/[0.06]">
+        <aside className="fixed inset-y-0 left-0 z-50 flex w-[312px] max-w-[86vw] flex-col border-r border-border bg-white shadow-[0_24px_64px_-36px_rgba(15,23,42,0.55)] animate-drawer-in md:hidden">
           {/* Drawer Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border/80 bg-background/40">
+          <div className="flex items-center justify-between border-b border-border bg-white p-4">
             <div className="flex items-center gap-2">
               <Logo variant="full" className="h-7 w-auto" />
             </div>
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="grid h-9 w-9 place-items-center rounded-xl border border-border bg-white text-text-secondary hover:bg-muted active:scale-95 transition cursor-pointer"
+              className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-white text-text-secondary transition hover:bg-muted active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               aria-label="Cerrar menú"
             >
               <X className="h-4.5 w-4.5" />
@@ -94,15 +92,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           {/* User Profile Info Card inside Drawer */}
-          <div className="p-4 border-b border-border/60 bg-gradient-to-br from-primary-light/60 to-transparent">
+          <div className="border-b border-border bg-background/55 p-4">
             <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary text-[13px] font-bold text-white shadow-sm">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-[13px] font-bold text-white">
                 {initials}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold text-text-primary">{displayName}</p>
                 <p className="text-[11px] text-text-muted flex items-center gap-1.5 font-semibold mt-0.5">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> Sistema POS Activo
+                  <span className="h-2 w-2 rounded-full bg-success" /> Sesion activa
                 </p>
               </div>
             </div>
@@ -110,7 +108,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link
               to="/nueva-venta"
               onClick={() => setMobileMenuOpen(false)}
-              className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary text-[13px] font-bold text-white shadow-md transition hover:bg-[#1d573e] active:scale-[0.98]"
+              className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-[13px] font-bold text-white transition hover:bg-[#1d573e] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               <Plus className="h-4 w-4" />
               <span>Nueva venta</span>
@@ -118,8 +116,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           {/* Drawer Navigation items */}
-          <div className="flex-1 overflow-y-auto py-3 px-3 space-y-1">
-            <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-text-muted">Navegación principal</p>
+          <div className="flex-1 overflow-y-auto px-3 py-4">
+            <p className="px-3 pb-2 text-[11px] font-bold text-text-muted">Navegacion</p>
 
             <DrawerItem
               to="/app"
@@ -159,18 +157,22 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           {/* Drawer Footer */}
-          <div className="p-4 border-t border-border bg-background/40">
+          <div className="border-t border-border bg-white p-4">
             <div className="flex items-center justify-between text-xs text-text-muted">
-              <span className="flex items-center gap-1 font-medium">
-                <Sparkles className="h-3.5 w-3.5 text-primary" /> Artisan v1.2
-              </span>
+              <Link
+                to="/ajustes"
+                onClick={() => setMobileMenuOpen(false)}
+                className="font-semibold text-text-secondary transition hover:text-text-primary"
+              >
+                Ajustes
+              </Link>
               {signOut && (
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
                     signOut();
                   }}
-                  className="flex items-center gap-1.5 font-semibold text-danger hover:underline cursor-pointer"
+                  className="flex items-center gap-1.5 font-semibold text-danger transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
                 >
                   <LogOut className="h-3.5 w-3.5" />
                   <span>Salir</span>
@@ -183,25 +185,36 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Floating Collapsible Sidebar for Desktop */}
       <aside
-        className={`hidden md:sticky md:top-4 md:flex md:h-[calc(100vh-2rem)] md:shrink-0 md:flex-col md:rounded-3xl md:border md:border-black/[0.05] md:bg-white md:shadow-[0_2px_12px_rgba(0,0,0,0.02),0_12px_32px_-4px_rgba(0,0,0,0.04)] md:m-4 md:py-6 transition-all duration-300 ease-in-out relative ${
-          collapsed ? "md:w-[80px] md:px-2.5" : "md:w-[250px] md:px-4"
+        className={`relative hidden md:sticky md:top-3 md:m-3 md:flex md:h-[calc(100vh-1.5rem)] md:shrink-0 md:flex-col md:rounded-2xl md:border md:border-border md:bg-white md:py-5 md:shadow-card transition-all duration-300 ease-in-out ${
+          collapsed ? "md:w-[76px] md:px-2" : "md:w-[244px] md:px-3"
         }`}
       >
         {/* Toggle Button */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-7 h-6 w-6 rounded-full border border-black/[0.08] bg-white shadow-xs flex items-center justify-center hover:bg-muted text-text-secondary transition hover:scale-105 cursor-pointer z-20"
+          className="absolute -right-3 top-6 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-white text-text-secondary shadow-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          aria-label={collapsed ? "Expandir menu lateral" : "Contraer menu lateral"}
+          aria-expanded={!collapsed}
         >
-          {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+          {collapsed ? (
+            <ChevronRight className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronLeft className="h-3.5 w-3.5" />
+          )}
         </button>
 
-        <div className={`flex items-center gap-2 rounded-2xl py-1 ${collapsed ? "justify-center" : "px-2"}`}>
-          <Logo variant={collapsed ? "icon" : "full"} className="h-7 w-auto transition-all duration-300" />
+        <div
+          className={`flex h-10 items-center gap-2 rounded-xl ${collapsed ? "justify-center" : "px-2"}`}
+        >
+          <Logo
+            variant={collapsed ? "icon" : "full"}
+            className="h-7 w-auto transition-all duration-300"
+          />
         </div>
 
         <Link
           to="/nueva-venta"
-          className={`mt-7 flex h-11 items-center justify-center gap-2 rounded-2xl bg-primary text-[13px] font-bold text-white shadow-[0_8px_20px_-2px_rgba(35,104,74,0.3)] transition-all duration-200 hover:bg-[#1d573e] hover:shadow-[0_12px_28px_-2px_rgba(35,104,74,0.35)] active:scale-[0.98] overflow-hidden ${
+          className={`mt-6 flex h-11 items-center justify-center gap-2 overflow-hidden rounded-xl bg-primary text-[13px] font-bold text-white transition-all duration-200 hover:bg-[#1d573e] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
             collapsed ? "w-11 px-0" : "w-full px-4"
           }`}
           title={collapsed ? "Nueva venta" : undefined}
@@ -210,7 +223,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {!collapsed && <span className="truncate">Nueva venta</span>}
         </Link>
 
-        <nav className="mt-6 flex flex-col gap-1">
+        <nav className="mt-5 flex flex-col gap-1.5" aria-label="Navegacion principal">
           <SideItem
             to="/app"
             active={isActive("/app")}
@@ -247,18 +260,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             collapsed={collapsed}
           />
         </nav>
-
-        {!collapsed && (
-          <div className="mt-auto rounded-2xl border border-black/[0.04] bg-background/80 p-4 transition-all duration-300">
-            <div className="flex items-center gap-1.5 text-primary mb-1">
-              <Sparkles className="h-3.5 w-3.5" />
-              <p className="text-[11px] font-bold uppercase tracking-wider">Artisan POS</p>
-            </div>
-            <p className="text-[12px] leading-relaxed text-text-muted">
-              Control inteligente de inventario y ventas en tiempo real.
-            </p>
-          </div>
-        )}
       </aside>
 
       <div className="relative flex min-h-screen w-full max-w-full flex-col bg-background md:mx-0 md:max-w-none md:flex-1 overflow-x-hidden">
@@ -311,18 +312,13 @@ export function AppShell({ children }: { children: ReactNode }) {
               </button>
             ) : (
               <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 rounded-lg border border-black/[0.08] bg-white px-1.5 py-0.5 text-[10px] font-bold text-text-muted shadow-2xs">
-                <span>⌘</span><span>K</span>
+                <span>⌘</span>
+                <span>K</span>
               </div>
             )}
           </form>
 
           <div className="flex items-center gap-3">
-            <button
-              className="grid h-10 w-10 place-items-center rounded-2xl border border-black/[0.06] bg-white text-text-secondary transition hover:bg-muted hover:border-black/[0.1] shadow-2xs cursor-pointer focus-visible:ring-2 focus-visible:ring-primary"
-              aria-label="Notificaciones"
-            >
-              <Bell className="h-4 w-4" />
-            </button>
             <Link
               to="/ajustes"
               className="flex items-center gap-2.5 rounded-2xl border border-black/[0.06] bg-white p-1.5 pr-3 shadow-2xs hover:border-primary/30 transition focus-visible:ring-2 focus-visible:ring-primary"
@@ -331,17 +327,19 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div className="grid h-7 w-7 place-items-center rounded-xl bg-primary-light text-[12px] font-bold text-primary">
                 {initials}
               </div>
-              <span className="text-[13px] font-bold text-text-primary hidden sm:inline">{displayName}</span>
+              <span className="text-[13px] font-bold text-text-primary hidden sm:inline">
+                {displayName}
+              </span>
             </Link>
           </div>
         </header>
 
-        <main className="flex-1 pb-24 md:pb-12 md:px-6 lg:px-10 overflow-x-hidden w-full max-w-full">
+        <main className="flex-1 w-full max-w-full overflow-x-hidden pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:pb-12 md:px-6 lg:px-10">
           <div className="w-full max-w-full">{children}</div>
         </main>
 
         <nav className="fixed bottom-0 left-0 w-full border-t border-black/[0.06] bg-white/92 backdrop-blur-md md:hidden z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
-          <div className="grid grid-cols-5 items-end px-2 pt-2 pb-3">
+          <div className="grid grid-cols-5 items-end px-2 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
             <NavItem
               to="/app"
               active={isActive("/app")}
@@ -349,10 +347,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               label="Inicio"
             />
             <NavItem
-              to="/clientes"
-              active={isActive("/clientes")}
-              icon={<Users className="h-5 w-5" />}
-              label="Clientes"
+              to="/ventas"
+              active={isActive("/ventas")}
+              icon={<Receipt className="h-5 w-5" />}
+              label="Ventas"
             />
             <CenterNav />
             <NavItem
@@ -391,14 +389,25 @@ function SideItem({
     <Link
       to={to}
       aria-current={active ? "page" : undefined}
-      className={`flex items-center gap-3 rounded-2xl py-2.5 text-[13.5px] font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary ${
+      className={`group relative flex items-center gap-3 rounded-xl py-2.5 text-[13.5px] font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
         active
-          ? "bg-primary/10 text-primary font-bold shadow-2xs"
-          : "text-text-secondary hover:bg-muted/70 hover:text-text-primary"
+          ? "bg-primary-light text-primary font-bold"
+          : "text-text-secondary hover:bg-muted hover:text-text-primary"
       } ${collapsed ? "justify-center px-0 w-11 h-11 mx-auto" : "px-3.5"}`}
       title={collapsed ? label : undefined}
     >
-      <span className="shrink-0">{icon}</span>
+      {active && !collapsed && (
+        <span
+          className="absolute left-3 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-primary"
+          aria-hidden
+        />
+      )}
+      <span
+        className={`grid shrink-0 place-items-center ${!collapsed && active ? "ml-2" : ""}`}
+        aria-hidden
+      >
+        {icon}
+      </span>
       {!collapsed && <span className="truncate">{label}</span>}
     </Link>
   );
@@ -422,13 +431,21 @@ function DrawerItem({
       to={to}
       onClick={onClick}
       aria-current={active ? "page" : undefined}
-      className={`flex items-center gap-3.5 rounded-2xl px-3.5 py-3 text-[14px] font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary ${
+      className={`relative flex items-center gap-3.5 rounded-xl px-3.5 py-3 text-[14px] font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
         active
-          ? "bg-primary/10 text-primary font-bold shadow-2xs"
-          : "text-text-secondary hover:bg-muted/70 hover:text-text-primary"
+          ? "bg-primary-light text-primary font-bold"
+          : "text-text-secondary hover:bg-muted hover:text-text-primary"
       }`}
     >
-      <span className="shrink-0">{icon}</span>
+      {active && (
+        <span
+          className="absolute left-3 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-primary"
+          aria-hidden
+        />
+      )}
+      <span className={`shrink-0 ${active ? "ml-2" : ""}`} aria-hidden>
+        {icon}
+      </span>
       <span className="truncate">{label}</span>
     </Link>
   );
@@ -449,7 +466,7 @@ function NavItem({
     <Link
       to={to}
       aria-current={active ? "page" : undefined}
-      className={`flex flex-col items-center gap-1 py-1 text-[11px] font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-primary rounded-xl ${
+      className={`flex flex-col items-center gap-1 rounded-xl py-1 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
         active ? "text-primary font-bold" : "text-text-muted hover:text-text-primary"
       }`}
     >

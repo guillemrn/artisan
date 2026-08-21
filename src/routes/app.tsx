@@ -23,19 +23,26 @@ import {
   Monitor,
   Smartphone,
   Users,
-  BarChart3,
   X,
   Download,
   Upload,
-  Bell,
   Star,
   Zap,
   Send,
   CheckCircle,
   Loader2,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useArtisan } from "@/lib/artisan-store";
-import { USER_NAME, formatMXN, formatMXNc, type Sale, type PaymentMethod } from "@/lib/artisan-data";
+import {
+  USER_NAME,
+  formatMXN,
+  formatMXNc,
+  type Sale,
+  type PaymentMethod,
+  type Product,
+  type Client,
+} from "@/lib/artisan-data";
 import { Logo } from "@/components/ui/logo";
 import { useAuth } from "@/core/auth/auth-context";
 import {
@@ -97,7 +104,6 @@ function startOfYear(d: Date) {
 function Home() {
   const { user } = useAuth();
 
-
   const { sales, products, clients, updateSaleStatus, updateProduct } = useArtisan();
 
   // State for filters
@@ -107,6 +113,7 @@ function Home() {
 
   const [historySearch, setHistorySearch] = useState("");
   const [historyStatus, setHistoryStatus] = useState<"Todos" | "Entregado" | "Pendiente">("Todos");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [openId, setOpenId] = useState<string | null>(null);
   const [csvOpen, setCsvOpen] = useState(false);
@@ -127,6 +134,7 @@ function Home() {
     totalAdded: number;
     itemsCount: number;
   } | null>(null);
+  const filtersRef = useRef<HTMLDivElement | null>(null);
 
   const handleCloseAddStockModal = () => {
     setAddStockValues({});
@@ -169,7 +177,7 @@ function Home() {
   const handleOpenCobrarModal = (sale: Sale) => {
     setSaleToCobrar(sale);
     setSelectedPayment(
-      ["Pendiente", "Consignación"].includes(sale.payment) ? "Efectivo" : sale.payment
+      ["Pendiente", "Consignación"].includes(sale.payment) ? "Efectivo" : sale.payment,
     );
   };
 
@@ -187,7 +195,10 @@ function Home() {
   useEffect(() => {
     const completed = localStorage.getItem("onboarding_completed") === "true";
     const shownCount = parseInt(localStorage.getItem("onboarding_shown_count") ?? "0", 10);
-    const remindLaterCount = parseInt(localStorage.getItem("onboarding_remind_later_count") ?? "0", 10);
+    const remindLaterCount = parseInt(
+      localStorage.getItem("onboarding_remind_later_count") ?? "0",
+      10,
+    );
 
     if (!completed && shownCount < 3 && remindLaterCount < 2) {
       setShowOnboarding(true);
@@ -201,7 +212,10 @@ function Home() {
   };
 
   const handleRemindLaterOnboarding = () => {
-    const remindLaterCount = parseInt(localStorage.getItem("onboarding_remind_later_count") ?? "0", 10);
+    const remindLaterCount = parseInt(
+      localStorage.getItem("onboarding_remind_later_count") ?? "0",
+      10,
+    );
     localStorage.setItem("onboarding_remind_later_count", String(remindLaterCount + 1));
     setShowOnboarding(false);
   };
@@ -216,7 +230,50 @@ function Home() {
   const initials = displayName.slice(0, 2).toUpperCase();
 
   const currentHour = new Date().getHours();
-  const greeting = currentHour < 12 ? "Buenos días" : currentHour < 19 ? "Buenas tardes" : "Buenas noches";
+  const greeting =
+    currentHour < 12 ? "Buenos días" : currentHour < 19 ? "Buenas tardes" : "Buenas noches";
+
+  const selectedProductLabel = products.find((product) => product.id === productFilter)?.name;
+  const selectedClientLabel = clients.find((client) => client.id === clientFilter)?.name;
+  const activeFilterCount = [
+    timeFilter !== "Hoy",
+    productFilter !== "Todos",
+    clientFilter !== "Todos",
+  ].filter(Boolean).length;
+  const filterSummary =
+    activeFilterCount === 0
+      ? "Hoy"
+      : [
+          timeFilter,
+          productFilter !== "Todos" ? selectedProductLabel : null,
+          clientFilter !== "Todos" ? selectedClientLabel : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!filtersRef.current?.contains(event.target as Node)) {
+        setFiltersOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setFiltersOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [filtersOpen]);
 
   // 1. Filter Sales by Time
   const timeFilteredSales = useMemo(() => {
@@ -240,9 +297,7 @@ function Home() {
   // 3. Filter Sales by Product (Only matching items inside each sale)
   const fullyFilteredSales = useMemo(() => {
     if (productFilter === "Todos") return clientFilteredSales;
-    return clientFilteredSales.filter((s) =>
-      s.items.some((i) => i.productId === productFilter)
-    );
+    return clientFilteredSales.filter((s) => s.items.some((i) => i.productId === productFilter));
   }, [clientFilteredSales, productFilter]);
 
   // 4. Filter History Sales by Search and Status
@@ -350,10 +405,26 @@ function Home() {
     });
   }, [products, clientFilteredSales]);
 
-  // Total sales across all products for share percentage
-  const totalSalesAllProducts = useMemo(() => {
-    return productPerformance.reduce((s, p) => s + p.salesAmount, 0);
-  }, [productPerformance]);
+  const clientMovement = useMemo(() => {
+    const map: Record<string, { name: string; packages: number; total: number }> = {};
+
+    fullyFilteredSales.forEach((sale) => {
+      sale.items.forEach((item) => {
+        if (productFilter === "Todos" || item.productId === productFilter) {
+          const current = map[sale.clientId] ?? {
+            name: sale.clientName,
+            packages: 0,
+            total: 0,
+          };
+          current.packages += item.qty;
+          current.total += sale.payment === "Cortesía" ? 0 : item.qty * item.unitPrice;
+          map[sale.clientId] = current;
+        }
+      });
+    });
+
+    return Object.values(map).sort((a, b) => b.total - a.total);
+  }, [fullyFilteredSales, productFilter]);
 
   // --- Recharts Chart Data Generation ---
 
@@ -363,7 +434,7 @@ function Home() {
 
     // Sort chronological order
     const sortedSales = [...fullyFilteredSales].sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
 
     sortedSales.forEach((s) => {
@@ -389,72 +460,69 @@ function Home() {
     }));
   }, [fullyFilteredSales, productFilter]);
 
-  // 2. Ventas por Producto Chart
   const productChartData = useMemo(() => {
-    const map: Record<string, number> = {};
-    fullyFilteredSales.forEach((s) => {
-      s.items.forEach((item) => {
-        if (productFilter === "Todos" || item.productId === productFilter) {
-          map[item.productName] = (map[item.productName] ?? 0) + item.qty;
-        }
-      });
-    });
+    return productPerformance
+      .filter((product) => product.qtySold > 0)
+      .sort((a, b) => b.qtySold - a.qtySold)
+      .map((product) => ({
+        name: product.name,
+        paquetes: product.qtySold,
+        venta: product.salesAmount,
+      }));
+  }, [productPerformance]);
 
-    return Object.entries(map).map(([name, paquetes]) => ({
-      name,
-      paquetes,
-    }));
-  }, [fullyFilteredSales, productFilter]);
-
-  // 3. Ventas por Clientes Chart (Top 5)
   const clientChartData = useMemo(() => {
-    const map: Record<string, number> = {};
-    fullyFilteredSales.forEach((s) => {
-      s.items.forEach((item) => {
-        if (productFilter === "Todos" || item.productId === productFilter) {
-          map[s.clientName] = (map[s.clientName] ?? 0) + item.qty;
-        }
-      });
-    });
-
-    return Object.entries(map)
-      .map(([name, paquetes]) => ({
-        name,
-        paquetes,
-      }))
-      .sort((a, b) => b.paquetes - a.paquetes)
-      .slice(0, 5);
-  }, [fullyFilteredSales, productFilter]);
+    return clientMovement.slice(0, 5).map((client) => ({
+      name: client.name,
+      paquetes: client.packages,
+      venta: client.total,
+    }));
+  }, [clientMovement]);
 
   return (
-    <div className="page-shell md:px-0 md:pt-8 space-y-6">
+    <div className="page-shell space-y-5 md:px-0 md:pt-6">
       {csvOpen && <CSVSheet onClose={() => setCsvOpen(false)} />}
 
-      {/* Hero Welcome Card */}
-      <section className="rounded-2xl border border-border bg-[#243437] p-5 text-white shadow-[0_18px_44px_rgba(31,43,46,0.12)] md:p-7 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(46,125,91,0.58),transparent_34%)] pointer-events-none" />
-        <div className="relative z-10 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-[13px] font-semibold capitalize text-white/60">{dateLabel}</p>
-            <h1 className="mt-2 font-display text-[26px] font-bold leading-tight md:text-[34px]">
+      {/* Dashboard Header */}
+      <section className="space-y-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold capitalize text-text-muted">{dateLabel}</p>
+            <h1 className="mt-1 font-display text-[28px] font-bold leading-tight text-text-primary md:text-[34px]">
               {greeting}, {displayName}
             </h1>
-            <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-white/68 md:text-[15px]">
-              Gestiona tu inventario, ventas y clientes con Almara.
+            <p className="mt-1 max-w-2xl text-[14px] leading-relaxed text-text-secondary md:text-[15px]">
+              Ventas, pendientes, inventario y margen del día.
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
+
+          <div className="flex w-full flex-col items-stretch gap-2.5 sm:w-auto sm:flex-row sm:items-center">
+            <FilterDropdown
+              open={filtersOpen}
+              onOpenChange={setFiltersOpen}
+              refEl={filtersRef}
+              activeCount={activeFilterCount}
+              summary={filterSummary}
+              timeFilter={timeFilter}
+              productFilter={productFilter}
+              clientFilter={clientFilter}
+              products={products}
+              clients={clients}
+              onTimeChange={(value) => setTimeFilter(value as TimeFilter)}
+              onProductChange={setProductFilter}
+              onClientChange={setClientFilter}
+            />
             <button
               type="button"
               onClick={() => setIsAddStockModalOpen(true)}
-              className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-4 text-[14px] font-bold text-white transition hover:bg-white/20 active:scale-[0.99] cursor-pointer"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 text-[14px] font-bold text-text-primary transition hover:bg-muted active:scale-[0.99] sm:w-auto"
             >
               <Package className="h-4 w-4" />
               Agregar inventario
             </button>
             <Link
               to="/nueva-venta"
-              className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-white px-5 text-[14px] font-bold text-[#243437] shadow-md transition hover:bg-[#F7F3EC] active:scale-[0.99]"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-[14px] font-bold text-white transition hover:bg-[#1f523b] active:scale-[0.99] sm:w-auto"
             >
               <Plus className="h-4 w-4" />
               Nueva venta
@@ -463,235 +531,93 @@ function Home() {
         </div>
       </section>
 
-      {/* Interactive Filters Grid */}
-      <div className="bg-white border border-border rounded-2xl p-4 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Time Filter Dropdown */}
-        <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted mb-1.5 flex items-center gap-1">
-            <Calendar className="h-3.5 w-3.5 text-primary" /> Rango de Tiempo
-          </label>
-          <div className="relative">
-            <select
-              value={timeFilter}
-              onChange={(e) => setTimeFilter(e.target.value as TimeFilter)}
-              className="w-full h-10 px-3 pr-8 rounded-xl border border-border outline-none transition focus:border-primary focus:ring-1 focus:ring-primary text-[14px] font-semibold bg-white appearance-none"
-            >
-              <option value="Hoy">Hoy</option>
-              <option value="Semana">Esta Semana</option>
-              <option value="Mes">Este Mes</option>
-              <option value="Año">Este Año</option>
-              <option value="Todo">Histórico Todo</option>
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted h-4 w-4 pointer-events-none" />
-          </div>
+      {/* Dashboard Overview */}
+      <section className="space-y-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Kpi
+            label="Ventas cobradas"
+            value={formatMXN(kpiData.salesTotal)}
+            sub={`${fullyFilteredSales.filter((s) => s.status === "Entregado").length} cobradas`}
+            icon={<DollarSign className="h-4 w-4" />}
+            accent="green"
+          />
+          <Kpi
+            label="Costos totales"
+            value={formatMXN(kpiData.costTotal)}
+            sub="entregados y cortesias"
+            icon={<DollarSign className="h-4 w-4" />}
+            accent="red"
+          />
+          <Kpi
+            label="Ganancia neta"
+            value={formatMXN(kpiData.profitTotal)}
+            sub={`${kpiData.margin}% margen util`}
+            icon={<TrendingUp className="h-4 w-4" />}
+            accent="green"
+          />
+          <Kpi
+            label="Por cobrar"
+            value={formatMXN(kpiData.pendingSalesTotal)}
+            sub={`${fullyFilteredSales.filter((s) => s.status === "Pendiente").length} pendientes`}
+            icon={<DollarSign className="h-4 w-4" />}
+            accent="amber"
+            onClick={() => setIsPendingSalesModalOpen(true)}
+          />
         </div>
 
-        {/* Product Filter Dropdown */}
-        <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted mb-1.5 flex items-center gap-1">
-            <Package className="h-3.5 w-3.5 text-primary" /> Filtrar Producto
-          </label>
-          <div className="relative">
-            <select
-              value={productFilter}
-              onChange={(e) => setProductFilter(e.target.value)}
-              className="w-full h-10 px-3 pr-8 rounded-xl border border-border outline-none transition focus:border-primary focus:ring-1 focus:ring-primary text-[14px] font-semibold bg-white appearance-none"
-            >
-              <option value="Todos">Todos los productos</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted h-4 w-4 pointer-events-none" />
-          </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          <Kpi
+            label="Top producto"
+            value={kpiData.topProduct}
+            sub={kpiData.maxQty > 0 ? `${kpiData.maxQty} paquetes` : "Sin ventas"}
+            icon={<Package className="h-4 w-4" />}
+            accent="blue"
+          />
+          <Kpi
+            label="Paquetes entregados"
+            value={String(kpiData.packagesTotal)}
+            sub="en el periodo"
+            icon={<CheckCircle2 className="h-4 w-4" />}
+            accent="green"
+          />
+          <Kpi
+            label="Productos cambiados"
+            value={String(kpiData.returnsTotal)}
+            sub="cambios / devoluciones"
+            icon={<RefreshCw className="h-4 w-4" />}
+            accent="amber"
+          />
         </div>
+      </section>
 
-        {/* Client Filter Dropdown */}
-        <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted mb-1.5 flex items-center gap-1">
-            <Store className="h-3.5 w-3.5 text-primary" /> Punto de Venta / Cliente
-          </label>
-          <div className="relative">
-            <select
-              value={clientFilter}
-              onChange={(e) => setClientFilter(e.target.value)}
-              className="w-full h-10 px-3 pr-8 rounded-xl border border-border outline-none transition focus:border-primary focus:ring-1 focus:ring-primary text-[14px] font-semibold bg-white appearance-none"
-            >
-              <option value="Todos">Todos los clientes</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.channel})
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted h-4 w-4 pointer-events-none" />
-          </div>
-        </div>
-      </div>
-
-      {/* KPI Section */}
-      <div className="space-y-6">
-        {/* Resumen Financiero */}
-        <div>
-          <h4 className="text-[11px] font-bold tracking-wider text-text-muted uppercase mb-2">Resumen Financiero (Efectivo/Transferencia)</h4>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Kpi
-              label="VENTAS COBRADAS"
-              value={formatMXN(kpiData.salesTotal)}
-              sub={`${fullyFilteredSales.filter(s => s.status === "Entregado").length} cobradas`}
-              icon={<DollarSign className="h-4 w-4 text-emerald-600" />}
-              tone="bg-gradient-to-br from-emerald-50 to-white"
-            />
-            <Kpi
-              label="COSTOS TOTALES"
-              value={formatMXN(kpiData.costTotal)}
-              sub="entregados y cortesías"
-              icon={<DollarSign className="h-4 w-4 text-rose-600" />}
-              tone="bg-gradient-to-br from-rose-50 to-white"
-            />
-            <Kpi
-              label="GANANCIA NETA"
-              value={formatMXN(kpiData.profitTotal)}
-              sub={`${kpiData.margin}% margen util.`}
-              icon={<TrendingUp className="h-4 w-4 text-sky-600" />}
-              tone="bg-gradient-to-br from-sky-50 to-white"
-            />
-            <Kpi
-              label="POR COBRAR"
-              value={formatMXN(kpiData.pendingSalesTotal)}
-              sub={`${fullyFilteredSales.filter(s => s.status === "Pendiente").length} pendientes / consignación`}
-              icon={<DollarSign className="h-4 w-4 text-amber-600" />}
-              tone="bg-gradient-to-br from-amber-50 to-white"
-              onClick={() => setIsPendingSalesModalOpen(true)}
-            />
-          </div>
-        </div>
-
-        {/* Métricas de Operación */}
-        <div>
-          <h4 className="text-[11px] font-bold tracking-wider text-text-muted uppercase mb-2">Métricas de Operación</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Kpi
-              label="TOP PRODUCTO"
-              value={kpiData.topProduct}
-              sub={kpiData.maxQty > 0 ? `${kpiData.maxQty} paquetes` : "Ninguno"}
-              icon={<Package className="h-4 w-4 text-violet-600" />}
-              tone="bg-gradient-to-br from-violet-50 to-white"
-            />
-            <Kpi
-              label="PAQUETES ENTREGADOS"
-              value={String(kpiData.packagesTotal)}
-              sub="en el periodo"
-              icon={<CheckCircle2 className="h-4 w-4 text-amber-600" />}
-              tone="bg-gradient-to-br from-amber-50 to-white"
-            />
-            <Kpi
-              label="PRODUCTOS CAMBIADOS"
-              value={String(kpiData.returnsTotal)}
-              sub="cambios / devoluciones"
-              icon={<RefreshCw className="h-4 w-4 text-orange-600" />}
-              tone="bg-gradient-to-br from-orange-50 to-white"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Product Economy Table (Excel-like) */}
-      <div className="bg-white border border-border rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-border bg-gray-50 flex items-center justify-between">
-          <h3 className="font-display text-[15px] font-bold text-text-primary">Economía del producto</h3>
-          <span className="text-[11px] font-bold text-text-muted bg-border px-2 py-0.5 rounded-full uppercase">
-            {timeFilter}
-          </span>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-[13px] border-collapse">
-            <thead>
-              <tr className="border-b border-border bg-gray-50 text-text-muted font-bold text-left">
-                <th className="px-4 py-3 min-w-[150px]">Producto</th>
-                <th className="px-4 py-3 text-right">Costo</th>
-                <th className="px-4 py-3 text-right">Dist.</th>
-                <th className="px-4 py-3 text-right">Público</th>
-                <th className="px-4 py-3 text-right">Costos Totales</th>
-                <th className="px-4 py-3 text-right">Ventas Totales</th>
-                <th className="px-4 py-3 text-right">Ganancia</th>
-                <th className="px-4 py-3 text-right">% Margen</th>
-                <th className="px-4 py-3 text-center">Paquetes</th>
-                <th className="px-4 py-3 text-right">% Part. Ventas</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/60">
-              {productPerformance.map((prod) => {
-                const partVentas =
-                  totalSalesAllProducts > 0
-                    ? Math.round((prod.salesAmount / totalSalesAllProducts) * 100)
-                    : 0;
-
-                return (
-                  <tr key={prod.id} className="hover:bg-muted/40 transition">
-                    <td className="px-4 py-3 font-semibold text-text-primary">{prod.name}</td>
-                    <td className="px-4 py-3 text-right font-mono">{formatMXNc(prod.cost)}</td>
-                    <td className="px-4 py-3 text-right font-mono">{formatMXNc(prod.distributorPrice)}</td>
-                    <td className="px-4 py-3 text-right font-mono">{formatMXNc(prod.publicPrice)}</td>
-                    <td className="px-4 py-3 text-right font-mono text-text-secondary">{formatMXNc(prod.costAmount)}</td>
-                    <td className="px-4 py-3 text-right font-mono font-bold text-emerald-700">{formatMXNc(prod.salesAmount)}</td>
-                    <td className="px-4 py-3 text-right font-mono font-bold text-sky-700">{formatMXNc(prod.profitAmount)}</td>
-                    <td className="px-4 py-3 text-right font-semibold">
-                      <span className={`px-2 py-0.5 rounded-full text-[11px] ${prod.margin > 60 ? "bg-green-50 text-green-700" : "bg-gray-50 text-text-secondary"
-                        }`}>
-                        {prod.margin}%
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center font-bold">{prod.qtySold}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-text-secondary">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <span className="w-8 text-right">{partVentas}%</span>
-                        <div className="w-12 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className="bg-primary h-full rounded-full"
-                            style={{ width: `${partVentas}%` }}
-                          />
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Visual Graphs Section (Recharts) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Tendencia Diaria Chart Card */}
-        <div className="bg-white border border-border rounded-2xl p-4 shadow-sm flex flex-col h-[320px]">
+      <section className="grid gap-4 xl:grid-cols-3">
+        <div className="flex h-[300px] flex-col rounded-2xl border border-border bg-white p-4">
           <div className="mb-4">
-            <h4 className="font-display text-[14px] font-bold text-text-primary">Tendencia diaria</h4>
-            <p className="text-[12px] text-text-muted">Ventas acumuladas por fecha</p>
+            <h3 className="font-display text-base font-bold text-text-primary">Ritmo de ventas</h3>
+            <p className="text-[13px] text-text-muted">Cómo se movió el dinero cobrado</p>
           </div>
-          <div className="flex-1 w-full text-xs">
+          <div className="min-h-0 flex-1 text-xs">
             {trendChartData.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-text-muted">Sin datos en el periodo</div>
+              <div className="flex h-full items-center justify-center text-text-muted">
+                Sin datos en el periodo
+              </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={trendChartData}>
                   <defs>
                     <linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2e7d5b" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#2e7d5b" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#23684a" stopOpacity={0.18} />
+                      <stop offset="95%" stopColor="#23684a" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EBEBEB" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ECEFF2" />
                   <XAxis dataKey="fecha" tickLine={false} axisLine={false} />
-                  <YAxis tickLine={false} axisLine={false} width={40} />
+                  <YAxis tickLine={false} axisLine={false} width={44} />
                   <RechartsTooltip formatter={(value) => formatMXN(Number(value))} />
                   <Area
                     type="monotone"
                     dataKey="Ventas"
-                    stroke="#2e7d5b"
+                    stroke="#23684a"
                     strokeWidth={2}
                     fillOpacity={1}
                     fill="url(#colorVentas)"
@@ -702,78 +628,77 @@ function Home() {
           </div>
         </div>
 
-        {/* Ventas por Producto Chart Card */}
-        <div className="bg-white border border-border rounded-2xl p-4 shadow-sm flex flex-col h-[320px]">
-          <div className="mb-4">
-            <h4 className="font-display text-[14px] font-bold text-text-primary">Ventas por producto</h4>
-            <p className="text-[12px] text-text-muted">Cantidad de paquetes vendidos</p>
-          </div>
-          <div className="flex-1 w-full text-xs">
-            {productChartData.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-text-muted">Sin datos en el periodo</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart layout="vertical" data={productChartData} margin={{ left: 5, right: 10, top: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#EBEBEB" />
-                  <XAxis type="number" tickLine={false} axisLine={false} />
-                  <YAxis
-                    dataKey="name"
-                    type="category"
-                    tickLine={false}
-                    axisLine={false}
-                    width={110}
-                    tickFormatter={(val) => (val.length > 15 ? val.slice(0, 13) + "..." : val)}
-                  />
-                  <RechartsTooltip />
-                  <Bar dataKey="paquetes" radius={[0, 4, 4, 0]}>
-                    {productChartData.map((_entry, index) => {
-                      const colors = ["#2e7d5b", "#C9784A", "#1D4ED8", "#7C3AED", "#D97706"];
-                      return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
-                    })}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
+        <ChartPanel
+          title="Ventas por producto"
+          subtitle="Paquetes vendidos por producto"
+          empty={productChartData.length === 0}
+        >
+          <BarChart
+            layout="vertical"
+            data={productChartData}
+            margin={{ left: 4, right: 8, top: 0, bottom: 0 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#ECEFF2" />
+            <XAxis type="number" tickLine={false} axisLine={false} />
+            <YAxis
+              dataKey="name"
+              type="category"
+              tickLine={false}
+              axisLine={false}
+              width={108}
+              tickFormatter={(value) => (value.length > 16 ? `${value.slice(0, 14)}...` : value)}
+            />
+            <RechartsTooltip
+              formatter={(value, name) =>
+                name === "venta" ? formatMXN(Number(value)) : `${value} paquetes`
+              }
+            />
+            <Bar dataKey="paquetes" radius={[0, 5, 5, 0]}>
+              {productChartData.map((_entry, index) => (
+                <Cell key={`product-cell-${index}`} fill={index === 0 ? "#23684a" : "#9CA3AF"} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ChartPanel>
 
-        {/* Ventas por Clientes Chart Card */}
-        <div className="bg-white border border-border rounded-2xl p-4 shadow-sm flex flex-col h-[320px]">
-          <div className="mb-4">
-            <h4 className="font-display text-[14px] font-bold text-text-primary">Ventas por cliente</h4>
-            <p className="text-[12px] text-text-muted">Top 5 de clientes con más paquetes</p>
-          </div>
-          <div className="flex-1 w-full text-xs">
-            {clientChartData.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-text-muted">Sin datos en el periodo</div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart layout="vertical" data={clientChartData} margin={{ left: 5, right: 10, top: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#EBEBEB" />
-                  <XAxis type="number" tickLine={false} axisLine={false} />
-                  <YAxis
-                    dataKey="name"
-                    type="category"
-                    tickLine={false}
-                    axisLine={false}
-                    width={110}
-                    tickFormatter={(val) => (val.length > 15 ? val.slice(0, 13) + "..." : val)}
-                  />
-                  <RechartsTooltip />
-                  <Bar dataKey="paquetes" fill="#3B82F6" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-      </div>
+        <ChartPanel
+          title="Top clientes / PDV"
+          subtitle="Dónde se concentró el movimiento"
+          empty={clientChartData.length === 0}
+        >
+          <BarChart
+            layout="vertical"
+            data={clientChartData}
+            margin={{ left: 4, right: 8, top: 0, bottom: 0 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#ECEFF2" />
+            <XAxis type="number" tickLine={false} axisLine={false} />
+            <YAxis
+              dataKey="name"
+              type="category"
+              tickLine={false}
+              axisLine={false}
+              width={108}
+              tickFormatter={(value) => (value.length > 16 ? `${value.slice(0, 14)}...` : value)}
+            />
+            <RechartsTooltip
+              formatter={(value, name) =>
+                name === "venta" ? formatMXN(Number(value)) : `${value} paquetes`
+              }
+            />
+            <Bar dataKey="paquetes" fill="#23684a" radius={[0, 5, 5, 0]} />
+          </BarChart>
+        </ChartPanel>
+      </section>
 
       {/* Recientes/Historial list */}
       <div className="mt-7 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h3 className="font-display text-[16px] font-bold text-text-primary font-display">Historial de Ventas</h3>
-            <p className="text-[12px] text-text-muted">
+            <h3 className="font-display text-base font-bold text-text-primary">
+              Historial de Ventas
+            </h3>
+            <p className="text-[13px] text-text-muted">
               Transacciones que coinciden con los filtros
             </p>
           </div>
@@ -822,10 +747,10 @@ function Home() {
             </ul>
 
             {/* Desktop View: Table */}
-            <div className="hidden md:block overflow-hidden bg-white border border-border rounded-2xl shadow-sm">
+            <div className="hidden md:block overflow-hidden rounded-2xl border border-border bg-white">
               <table className="w-full text-left border-collapse text-[13px]">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-border text-text-muted text-[11px] font-bold uppercase tracking-wider">
+                  <tr className="bg-gray-50 border-b border-border text-[12px] font-bold text-text-muted">
                     <th className="py-3 px-4">Fecha</th>
                     <th className="py-3 px-4">Cliente / PDV</th>
                     <th className="py-3 px-4">Canal</th>
@@ -839,8 +764,14 @@ function Home() {
                 <tbody className="divide-y divide-border/60">
                   {historyFilteredSales.slice(0, 20).map((s) => {
                     const d = new Date(s.createdAt);
-                    const dateStr = d.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit" });
-                    const timeStr = d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+                    const dateStr = d.toLocaleDateString("es-MX", {
+                      day: "2-digit",
+                      month: "2-digit",
+                    });
+                    const timeStr = d.toLocaleTimeString("es-MX", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    });
 
                     return (
                       <tr key={s.id} className="hover:bg-gray-50/50 transition">
@@ -851,10 +782,11 @@ function Home() {
                         <td className="py-3 px-4 font-bold text-text-primary">{s.clientName}</td>
                         <td className="py-3 px-4">
                           <span
-                            className={`rounded-full text-[10px] font-bold px-2 py-0.5 ${s.channel === "PDV"
-                              ? "bg-primary-light text-primary"
-                              : "bg-[#F5F3FF] text-[#6D28D9]"
-                              }`}
+                            className={`rounded-full text-[10px] font-bold px-2 py-0.5 ${
+                              s.channel === "PDV"
+                                ? "bg-primary-light text-primary"
+                                : "bg-[#F5F3FF] text-[#6D28D9]"
+                            }`}
                           >
                             {s.channel}
                           </span>
@@ -865,13 +797,15 @@ function Home() {
                               <div key={i.productId} className="text-[12px] leading-tight">
                                 {i.qty > 0 && (
                                   <div>
-                                    <span className="font-medium text-emerald-800">Entregado:</span> {i.productName}{" "}
+                                    <span className="font-medium text-emerald-800">Entregado:</span>{" "}
+                                    {i.productName}{" "}
                                     <span className="text-text-muted">x{i.qty}</span>
                                   </div>
                                 )}
                                 {(i.returnQty ?? 0) > 0 && (
                                   <div className="text-warning-dark font-medium">
-                                    <span>Cambio:</span> {i.productName} <span className="opacity-80">x{i.returnQty}</span>
+                                    <span>Cambio:</span> {i.productName}{" "}
+                                    <span className="opacity-80">x{i.returnQty}</span>
                                   </div>
                                 )}
                               </div>
@@ -890,7 +824,9 @@ function Home() {
                             </span>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-right font-bold text-text-primary">{formatMXN(s.total)}</td>
+                        <td className="py-3 px-4 text-right font-bold tabular-nums text-text-primary">
+                          {formatMXN(s.total)}
+                        </td>
                         <td className="py-3 px-4">
                           <div className="flex justify-end gap-1.5">
                             {s.status === "Pendiente" && (
@@ -965,12 +901,14 @@ function Home() {
                 </div>
                 <div className="border-t border-border pt-2 flex justify-between items-center text-sm">
                   <span className="text-text-muted font-medium">Monto Total:</span>
-                  <span className="text-base font-bold text-emerald-700">{formatMXN(saleToCobrar.total)}</span>
+                  <span className="text-base font-bold text-emerald-700">
+                    {formatMXN(saleToCobrar.total)}
+                  </span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2">
+                <label className="mb-2 block text-[12px] font-semibold text-text-muted">
                   Método de Pago
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -979,10 +917,11 @@ function Home() {
                       key={method}
                       type="button"
                       onClick={() => setSelectedPayment(method)}
-                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${selectedPayment === method
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border bg-white text-text-secondary hover:bg-gray-50"
-                        }`}
+                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${
+                        selectedPayment === method
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-white text-text-secondary hover:bg-gray-50"
+                      }`}
                     >
                       {method}
                     </button>
@@ -1031,8 +970,10 @@ function Home() {
                 </DialogDescription>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-bold text-text-muted uppercase">Total Por Cobrar</p>
-                <p className="text-lg font-bold text-amber-700">{formatMXN(allPendingSalesTotal)}</p>
+                <p className="text-[12px] font-semibold text-text-muted">Total por cobrar</p>
+                <p className="text-lg font-bold tabular-nums text-amber-700">
+                  {formatMXN(allPendingSalesTotal)}
+                </p>
               </div>
             </div>
           </DialogHeader>
@@ -1042,7 +983,9 @@ function Home() {
               <div className="py-12 text-center text-text-muted">
                 <CheckCircle2 className="h-10 w-10 mx-auto text-emerald-500 mb-2 opacity-80" />
                 <p className="font-semibold text-sm">¡No hay ventas pendientes por cobrar!</p>
-                <p className="text-xs mt-1">Todas las ventas registradas han sido entregadas y cobradas.</p>
+                <p className="text-xs mt-1">
+                  Todas las ventas registradas han sido entregadas y cobradas.
+                </p>
               </div>
             ) : (
               <ul className="grid gap-2.5">
@@ -1062,7 +1005,10 @@ function Home() {
       </Dialog>
 
       {/* Modal 3: Add Inventory Modal */}
-      <Dialog open={isAddStockModalOpen} onOpenChange={(open) => !open && handleCloseAddStockModal()}>
+      <Dialog
+        open={isAddStockModalOpen}
+        onOpenChange={(open) => !open && handleCloseAddStockModal()}
+      >
         <DialogContent className="max-w-lg max-h-[85vh] flex flex-col p-6 rounded-2xl">
           {addStockSuccess ? (
             <ModalSuccessState
@@ -1075,7 +1021,15 @@ function Home() {
               description={
                 addStockSuccess.totalAdded > 0 ? (
                   <span>
-                    Se añadieron con éxito <strong className="font-bold text-text-primary">+{addStockSuccess.totalAdded} unidades</strong> repartidas en <strong className="font-bold text-text-primary">{addStockSuccess.itemsCount} productos</strong>.
+                    Se añadieron con éxito{" "}
+                    <strong className="font-bold text-text-primary">
+                      +{addStockSuccess.totalAdded} unidades
+                    </strong>{" "}
+                    repartidas en{" "}
+                    <strong className="font-bold text-text-primary">
+                      {addStockSuccess.itemsCount} productos
+                    </strong>
+                    .
                   </span>
                 ) : (
                   <span>No se ingresaron cantidades adicionales para sumar al stock.</span>
@@ -1116,7 +1070,10 @@ function Home() {
                       <div className="min-w-0 flex-1">
                         <p className="font-bold text-sm text-text-primary truncate">{p.name}</p>
                         <p className="text-xs text-text-muted mt-0.5">
-                          Stock actual: <span className="font-semibold text-text-secondary">{p.stock} unidades</span>
+                          Stock actual:{" "}
+                          <span className="font-semibold text-text-secondary">
+                            {p.stock} unidades
+                          </span>
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -1182,31 +1139,253 @@ function Kpi({
   value,
   sub,
   icon,
+  accent = "neutral",
   onClick,
 }: {
   label: string;
   value: string;
   sub: string;
   icon: React.ReactNode;
-  tone?: string;
+  accent?: "green" | "red" | "amber" | "blue" | "neutral";
   onClick?: () => void;
 }) {
-  return (
-    <div
-      onClick={onClick}
-      className={`rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)] relative flex flex-col justify-between min-h-[108px] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.03),0_16px_32px_-6px_rgba(0,0,0,0.06)] ${
-        onClick ? "cursor-pointer hover:border-primary/30 group select-none" : ""
-      }`}
-    >
+  const accents = {
+    green: {
+      icon: "border-emerald-100 bg-emerald-100/70 text-emerald-700",
+    },
+    red: {
+      icon: "border-rose-100 bg-rose-100/70 text-rose-700",
+    },
+    amber: {
+      icon: "border-amber-100 bg-amber-100/70 text-amber-700",
+    },
+    blue: {
+      icon: "border-sky-100 bg-sky-100/70 text-sky-700",
+    },
+    neutral: {
+      icon: "border-black/[0.04] bg-background text-text-muted",
+    },
+  }[accent];
+
+  const className = `relative flex min-h-[108px] flex-col justify-between rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)] transition-all duration-200 ${
+    onClick
+      ? "cursor-pointer select-none hover:-translate-y-0.5 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+      : ""
+  }`;
+
+  const content = (
+    <>
       <div className="flex justify-between items-center">
-        <p className="text-[10px] font-bold tracking-wider text-text-muted/90 uppercase">{label}</p>
-        <span className="p-1.5 rounded-xl bg-background border border-black/[0.04] shadow-2xs">{icon}</span>
+        <p className="text-[12px] font-semibold text-text-muted">{label}</p>
+        <span className={`rounded-xl border p-1.5 shadow-2xs ${accents.icon}`}>{icon}</span>
       </div>
       <div className="mt-2">
-        <p className="text-[22px] font-extrabold leading-tight text-text-primary font-display truncate">{value}</p>
-        <p className="text-[11px] font-semibold text-text-muted truncate mt-0.5">{sub}</p>
+        <p className="truncate font-display text-2xl font-bold leading-none tabular-nums text-text-primary">
+          {value}
+        </p>
+        <p className="mt-1 truncate text-[12px] font-medium text-text-muted">{sub}</p>
+      </div>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={`${className} text-left`}>
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={className}>{content}</div>;
+}
+
+function ChartPanel({
+  title,
+  subtitle,
+  empty,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  empty: boolean;
+  children: React.ReactElement;
+}) {
+  return (
+    <div className="flex h-[300px] flex-col rounded-2xl border border-border bg-white p-4">
+      <div className="mb-4">
+        <h3 className="font-display text-base font-bold text-text-primary">{title}</h3>
+        <p className="text-[13px] text-text-muted">{subtitle}</p>
+      </div>
+      <div className="min-h-0 flex-1 text-xs">
+        {empty ? (
+          <div className="flex h-full items-center justify-center text-text-muted">
+            Sin datos en el periodo
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            {children}
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
+  );
+}
+
+function FilterDropdown({
+  open,
+  onOpenChange,
+  refEl,
+  activeCount,
+  summary,
+  timeFilter,
+  productFilter,
+  clientFilter,
+  products,
+  clients,
+  onTimeChange,
+  onProductChange,
+  onClientChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  refEl: React.RefObject<HTMLDivElement | null>;
+  activeCount: number;
+  summary: string;
+  timeFilter: TimeFilter;
+  productFilter: string;
+  clientFilter: string;
+  products: Product[];
+  clients: Client[];
+  onTimeChange: (value: string) => void;
+  onProductChange: (value: string) => void;
+  onClientChange: (value: string) => void;
+}) {
+  const resetFilters = () => {
+    onTimeChange("Hoy");
+    onProductChange("Todos");
+    onClientChange("Todos");
+  };
+
+  return (
+    <div ref={refEl} className="relative w-full sm:w-auto">
+      <button
+        type="button"
+        onClick={() => onOpenChange(!open)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-controls="dashboard-filters-menu"
+        className="inline-flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 text-[14px] font-bold text-text-primary transition hover:bg-muted active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:w-auto"
+      >
+        <SlidersHorizontal className="h-4 w-4 text-primary" />
+        <span>Filtros</span>
+        {activeCount > 0 && (
+          <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1.5 text-[11px] font-bold leading-none text-white">
+            {activeCount}
+          </span>
+        )}
+        <span className="hidden max-w-[150px] truncate text-[12px] font-semibold text-text-muted xl:inline">
+          {summary}
+        </span>
+        <ChevronDown className={`h-4 w-4 text-text-muted transition ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div
+          id="dashboard-filters-menu"
+          role="dialog"
+          aria-label="Filtros del dashboard"
+          className="fixed inset-x-3 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-40 max-h-[min(560px,calc(100dvh-8rem))] overflow-y-auto rounded-2xl border border-border bg-white p-3 shadow-[0_16px_40px_rgba(15,23,42,0.12)] sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:mt-2 sm:w-[420px] sm:max-h-none sm:overflow-visible"
+        >
+          <div className="flex items-start justify-between gap-4 border-b border-border pb-3">
+            <div className="min-w-0">
+              <p className="text-[13px] font-bold text-text-primary">Filtros</p>
+              <p className="mt-0.5 truncate text-[12px] font-medium text-text-muted">{summary}</p>
+            </div>
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="shrink-0 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold text-text-secondary transition hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+              disabled={activeCount === 0}
+            >
+              Limpiar
+            </button>
+          </div>
+
+          <div className="mt-3 grid gap-3">
+            <FilterSelect
+              icon={<Calendar className="h-3.5 w-3.5 text-primary" />}
+              label="Periodo"
+              value={timeFilter}
+              onChange={onTimeChange}
+              options={[
+                ["Hoy", "Hoy"],
+                ["Semana", "Esta semana"],
+                ["Mes", "Este mes"],
+                ["Año", "Este año"],
+                ["Todo", "Histórico"],
+              ]}
+            />
+            <FilterSelect
+              icon={<Package className="h-3.5 w-3.5 text-primary" />}
+              label="Producto"
+              value={productFilter}
+              onChange={onProductChange}
+              options={[
+                ["Todos", "Todos los productos"],
+                ...products.map((p) => [p.id, p.name] as [string, string]),
+              ]}
+            />
+            <FilterSelect
+              icon={<Store className="h-3.5 w-3.5 text-primary" />}
+              label="Cliente"
+              value={clientFilter}
+              onChange={onClientChange}
+              options={[
+                ["Todos", "Todos los clientes"],
+                ...clients.map((c) => [c.id, `${c.name} (${c.channel})`] as [string, string]),
+              ]}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FilterSelect({
+  icon,
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: Array<[string, string]>;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-text-muted">
+        {icon}
+        {label}
+      </span>
+      <span className="relative block">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-10 w-full appearance-none rounded-xl border border-border bg-background px-3 pr-8 text-[14px] font-semibold text-text-primary outline-none transition focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/10"
+        >
+          {options.map(([optionValue, optionLabel]) => (
+            <option key={optionValue} value={optionValue}>
+              {optionLabel}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+      </span>
+    </label>
   );
 }
 
@@ -1239,16 +1418,11 @@ function SaleCardItem({
         onClick={onToggle}
       >
         <div
-          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${s.channel === "PDV"
-            ? "bg-primary-light text-primary"
-            : "bg-[#F5F3FF] text-[#6D28D9]"
-            }`}
+          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
+            s.channel === "PDV" ? "bg-primary-light text-primary" : "bg-[#F5F3FF] text-[#6D28D9]"
+          }`}
         >
-          {s.channel === "PDV" ? (
-            <Store className="h-5 w-5" />
-          ) : (
-            <User className="h-5 w-5" />
-          )}
+          {s.channel === "PDV" ? <Store className="h-5 w-5" /> : <User className="h-5 w-5" />}
         </div>
         <div className="flex-1 min-w-0">
           <p className="truncate text-[14px] font-bold text-text-primary">{s.clientName}</p>
@@ -1280,7 +1454,9 @@ function SaleCardItem({
             </span>
           )}
         </div>
-        <ChevronDown className={`h-4 w-4 text-text-muted transition ml-1 ${open ? "rotate-180" : ""}`} />
+        <ChevronDown
+          className={`h-4 w-4 text-text-muted transition ml-1 ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       {open && (
@@ -1299,7 +1475,8 @@ function SaleCardItem({
                 {(i.returnQty ?? 0) > 0 && (
                   <div className="flex justify-between text-[12px] text-warning font-medium">
                     <span>
-                      Cambio (Merma): {i.productName} <span className="opacity-70">×{i.returnQty}</span>
+                      Cambio (Merma): {i.productName}{" "}
+                      <span className="opacity-70">×{i.returnQty}</span>
                     </span>
                     <span>(Sin costo)</span>
                   </div>
@@ -1344,7 +1521,6 @@ function SaleCardItem({
     </li>
   );
 }
-
 
 // ─── CSV Sheet ────────────────────────────────────────────────────────────────
 
@@ -1419,10 +1595,11 @@ function CSVSheet({ onClose }: { onClose: () => void }) {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex-1 rounded-full py-1.5 text-[13px] font-semibold border transition ${tab === t.id
-                ? "bg-primary text-white border-primary"
-                : "bg-background text-text-secondary border-border hover:bg-muted"
-                }`}
+              className={`flex-1 rounded-full py-1.5 text-[13px] font-semibold border transition ${
+                tab === t.id
+                  ? "bg-primary text-white border-primary"
+                  : "bg-background text-text-secondary border-border hover:bg-muted"
+              }`}
             >
               {t.label}
             </button>
@@ -1551,8 +1728,9 @@ function InfoBox({
 }) {
   return (
     <div
-      className={`rounded-xl px-3.5 py-3 text-[12px] leading-relaxed ${tone === "green" ? "bg-primary-light text-primary/80" : "bg-muted text-text-muted"
-        }`}
+      className={`rounded-xl px-3.5 py-3 text-[12px] leading-relaxed ${
+        tone === "green" ? "bg-primary-light text-primary/80" : "bg-muted text-text-muted"
+      }`}
     >
       {children}
     </div>
@@ -1575,14 +1753,16 @@ function ActionRow({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 rounded-xl px-4 py-3.5 border transition ${variant === "primary"
-        ? "bg-primary text-white border-primary hover:bg-emerald-700"
-        : "bg-background text-text-primary border-border hover:bg-muted"
-        }`}
+      className={`w-full flex items-center gap-3 rounded-xl px-4 py-3.5 border transition ${
+        variant === "primary"
+          ? "bg-primary text-white border-primary hover:bg-emerald-700"
+          : "bg-background text-text-primary border-border hover:bg-muted"
+      }`}
     >
       <span
-        className={`h-8 w-8 rounded-lg grid place-items-center shrink-0 ${variant === "primary" ? "bg-white/20" : "bg-primary-light text-primary"
-          }`}
+        className={`h-8 w-8 rounded-lg grid place-items-center shrink-0 ${
+          variant === "primary" ? "bg-white/20" : "bg-primary-light text-primary"
+        }`}
       >
         {icon}
       </span>
@@ -1638,13 +1818,16 @@ function OnboardingModal({ onClose, onRemindLater }: OnboardingModalProps) {
             {[1, 2, 3].map((n) => (
               <div
                 key={n}
-                className={`h-1.5 rounded-full transition-all duration-300 ${n === step ? "w-6 bg-primary" : "w-1.5 bg-border"
-                  }`}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  n === step ? "w-6 bg-primary" : "w-1.5 bg-border"
+                }`}
               />
             ))}
           </div>
-          <p className="text-[12px] font-bold text-primary uppercase tracking-wider">Paso {step} de 3</p>
-          <h3 className="mt-2 font-display text-[18px] font-bold text-text-primary">{current.title}</h3>
+          <p className="text-[12px] font-semibold text-primary">Paso {step} de 3</p>
+          <h3 className="mt-2 font-display text-[18px] font-bold text-text-primary">
+            {current.title}
+          </h3>
           <p className="mt-2 text-[13px] leading-relaxed text-text-secondary">{current.desc}</p>
         </div>
 
