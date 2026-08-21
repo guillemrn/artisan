@@ -186,7 +186,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Floating Collapsible Sidebar for Desktop */}
       <aside
         className={`relative hidden md:sticky md:top-3 md:m-3 md:flex md:h-[calc(100vh-1.5rem)] md:shrink-0 md:flex-col md:rounded-2xl md:border md:border-border md:bg-white md:py-5 md:shadow-card transition-all duration-300 ease-in-out ${
-          collapsed ? "md:w-[76px] md:px-2" : "md:w-[244px] md:px-3"
+          collapsed ? "md:w-[72px] md:items-center md:px-0" : "md:w-[244px] md:px-3"
         }`}
       >
         {/* Toggle Button */}
@@ -204,7 +204,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </button>
 
         <div
-          className={`flex h-10 items-center gap-2 rounded-xl ${collapsed ? "justify-center" : "px-2"}`}
+          className={`flex h-10 items-center gap-2 rounded-xl ${
+            collapsed ? "w-11 justify-center" : "w-full px-2"
+          }`}
         >
           <Logo
             variant={collapsed ? "icon" : "full"}
@@ -223,7 +225,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           {!collapsed && <span className="truncate">Nueva venta</span>}
         </Link>
 
-        <nav className="mt-5 flex flex-col gap-1.5" aria-label="Navegacion principal">
+        <nav
+          className={`mt-5 flex flex-col gap-1.5 ${collapsed ? "w-full items-center" : "w-full"}`}
+          aria-label="Navegacion principal"
+        >
           <SideItem
             to="/app"
             active={isActive("/app")}
@@ -290,44 +295,44 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
 
         {/* Desktop Header */}
-        <header className="hidden h-16 items-center justify-between border-b border-black/[0.04] bg-white/70 px-6 backdrop-blur-md md:flex lg:px-10 sticky top-0 z-30">
-          <form onSubmit={handleSearch} className="relative w-full max-w-md">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+        <header className="sticky top-0 z-30 hidden h-15 items-center justify-between border-b border-border bg-background px-6 md:flex lg:px-10">
+          <form onSubmit={handleSearch} className="relative w-full max-w-[420px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
             <input
               id="header-global-search"
               aria-label="Buscar ventas, clientes o productos"
-              placeholder="Buscar ventas, clientes o productos..."
+              placeholder="Buscar venta, cliente o producto"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="h-10 w-full rounded-2xl border border-black/[0.06] bg-background/80 pl-10 pr-16 text-[13px] font-medium outline-none transition focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10"
+              className="h-10 w-full rounded-xl border border-border bg-white pl-9 pr-14 text-[13px] font-semibold text-text-primary outline-none transition placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/10"
             />
             {searchInput ? (
               <button
                 type="button"
                 onClick={() => setSearchInput("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 grid h-6 w-6 place-items-center rounded-full text-text-muted hover:text-text-primary hover:bg-muted transition"
+                className="absolute right-2.5 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-lg text-text-muted transition hover:bg-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 aria-label="Limpiar búsqueda"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
             ) : (
-              <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 rounded-lg border border-black/[0.08] bg-white px-1.5 py-0.5 text-[10px] font-bold text-text-muted shadow-2xs">
+              <div className="pointer-events-none absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-0.5 rounded-md border border-border bg-background px-1.5 py-0.5 text-[10px] font-bold text-text-muted">
                 <span>⌘</span>
                 <span>K</span>
               </div>
             )}
           </form>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Link
               to="/ajustes"
-              className="flex items-center gap-2.5 rounded-2xl border border-black/[0.06] bg-white p-1.5 pr-3 shadow-2xs hover:border-primary/30 transition focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex h-10 items-center gap-2 rounded-xl border border-border bg-white px-2 pr-3 text-text-primary transition hover:border-primary/30 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               aria-label="Perfil de usuario"
             >
-              <div className="grid h-7 w-7 place-items-center rounded-xl bg-primary-light text-[12px] font-bold text-primary">
+              <div className="grid h-7 w-7 place-items-center rounded-lg bg-primary-light text-[12px] font-bold text-primary">
                 {initials}
               </div>
-              <span className="text-[13px] font-bold text-text-primary hidden sm:inline">
+              <span className="hidden max-w-[180px] truncate text-[13px] font-bold sm:inline">
                 {displayName}
               </span>
             </Link>
@@ -393,7 +398,7 @@ function SideItem({
         active
           ? "bg-primary-light text-primary font-bold"
           : "text-text-secondary hover:bg-muted hover:text-text-primary"
-      } ${collapsed ? "justify-center px-0 w-11 h-11 mx-auto" : "px-3.5"}`}
+      } ${collapsed ? "h-11 w-11 justify-center px-0" : "px-3.5"}`}
       title={collapsed ? label : undefined}
     >
       {active && !collapsed && (
