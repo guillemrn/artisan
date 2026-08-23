@@ -729,7 +729,7 @@ function HeroMobilePhonePreview() {
           </div>
 
           {/* Action Pills Row */}
-          <div className="space-y-2 pb-3">
+          <div className="pb-3">
             <div className="grid grid-cols-2 gap-2">
               <div className="flex h-10 items-center justify-center gap-1.5 rounded-2xl border border-[#e2e6e9] bg-white text-[12px] font-bold text-[#1e242b] shadow-xs">
                 <span>Filtros</span>
@@ -743,11 +743,6 @@ function HeroMobilePhonePreview() {
                 <Package className="h-3.5 w-3.5 text-[#1e242b]" />
                 <span>Agregar inventario</span>
               </div>
-            </div>
-
-            <div className="flex h-11 w-full items-center justify-center gap-1.5 rounded-2xl bg-[#23684a] text-[13px] font-bold text-white shadow-[0_8px_18px_-6px_rgba(35,104,74,0.6)]">
-              <Plus className="h-4 w-4" />
-              <span>Nueva venta</span>
             </div>
           </div>
 

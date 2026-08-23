@@ -244,12 +244,12 @@ function Home() {
     activeFilterCount === 0
       ? "Hoy"
       : [
-          timeFilter,
-          productFilter !== "Todos" ? selectedProductLabel : null,
-          clientFilter !== "Todos" ? selectedClientLabel : null,
-        ]
-          .filter(Boolean)
-          .join(" · ");
+        timeFilter,
+        productFilter !== "Todos" ? selectedProductLabel : null,
+        clientFilter !== "Todos" ? selectedClientLabel : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
 
   useEffect(() => {
     if (!filtersOpen) return;
@@ -496,7 +496,7 @@ function Home() {
             </p>
           </div>
 
-          <div className="flex w-full flex-col items-stretch gap-2.5 sm:w-auto sm:flex-row sm:items-center">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center sm:gap-2.5">
             <FilterDropdown
               open={filtersOpen}
               onOpenChange={setFiltersOpen}
@@ -515,14 +515,14 @@ function Home() {
             <button
               type="button"
               onClick={() => setIsAddStockModalOpen(true)}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 text-[14px] font-bold text-text-primary transition hover:bg-muted active:scale-[0.99] sm:w-auto"
+              className="inline-flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-border bg-white px-3 text-[13px] font-bold text-text-primary transition hover:bg-muted active:scale-[0.99] sm:w-auto sm:px-4 sm:text-[14px]"
             >
-              <Package className="h-4 w-4" />
-              Agregar inventario
+              <Package className="h-4 w-4 shrink-0" />
+              <span className="truncate">Agregar inventario</span>
             </button>
             <Link
               to="/nueva-venta"
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-[14px] font-bold text-white transition hover:bg-[#1f523b] active:scale-[0.99] sm:w-auto"
+              className="hidden h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-[14px] font-bold text-white transition hover:bg-[#1f523b] active:scale-[0.99] md:inline-flex"
             >
               <Plus className="h-4 w-4" />
               Nueva venta
@@ -533,7 +533,7 @@ function Home() {
 
       {/* Dashboard Overview */}
       <section className="space-y-3">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Kpi
             label="Ventas cobradas"
             value={formatMXN(kpiData.salesTotal)}
@@ -782,11 +782,10 @@ function Home() {
                         <td className="py-3 px-4 font-bold text-text-primary">{s.clientName}</td>
                         <td className="py-3 px-4">
                           <span
-                            className={`rounded-full text-[10px] font-bold px-2 py-0.5 ${
-                              s.channel === "PDV"
-                                ? "bg-primary-light text-primary"
-                                : "bg-[#F5F3FF] text-[#6D28D9]"
-                            }`}
+                            className={`rounded-full text-[10px] font-bold px-2 py-0.5 ${s.channel === "PDV"
+                              ? "bg-primary-light text-primary"
+                              : "bg-[#F5F3FF] text-[#6D28D9]"
+                              }`}
                           >
                             {s.channel}
                           </span>
@@ -917,11 +916,10 @@ function Home() {
                       key={method}
                       type="button"
                       onClick={() => setSelectedPayment(method)}
-                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${
-                        selectedPayment === method
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-white text-text-secondary hover:bg-gray-50"
-                      }`}
+                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${selectedPayment === method
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-white text-text-secondary hover:bg-gray-50"
+                        }`}
                     >
                       {method}
                     </button>
@@ -1038,10 +1036,10 @@ function Home() {
               details={
                 addStockSuccess.totalAdded > 0
                   ? [
-                      { label: "Piezas Agregadas", value: `+${addStockSuccess.totalAdded} u.` },
-                      { label: "Productos Actualizados", value: `${addStockSuccess.itemsCount}` },
-                      { label: "Estado Inventario", value: "Sincronizado" },
-                    ]
+                    { label: "Piezas Agregadas", value: `+${addStockSuccess.totalAdded} u.` },
+                    { label: "Productos Actualizados", value: `${addStockSuccess.itemsCount}` },
+                    { label: "Estado Inventario", value: "Sincronizado" },
+                  ]
                   : []
               }
               onDone={handleCloseAddStockModal}
@@ -1167,11 +1165,10 @@ function Kpi({
     },
   }[accent];
 
-  const className = `relative flex min-h-[108px] flex-col justify-between rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)] transition-all duration-200 ${
-    onClick
-      ? "cursor-pointer select-none hover:-translate-y-0.5 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-      : ""
-  }`;
+  const className = `relative flex min-h-[108px] flex-col justify-between rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)] transition-all duration-200 ${onClick
+    ? "cursor-pointer select-none hover:-translate-y-0.5 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+    : ""
+    }`;
 
   const content = (
     <>
@@ -1418,9 +1415,8 @@ function SaleCardItem({
         onClick={onToggle}
       >
         <div
-          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
-            s.channel === "PDV" ? "bg-primary-light text-primary" : "bg-[#F5F3FF] text-[#6D28D9]"
-          }`}
+          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${s.channel === "PDV" ? "bg-primary-light text-primary" : "bg-[#F5F3FF] text-[#6D28D9]"
+            }`}
         >
           {s.channel === "PDV" ? <Store className="h-5 w-5" /> : <User className="h-5 w-5" />}
         </div>
@@ -1595,11 +1591,10 @@ function CSVSheet({ onClose }: { onClose: () => void }) {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex-1 rounded-full py-1.5 text-[13px] font-semibold border transition ${
-                tab === t.id
-                  ? "bg-primary text-white border-primary"
-                  : "bg-background text-text-secondary border-border hover:bg-muted"
-              }`}
+              className={`flex-1 rounded-full py-1.5 text-[13px] font-semibold border transition ${tab === t.id
+                ? "bg-primary text-white border-primary"
+                : "bg-background text-text-secondary border-border hover:bg-muted"
+                }`}
             >
               {t.label}
             </button>
@@ -1728,9 +1723,8 @@ function InfoBox({
 }) {
   return (
     <div
-      className={`rounded-xl px-3.5 py-3 text-[12px] leading-relaxed ${
-        tone === "green" ? "bg-primary-light text-primary/80" : "bg-muted text-text-muted"
-      }`}
+      className={`rounded-xl px-3.5 py-3 text-[12px] leading-relaxed ${tone === "green" ? "bg-primary-light text-primary/80" : "bg-muted text-text-muted"
+        }`}
     >
       {children}
     </div>
@@ -1753,16 +1747,14 @@ function ActionRow({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 rounded-xl px-4 py-3.5 border transition ${
-        variant === "primary"
-          ? "bg-primary text-white border-primary hover:bg-emerald-700"
-          : "bg-background text-text-primary border-border hover:bg-muted"
-      }`}
+      className={`w-full flex items-center gap-3 rounded-xl px-4 py-3.5 border transition ${variant === "primary"
+        ? "bg-primary text-white border-primary hover:bg-emerald-700"
+        : "bg-background text-text-primary border-border hover:bg-muted"
+        }`}
     >
       <span
-        className={`h-8 w-8 rounded-lg grid place-items-center shrink-0 ${
-          variant === "primary" ? "bg-white/20" : "bg-primary-light text-primary"
-        }`}
+        className={`h-8 w-8 rounded-lg grid place-items-center shrink-0 ${variant === "primary" ? "bg-white/20" : "bg-primary-light text-primary"
+          }`}
       >
         {icon}
       </span>
@@ -1818,9 +1810,8 @@ function OnboardingModal({ onClose, onRemindLater }: OnboardingModalProps) {
             {[1, 2, 3].map((n) => (
               <div
                 key={n}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  n === step ? "w-6 bg-primary" : "w-1.5 bg-border"
-                }`}
+                className={`h-1.5 rounded-full transition-all duration-300 ${n === step ? "w-6 bg-primary" : "w-1.5 bg-border"
+                  }`}
               />
             ))}
           </div>
