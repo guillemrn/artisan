@@ -15,10 +15,13 @@ import { Route as AjustesRouteImport } from './routes/ajustes'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as BuscarRouteImport } from './routes/buscar'
 import { Route as ClientesRouteImport } from './routes/clientes'
+import { Route as CookiesRouteImport } from './routes/cookies'
 import { Route as HistorialRouteImport } from './routes/historial'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as NuevaVentaRouteImport } from './routes/nueva-venta'
+import { Route as PrivacidadRouteImport } from './routes/privacidad'
 import { Route as ProductosRouteImport } from './routes/productos'
+import { Route as TerminosRouteImport } from './routes/terminos'
 import { Route as VentasRouteImport } from './routes/ventas'
 import { Route as ClientesClientIdRouteImport } from './routes/clientes_.$clientId'
 import { Route as ProductosProductIdRouteImport } from './routes/productos_.$productId'
@@ -55,6 +58,11 @@ const ClientesRoute = ClientesRouteImport.update({
   path: '/clientes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CookiesRoute = CookiesRouteImport.update({
+  id: '/cookies',
+  path: '/cookies',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HistorialRoute = HistorialRouteImport.update({
   id: '/historial',
   path: '/historial',
@@ -70,9 +78,19 @@ const NuevaVentaRoute = NuevaVentaRouteImport.update({
   path: '/nueva-venta',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacidadRoute = PrivacidadRouteImport.update({
+  id: '/privacidad',
+  path: '/privacidad',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProductosRoute = ProductosRouteImport.update({
   id: '/productos',
   path: '/productos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TerminosRoute = TerminosRouteImport.update({
+  id: '/terminos',
+  path: '/terminos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VentasRoute = VentasRouteImport.update({
@@ -108,10 +126,13 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRoute
   '/buscar': typeof BuscarRoute
   '/clientes': typeof ClientesRoute
+  '/cookies': typeof CookiesRoute
   '/historial': typeof HistorialRoute
   '/login': typeof LoginRoute
   '/nueva-venta': typeof NuevaVentaRoute
+  '/privacidad': typeof PrivacidadRoute
   '/productos': typeof ProductosRoute
+  '/terminos': typeof TerminosRoute
   '/ventas': typeof VentasRoute
   '/clientes/$clientId': typeof ClientesClientIdRoute
   '/productos/$productId': typeof ProductosProductIdRoute
@@ -125,10 +146,13 @@ export interface FileRoutesByTo {
   '/app': typeof AppRoute
   '/buscar': typeof BuscarRoute
   '/clientes': typeof ClientesRoute
+  '/cookies': typeof CookiesRoute
   '/historial': typeof HistorialRoute
   '/login': typeof LoginRoute
   '/nueva-venta': typeof NuevaVentaRoute
+  '/privacidad': typeof PrivacidadRoute
   '/productos': typeof ProductosRoute
+  '/terminos': typeof TerminosRoute
   '/ventas': typeof VentasRoute
   '/clientes/$clientId': typeof ClientesClientIdRoute
   '/productos/$productId': typeof ProductosProductIdRoute
@@ -143,10 +167,13 @@ export interface FileRoutesById {
   '/app': typeof AppRoute
   '/buscar': typeof BuscarRoute
   '/clientes': typeof ClientesRoute
+  '/cookies': typeof CookiesRoute
   '/historial': typeof HistorialRoute
   '/login': typeof LoginRoute
   '/nueva-venta': typeof NuevaVentaRoute
+  '/privacidad': typeof PrivacidadRoute
   '/productos': typeof ProductosRoute
+  '/terminos': typeof TerminosRoute
   '/ventas': typeof VentasRoute
   '/clientes_/$clientId': typeof ClientesClientIdRoute
   '/productos_/$productId': typeof ProductosProductIdRoute
@@ -162,10 +189,13 @@ export interface FileRouteTypes {
     | '/app'
     | '/buscar'
     | '/clientes'
+    | '/cookies'
     | '/historial'
     | '/login'
     | '/nueva-venta'
+    | '/privacidad'
     | '/productos'
+    | '/terminos'
     | '/ventas'
     | '/clientes/$clientId'
     | '/productos/$productId'
@@ -179,10 +209,13 @@ export interface FileRouteTypes {
     | '/app'
     | '/buscar'
     | '/clientes'
+    | '/cookies'
     | '/historial'
     | '/login'
     | '/nueva-venta'
+    | '/privacidad'
     | '/productos'
+    | '/terminos'
     | '/ventas'
     | '/clientes/$clientId'
     | '/productos/$productId'
@@ -196,10 +229,13 @@ export interface FileRouteTypes {
     | '/app'
     | '/buscar'
     | '/clientes'
+    | '/cookies'
     | '/historial'
     | '/login'
     | '/nueva-venta'
+    | '/privacidad'
     | '/productos'
+    | '/terminos'
     | '/ventas'
     | '/clientes_/$clientId'
     | '/productos_/$productId'
@@ -214,10 +250,13 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRoute
   BuscarRoute: typeof BuscarRoute
   ClientesRoute: typeof ClientesRoute
+  CookiesRoute: typeof CookiesRoute
   HistorialRoute: typeof HistorialRoute
   LoginRoute: typeof LoginRoute
   NuevaVentaRoute: typeof NuevaVentaRoute
+  PrivacidadRoute: typeof PrivacidadRoute
   ProductosRoute: typeof ProductosRoute
+  TerminosRoute: typeof TerminosRoute
   VentasRoute: typeof VentasRoute
   ClientesClientIdRoute: typeof ClientesClientIdRoute
   ProductosProductIdRoute: typeof ProductosProductIdRoute
@@ -269,6 +308,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cookies': {
+      id: '/cookies'
+      path: '/cookies'
+      fullPath: '/cookies'
+      preLoaderRoute: typeof CookiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/historial': {
       id: '/historial'
       path: '/historial'
@@ -290,11 +336,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NuevaVentaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacidad': {
+      id: '/privacidad'
+      path: '/privacidad'
+      fullPath: '/privacidad'
+      preLoaderRoute: typeof PrivacidadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/productos': {
       id: '/productos'
       path: '/productos'
       fullPath: '/productos'
       preLoaderRoute: typeof ProductosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terminos': {
+      id: '/terminos'
+      path: '/terminos'
+      fullPath: '/terminos'
+      preLoaderRoute: typeof TerminosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ventas': {
@@ -342,10 +402,13 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRoute,
   BuscarRoute: BuscarRoute,
   ClientesRoute: ClientesRoute,
+  CookiesRoute: CookiesRoute,
   HistorialRoute: HistorialRoute,
   LoginRoute: LoginRoute,
   NuevaVentaRoute: NuevaVentaRoute,
+  PrivacidadRoute: PrivacidadRoute,
   ProductosRoute: ProductosRoute,
+  TerminosRoute: TerminosRoute,
   VentasRoute: VentasRoute,
   ClientesClientIdRoute: ClientesClientIdRoute,
   ProductosProductIdRoute: ProductosProductIdRoute,

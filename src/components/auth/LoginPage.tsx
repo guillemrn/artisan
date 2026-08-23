@@ -11,6 +11,7 @@ import {
   Phone,
   Tag,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Logo } from "@/components/ui/logo";
 import { useAuth } from "@/core/auth/auth-context";
 
@@ -513,9 +514,20 @@ export function LoginPage() {
           <span>© {new Date().getFullYear()} Artisan. Tu negocio en buenas manos.</span>
         </div>
 
+        <nav className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[12px] font-semibold text-text-muted">
+          <Link to="/privacidad" className="hover:text-primary">
+            Privacidad
+          </Link>
+          <Link to="/terminos" className="hover:text-primary">
+            Terminos
+          </Link>
+          <Link to="/cookies" className="hover:text-primary">
+            Cookies
+          </Link>
+        </nav>
+
       </div>
     </main>
   );
 }
-
 

@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import { getRouter } from "./router";
 import "./styles.css";
-import { Analytics } from "@vercel/analytics/react"
+import { ConsentAnalytics } from "@/components/legal/ConsentAnalytics";
 
 const router = getRouter();
 
@@ -13,7 +13,7 @@ if (!rootElement.innerHTML) {
   root.render(
     <React.StrictMode>
       <RouterProvider router={router} />
-      <Analytics />
+      <ConsentAnalytics />
     </React.StrictMode>,
   );
 }

@@ -12,6 +12,7 @@ import { ArtisanProvider } from "@/lib/artisan-store";
 import { AppShell } from "@/components/artisan/AppShell";
 import { AuthProvider, useAuth } from "@/core/auth/auth-context";
 import { LoginPage } from "@/components/auth/LoginPage";
+import { CookieBanner } from "@/components/legal/CookieBanner";
 
 // ─── Error & 404 ──────────────────────────────────────────────────────────────
 
@@ -83,8 +84,24 @@ function AuthGate() {
 
   if (loading) return <SplashScreen />;
 
+  if (isLegalPath(pathname)) {
+    return (
+      <>
+        <Outlet />
+        <CookieBanner />
+      </>
+    );
+  }
+
   if (!user) {
-    if (pathname === "/" || pathname === "/login") return <Outlet />;
+    if (pathname === "/" || pathname === "/login") {
+      return (
+        <>
+          <Outlet />
+          <CookieBanner />
+        </>
+      );
+    }
     return <Navigate to="/login" replace />;
   }
 
@@ -93,7 +110,12 @@ function AuthGate() {
   }
 
   if (pathname === "/") {
-    return <Outlet />;
+    return (
+      <>
+        <Outlet />
+        <CookieBanner />
+      </>
+    );
   }
 
   return (
@@ -101,8 +123,13 @@ function AuthGate() {
       <AppShell>
         <Outlet />
       </AppShell>
+      <CookieBanner />
     </ArtisanProvider>
   );
+}
+
+function isLegalPath(pathname: string) {
+  return pathname === "/privacidad" || pathname === "/terminos" || pathname === "/cookies";
 }
 
 // ─── Splash screen ────────────────────────────────────────────────────────────

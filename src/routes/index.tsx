@@ -3,14 +3,12 @@ import { useState } from "react";
 import {
   ArrowRight,
   BarChart3,
-  Bell,
   CalendarClock,
   Check,
   CheckCircle2,
   ChevronDown,
   Clock,
   CreditCard,
-  LayoutDashboard,
   Menu,
   Package,
   Plus,
@@ -193,22 +191,24 @@ function LandingPage() {
 
       <main>
         <section className="border-b border-[#1d2723]/10">
-          <div className="mx-auto grid min-h-[calc(100svh-4rem)] max-w-7xl items-center gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[0.92fr_1.08fr] lg:px-8 lg:py-16">
-            <div className="max-w-xl">
-              <h1 className="max-w-[13ch] text-5xl font-black leading-[0.94] text-[#17231e] sm:text-6xl lg:text-7xl">
-                Ventas, pedidos y cobros sin perder el hilo.
+          <div className="mx-auto grid min-h-[calc(100svh-4rem)] min-w-0 max-w-7xl items-center gap-12 px-4 py-12 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8 lg:py-14">
+            <div className="w-full max-w-full min-w-0 sm:max-w-2xl">
+              <h1 className="max-w-[calc(100vw-2rem)] text-5xl font-black leading-[0.94] text-[#17231e] sm:max-w-[11ch] sm:text-6xl lg:text-[76px]">
+                <span className="block">Ventas, pedidos</span>
+                <span className="block">y cobros en</span>
+                <span className="block">un solo panel.</span>
               </h1>
 
-              <p className="mt-7 max-w-[64ch] text-base leading-8 text-[#405047] sm:text-lg">
-                Artisan junta el punto de venta, la libreta de pedidos, los clientes y el inventario
-                en un solo panel para negocios locales que venden directo, entregan a puntos de
-                venta y cobran en distintos momentos.
+              <p className="mt-7 w-full max-w-[calc(100vw-2rem)] break-words text-base leading-8 text-[#405047] sm:max-w-[66ch] sm:text-lg">
+                Artisan junta punto de venta, libreta de pedidos, clientes e inventario para
+                negocios locales que venden directo, entregan a puntos de venta y cobran en
+                distintos momentos.
               </p>
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-8 flex max-w-[calc(100vw-2rem)] flex-col gap-3 sm:max-w-none sm:flex-row">
                 <Link
                   to={appLink}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-[#245f44] px-6 text-sm font-black text-white shadow-[0_18px_36px_-22px_rgba(36,95,68,0.9)] transition hover:bg-[#1d4f38] focus:outline-none focus:ring-2 focus:ring-[#245f44] focus:ring-offset-2"
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-[#245f44] px-6 text-sm font-black text-white shadow-[0_18px_36px_-22px_rgba(36,95,68,0.9)] transition hover:bg-[#1d4f38] focus:outline-none focus:ring-2 focus:ring-[#245f44] focus:ring-offset-2 sm:w-auto"
                 >
                   {appLabel}
                   <ArrowRight className="h-4 w-4" />
@@ -221,8 +221,8 @@ function LandingPage() {
                 </a>
               </div>
 
-              <div className="mt-8 grid gap-2 rounded-lg border border-[#1d2723]/10 bg-white/72 p-2 text-sm font-semibold text-[#405047] sm:grid-cols-3">
-                {["Venta directa", "Pedido abierto", "Cobro pendiente"].map((item) => (
+              <div className="mt-8 hidden gap-2 rounded-lg border border-[#1d2723]/10 bg-white/72 p-2 text-sm font-semibold text-[#405047] sm:grid sm:grid-cols-3">
+                {["Venta registrada", "Pedido separado", "Cobro visible"].map((item) => (
                   <div key={item} className="flex min-h-10 items-center gap-2 rounded-md px-3 py-2">
                     <CheckCircle2 className="h-4 w-4 shrink-0 text-[#245f44]" aria-hidden="true" />
                     <span>{item}</span>
@@ -303,7 +303,7 @@ function LandingPage() {
                   <div className="rounded-lg bg-[#f5f2ea] p-4">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-xs font-bold text-[#6a5c47]">Pedido para manana</p>
+                        <p className="text-xs font-bold text-[#6a5c47]">Pedido para mañana</p>
                         <h3 className="mt-1 text-2xl font-black text-[#17231e]">
                           12 piezas surtidas
                         </h3>
@@ -370,7 +370,7 @@ function LandingPage() {
             <div className="grid gap-10 lg:grid-cols-[1fr_0.95fr] lg:items-center">
               <div>
                 <h2 className="max-w-2xl text-4xl font-black leading-tight text-[#17231e] sm:text-5xl">
-                  Hoy ordena productos. Manana puede crecer hacia servicios.
+                  Hoy ordena productos. Mañana puede crecer hacia servicios.
                 </h2>
                 <p className="mt-5 max-w-[66ch] text-base leading-8 text-[#536158]">
                   La base de Artisan sirve para negocios que necesitan saber quien pidio que, cuando
@@ -459,9 +459,22 @@ function LandingPage() {
       </main>
 
       <footer className="bg-[#17231e] px-4 py-8 text-white sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm text-[#bfd0c7] sm:flex-row sm:items-center sm:justify-between">
-          <Logo variant="full" className="h-7 w-auto brightness-0 invert" />
-          <p>Artisan organiza ventas, pedidos, inventario y cobros para negocios locales.</p>
+        <div className="mx-auto flex max-w-7xl flex-col gap-5 text-sm text-[#bfd0c7] lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Logo variant="full" className="h-7 w-auto brightness-0 invert" />
+            <p>Artisan organiza ventas, pedidos, inventario y cobros para negocios locales.</p>
+          </div>
+          <nav className="flex flex-wrap gap-x-5 gap-y-2 font-semibold">
+            <Link to="/privacidad" className="transition hover:text-white">
+              Privacidad
+            </Link>
+            <Link to="/terminos" className="transition hover:text-white">
+              Terminos
+            </Link>
+            <Link to="/cookies" className="transition hover:text-white">
+              Cookies
+            </Link>
+          </nav>
         </div>
       </footer>
     </div>
@@ -469,100 +482,192 @@ function LandingPage() {
 }
 
 function ProductWorkbench() {
+  const kpis = [
+    ["Ventas cobradas", "$4,860", "9 ventas", "text-[#23684a]"],
+    ["Por cobrar", "$860", "2 pendientes", "text-[#d97706]"],
+    ["Ganancia neta", "$2,940", "60% margen", "text-[#23684a]"],
+    ["Inventario", "36", "productos", "text-[#1e242b]"],
+  ];
+
+  const saleItems = [
+    ["Pan pita familiar", "3", "$720"],
+    ["Salsa macha", "2", "$240"],
+    ["Chamoy artesanal", "2", "$390"],
+  ];
+
   return (
-    <div className="relative flex justify-center lg:justify-end">
-      <div className="absolute left-4 top-10 hidden h-[500px] w-[420px] rounded-[48px] bg-[#23684a]/8 lg:block" />
-      <div className="relative w-[320px] rounded-[42px] bg-[#18221e] p-2 shadow-[0_34px_90px_-44px_rgba(24,34,30,0.95)] sm:w-[350px]">
-        <div className="overflow-hidden rounded-[34px] bg-[#f7f8fa]">
-          <div className="flex h-7 items-center justify-center bg-[#18221e]">
-            <div className="h-1.5 w-20 rounded-full bg-white/18" />
+    <div className="relative w-full max-w-full min-w-0 overflow-hidden">
+      <div className="absolute -left-8 top-12 hidden h-[360px] w-[560px] rounded-[56px] bg-[#23684a]/7 lg:block" />
+      <div className="relative w-full max-w-full min-w-0 max-h-[420px] overflow-hidden rounded-2xl border border-[#1d2723]/12 bg-[#f7f8fa] shadow-[0_30px_86px_-54px_rgba(29,39,35,0.8)] md:max-h-none">
+        <div className="flex items-center justify-between border-b border-[#e4e8e5] bg-white px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Logo variant="full" className="h-7 w-auto" />
+            <span className="hidden rounded-full bg-[#edf6f2] px-3 py-1 text-[11px] font-black text-[#23684a] sm:inline-flex">
+              Panel del dia
+            </span>
           </div>
+          <div className="hidden h-9 w-[250px] items-center rounded-lg border border-[#e4e8e5] bg-[#f7f8fa] px-3 text-[12px] font-semibold text-[#8c95a1] md:flex">
+            Buscar venta, cliente o producto
+          </div>
+          <div className="grid h-9 w-9 place-items-center rounded-full bg-[#f8d8a8] text-[12px] font-black text-[#7c4a16]">
+            GA
+          </div>
+        </div>
 
-          <div className="px-4 pb-4 pt-4">
-            <div className="flex items-center justify-between">
-              <Logo variant="full" className="h-7 w-auto" />
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="grid h-9 w-9 place-items-center rounded-2xl border border-[#e9ecef] bg-white text-[#4a525d]"
-                  aria-label="Notificaciones"
-                >
-                  <Bell className="h-4 w-4" />
-                </button>
-                <div className="grid h-9 w-9 place-items-center rounded-full bg-[#f8d8a8] text-[12px] font-black text-[#7c4a16]">
-                  AM
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5">
-              <p className="text-[12px] font-semibold text-[#8c95a1]">miércoles, 22 de julio</p>
-              <h3 className="mt-1 text-[23px] font-black leading-tight text-[#1e242b]">
-                Buenas tardes, Andrea
-              </h3>
-            </div>
-
+        <div className="grid min-h-[440px] min-w-0 grid-cols-1 md:grid-cols-[150px_minmax(0,1fr)]">
+          <aside className="hidden border-r border-[#e4e8e5] bg-white px-3 py-4 md:block">
             <button
               type="button"
-              className="mt-5 flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#23684a] text-[13px] font-black text-white"
+              className="mb-4 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#23684a] text-[12px] font-black text-white"
             >
               <Plus className="h-4 w-4" />
               Nueva venta
             </button>
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <Metric title="Ventas hoy" value="$4,860" note="9 cobradas" color="text-[#23684a]" />
-              <Metric title="Por cobrar" value="$860" note="2 pendientes" color="text-[#d97706]" />
-              <Metric title="Ganancia" value="$2,940" note="60% margen" color="text-[#23684a]" />
-              <Metric title="Productos" value="36" note="en inventario" color="text-[#1e242b]" />
-            </div>
-
-            <div className="mt-4 rounded-2xl bg-white p-4 shadow-[0_8px_24px_-20px_rgba(15,23,42,0.5)]">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-[15px] font-black text-[#1e242b]">Ventas recientes</h3>
-                <span className="text-[11px] font-bold text-[#8c95a1]">Hoy</span>
-              </div>
-              <div className="grid gap-2">
-                {[
-                  ["Cliente directo", "Efectivo", "$240"],
-                  ["Punto de venta", "Pendiente", "$720"],
-                  ["Pedido especial", "Transferencia", "$390"],
-                ].map(([client, payment, total]) => (
-                  <div
-                    key={client}
-                    className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-2xl bg-[#f7f8fa] px-3 py-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-[13px] font-black text-[#1e242b]">{client}</p>
-                      <p className="mt-1 text-[11px] font-semibold text-[#8c95a1]">{payment}</p>
-                    </div>
-                    <p className="text-[13px] font-black text-[#1e242b]">{total}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-5 gap-2 rounded-2xl border border-[#e9ecef] bg-white p-2 text-[10px] font-bold text-[#8c95a1]">
+            <div className="grid gap-1 text-[12px] font-bold text-[#4a525d]">
               {[
-                [LayoutDashboard, "Inicio", true],
-                [Receipt, "Ventas", false],
-                [Plus, "", false],
-                [Package, "Productos", false],
+                [Receipt, "Ventas", true],
+                [CalendarClock, "Pedidos", false],
+                [CreditCard, "Cobros", false],
+                [Package, "Inventario", false],
                 [Users, "Clientes", false],
               ].map(([Icon, label, active]) => {
-                const NavIcon = Icon as typeof LayoutDashboard;
+                const NavIcon = Icon as typeof Receipt;
                 return (
                   <div
                     key={label as string}
-                    className={`flex min-h-11 flex-col items-center justify-center gap-1 rounded-xl ${
-                      active ? "bg-[#edf6f2] text-[#23684a]" : ""
-                    }`}
+                    className={`flex h-9 items-center gap-2 rounded-lg px-3 ${active ? "bg-[#edf6f2] text-[#23684a]" : ""
+                      }`}
                   >
                     <NavIcon className="h-4 w-4" />
-                    {label ? <span>{label as string}</span> : null}
+                    {label as string}
                   </div>
                 );
               })}
+            </div>
+          </aside>
+
+          <div className="min-w-0 p-4 sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-[12px] font-bold text-[#8c95a1]">Jueves, 20 de agosto</p>
+                <h3 className="mt-1 text-[24px] font-black leading-tight text-[#1e242b] sm:text-[28px]">
+                  Buenas tardes, Gabriela
+                </h3>
+                <p className="mt-1 text-[13px] font-semibold text-[#6f7a72]">
+                  Ventas, pedidos, inventario y margen conectados.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="hidden h-10 items-center justify-center rounded-lg border border-[#e4e8e5] bg-white px-3 text-[12px] font-black text-[#1e242b] sm:inline-flex"
+                >
+                  Agregar inventario
+                </button>
+                <button
+                  type="button"
+                  className="h-10 rounded-lg bg-[#23684a] px-4 text-[12px] font-black text-white"
+                >
+                  Nueva venta
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {kpis.map(([title, value, note, color]) => (
+                <Metric key={title} title={title} value={value} note={note} color={color} />
+              ))}
+            </div>
+
+            <div className="mt-3 grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)]">
+              <div className="min-w-0 rounded-xl bg-white p-4">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-[16px] font-black text-[#1e242b]">Venta en curso</h3>
+                    <p className="mt-1 text-[12px] font-semibold text-[#8c95a1]">
+                      Cliente directo · efectivo
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-[#edf6f2] px-3 py-1 text-[11px] font-black text-[#23684a]">
+                    Ticket listo
+                  </span>
+                </div>
+
+                <div className="grid min-w-0 gap-2">
+                  {saleItems.map(([product, quantity, total]) => (
+                    <div
+                      key={product}
+                      className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 border-t border-[#eef0f1] py-2 text-[12px]"
+                    >
+                      <span className="truncate font-black text-[#1e242b]">{product}</span>
+                      <span className="font-semibold text-[#8c95a1]">{quantity} uds.</span>
+                      <span className="font-black text-[#1e242b]">{total}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div
+                    className="rounded-lg bg-[#f7f8fa] px-3 py-3"
+                  >
+                    <p className="text-[11px] font-bold text-[#8c95a1]">Inventario</p>
+                    <p className="mt-1 text-[13px] font-black text-[#23684a]">Descontado</p>
+                  </div>
+                  <div className="rounded-lg bg-[#f7f8fa] px-3 py-3">
+                    <p className="text-[11px] font-bold text-[#8c95a1]">Cliente</p>
+                    <p className="mt-1 text-[13px] font-black text-[#1e242b]">Historial guardado</p>
+                  </div>
+                  <div className="rounded-lg bg-[#fff7ed] px-3 py-3">
+                    <p className="text-[11px] font-bold text-[#9a6a31]">Cobro</p>
+                    <p className="mt-1 text-[13px] font-black text-[#d97706]">Pendiente visible</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid min-w-0 gap-3">
+                <div className="rounded-xl bg-white p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-[15px] font-black text-[#1e242b]">Pedidos abiertos</h3>
+                    <CalendarClock className="h-4 w-4 text-[#23684a]" />
+                  </div>
+                  {[
+                    ["Boutique Natural", "Pan pita familiar", "Mañana"],
+                    ["Punto de venta", "Chamoy artesanal", "Viernes"],
+                  ].map(([client, product, date]) => (
+                    <div
+                      key={client}
+                      className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-3 border-t border-[#eef0f1] py-2 text-[12px]"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-black text-[#1e242b]">{client}</p>
+                        <p className="mt-0.5 truncate font-semibold text-[#8c95a1]">{product}</p>
+                      </div>
+                      <span className="font-black text-[#23684a]">{date}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rounded-xl bg-white p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-[15px] font-black text-[#1e242b]">Inventario bajo</h3>
+                    <Package className="h-4 w-4 text-[#d97706]" />
+                  </div>
+                  {[
+                    ["Salsa macha", "8 disponibles", "w-[48%]"],
+                    ["Pan pita", "18 disponibles", "w-[72%]"],
+                  ].map(([product, stock, width]) => (
+                    <div key={product} className="border-t border-[#eef0f1] py-2">
+                      <div className="mb-2 flex justify-between gap-3 text-[12px]">
+                        <span className="font-black text-[#1e242b]">{product}</span>
+                        <span className="font-semibold text-[#6f7a72]">{stock}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-[#eef0f1]">
+                        <div className={`h-full rounded-full bg-[#23684a] ${width}`} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
