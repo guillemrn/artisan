@@ -159,76 +159,26 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const session = await requireActiveSession();
+        await requireActiveSession();
 
-        // Inject metadata into items to circumvent database check constraint
-        const itemsWithMetadata = s.items.map((item, idx) => {
-          if (idx === 0) {
-            return {
-              ...item,
-              _paymentMethod: s.payment,
-            };
-          }
-          return item;
-        });
-
-        // Insert sale
-        const { error: saleError } = await supabase.from("sales").insert({
-          id: s.id,
-          client_id: s.clientId,
-          client_name: s.clientName,
-          channel: s.channel,
-          items: itemsWithMetadata,
-          total: s.total,
-          cost: s.cost,
-          profit: s.profit,
-          payment:
-            s.payment === "Consignación"
-              ? "Pendiente"
-              : s.payment === "Cortesía"
-                ? "Efectivo"
-                : s.payment,
-          status: s.status,
-          created_at: s.createdAt,
-          user_id: session.user.id,
+        const { error: saleError } = await supabase.rpc("register_sale", {
+          p_sale_id: s.id,
+          p_client_id: s.clientId,
+          p_client_name: s.clientName,
+          p_channel: s.channel,
+          p_items: s.items,
+          p_total: s.total,
+          p_cost: s.cost,
+          p_profit: s.profit,
+          p_payment: s.payment,
+          p_status: s.status,
+          p_created_at: s.createdAt,
         });
 
         if (saleError) {
-          console.error("Error inserting sale to Supabase:", saleError);
-          throw new Error(`Error al registrar la venta en la base de datos: ${saleError.message}`);
+          console.error("Error registering sale transaction:", saleError);
+          throw new Error(`Error al registrar la venta: ${saleError.message}`);
         }
-
-        // Update client last delivery
-        const { error: clientError } = await supabase
-          .from("clients")
-          .update({ last_delivery: "Hoy" })
-          .eq("id", s.clientId)
-          .eq("user_id", session.user.id);
-
-        if (clientError) {
-          throw new Error(
-            `La venta se guardó, pero no se pudo actualizar el cliente: ${clientError.message}`,
-          );
-        }
-
-        // Update product stock levels
-        await Promise.all(
-          s.items.map(async (item) => {
-            const prod = products.find((p) => p.id === item.productId);
-            if (prod) {
-              const { error: prodError } = await supabase
-                .from("products")
-                .update({ stock: Math.max(0, prod.stock - item.qty - (item.returnQty ?? 0)) })
-                .eq("id", item.productId)
-                .eq("user_id", session.user.id);
-              if (prodError) {
-                throw new Error(
-                  `La venta se guardó, pero no se pudo actualizar el inventario de ${prod.name}: ${prodError.message}`,
-                );
-              }
-            }
-          }),
-        );
 
         persist({
           sales: [s, ...sales],
