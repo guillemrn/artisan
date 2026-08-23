@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import {
   Receipt,
   Search,
@@ -146,6 +146,8 @@ function VentasPage() {
   // 2. Pagination Calculations
   const totalSalesCount = filteredSales.length;
   const totalPages = Math.max(1, Math.ceil(totalSalesCount / pageSize));
+  const activeFilterCount =
+    (statusFilter !== "Todos" ? 1 : 0) + (paymentFilter !== "Todos" ? 1 : 0) + (searchQuery ? 1 : 0);
 
   // Ensure current page is valid when filters or pageSize change
   const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
@@ -160,75 +162,53 @@ function VentasPage() {
   };
 
   return (
-    <div className="page-shell md:px-0 md:pt-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold font-display text-text-primary flex items-center gap-2.5">
-            <Receipt className="h-6 w-6 text-primary" />
-            Histórico Completo de Ventas
+    <div className="page-shell space-y-5 md:px-0 md:pt-8">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-2xl">
+          <h1 className="font-display text-[28px] font-bold leading-tight text-text-primary sm:text-[32px]">
+            Ventas
           </h1>
-          <p className="text-sm text-text-muted mt-1">
-            Registro de todas las ventas realizadas desde el inicio de operaciones.
+          <p className="mt-1 max-w-[64ch] text-sm leading-6 text-text-secondary">
+            Revisa lo vendido, ubica pendientes y abre tickets sin perder el contexto del cliente.
           </p>
         </div>
 
         <Link
           to="/nueva-venta"
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-white text-sm font-bold px-4 py-2.5 shadow-sm hover:bg-[#1f523b] transition"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-fab transition hover:bg-[#1f523b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 lg:w-auto"
         >
-          Registrar Venta
+          <Receipt className="h-4 w-4" />
+          Registrar venta
         </Link>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white border border-black/[0.05] p-4.5 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)] flex flex-col justify-between">
-          <div className="flex justify-between items-center">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Total Registradas</span>
-            <span className="p-1.5 rounded-xl bg-primary/10 text-primary">
-              <Receipt className="h-4 w-4" />
-            </span>
-          </div>
-          <div className="mt-2">
-            <p className="text-2xl font-extrabold text-text-primary font-display">{formatMXN(summaryMetrics.totalAmount)}</p>
-            <p className="text-xs text-text-muted mt-0.5 font-medium">{summaryMetrics.totalCount} ventas en total</p>
-          </div>
-        </div>
-
-        <div className="bg-white border border-black/[0.05] p-4.5 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)] flex flex-col justify-between">
-          <div className="flex justify-between items-center">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Cobradas / Entregadas</span>
-            <span className="p-1.5 rounded-xl bg-emerald-500/10 text-emerald-600">
-              <CheckCircle2 className="h-4 w-4" />
-            </span>
-          </div>
-          <div className="mt-2">
-            <p className="text-2xl font-extrabold text-emerald-600 font-display">{formatMXN(summaryMetrics.deliveredAmount)}</p>
-            <p className="text-xs text-emerald-600/80 font-medium mt-0.5">{summaryMetrics.deliveredCount} ventas cobradas</p>
-          </div>
-        </div>
-
-        <div className="bg-white border border-black/[0.05] p-4.5 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)] flex flex-col justify-between">
-          <div className="flex justify-between items-center">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Por Cobrar</span>
-            <span className="p-1.5 rounded-xl bg-amber-500/10 text-amber-600">
-              <Clock className="h-4 w-4" />
-            </span>
-          </div>
-          <div className="mt-2">
-            <p className="text-2xl font-extrabold text-amber-600 font-display">{formatMXN(summaryMetrics.pendingAmount)}</p>
-            <p className="text-xs text-amber-600/80 font-medium mt-0.5">{summaryMetrics.pendingCount} pendientes</p>
-          </div>
-        </div>
+      <div className="grid gap-3 lg:grid-cols-[1.1fr_0.95fr_0.95fr]">
+        <SummaryCard
+          icon={<DollarSign className="h-4 w-4" />}
+          label="Ventas registradas"
+          value={formatMXN(summaryMetrics.totalAmount)}
+          note={`${summaryMetrics.totalCount} ventas en total`}
+        />
+        <SummaryCard
+          icon={<TrendingUp className="h-4 w-4" />}
+          label="Cobradas"
+          value={formatMXN(summaryMetrics.deliveredAmount)}
+          note={`${summaryMetrics.deliveredCount} ventas entregadas`}
+          tone="success"
+        />
+        <SummaryCard
+          icon={<Clock className="h-4 w-4" />}
+          label="Por cobrar"
+          value={formatMXN(summaryMetrics.pendingAmount)}
+          note={`${summaryMetrics.pendingCount} pendientes`}
+          tone="warning"
+        />
       </div>
 
-      {/* Filters & Controls */}
-      <div className="bg-white border border-border rounded-2xl p-4 shadow-sm space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* Search bar */}
+      <div className="rounded-2xl border border-border bg-white shadow-card">
+        <div className="grid gap-3 p-3 lg:grid-cols-[minmax(260px,1fr)_180px_190px_auto] lg:items-center">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
             <input
               type="text"
               value={searchQuery}
@@ -236,64 +216,56 @@ function VentasPage() {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="Buscar por cliente, id o producto..."
-              className="w-full h-10 pl-9 pr-3 rounded-xl border border-border outline-none transition focus:border-primary focus:ring-1 focus:ring-primary text-xs bg-background"
+              placeholder="Buscar cliente, producto o folio"
+              className="h-11 w-full rounded-xl border border-border bg-background pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
             />
           </div>
 
-          {/* Status Filter */}
-          <div className="relative">
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as any);
-                setCurrentPage(1);
-              }}
-              className="w-full h-10 px-3 pr-8 rounded-xl border border-border outline-none transition focus:border-primary focus:ring-1 focus:ring-primary text-xs bg-background appearance-none font-medium"
-            >
-              <option value="Todos">Estado: Todos</option>
-              <option value="Entregado">Estado: Entregado</option>
-              <option value="Pendiente">Estado: Pendiente</option>
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted pointer-events-none" />
-          </div>
+          <SelectControl
+            label="Estado"
+            value={statusFilter}
+            onChange={(value) => {
+              setStatusFilter(value as typeof statusFilter);
+              setCurrentPage(1);
+            }}
+            options={["Todos", "Entregado", "Pendiente"]}
+          />
 
-          {/* Payment Method Filter */}
-          <div className="relative">
-            <select
-              value={paymentFilter}
-              onChange={(e) => {
-                setPaymentFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full h-10 px-3 pr-8 rounded-xl border border-border outline-none transition focus:border-primary focus:ring-1 focus:ring-primary text-xs bg-background appearance-none font-medium"
-            >
-              <option value="Todos">Pago: Todos</option>
-              <option value="Efectivo">Pago: Efectivo</option>
-              <option value="Transferencia">Pago: Transferencia</option>
-              <option value="Consignación">Pago: Consignación</option>
-              <option value="Cortesía">Pago: Cortesía</option>
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted pointer-events-none" />
+          <SelectControl
+            label="Pago"
+            value={paymentFilter}
+            onChange={(value) => {
+              setPaymentFilter(value);
+              setCurrentPage(1);
+            }}
+            options={["Todos", "Efectivo", "Transferencia", "Consignación", "Cortesía"]}
+          />
+
+          <div className="flex items-center gap-2 rounded-xl bg-background px-3 py-2 text-xs font-semibold text-text-secondary">
+            <Filter className="h-4 w-4 text-primary" />
+            <span>{activeFilterCount} activos</span>
           </div>
         </div>
 
-        {/* Paginator Bar Header */}
-        <div className="pt-2 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-text-muted">
-          <div>
-            Mostrando <span className="font-bold text-text-primary">{totalSalesCount > 0 ? startIndex + 1 : 0}</span> a{" "}
-            <span className="font-bold text-text-primary">{Math.min(endIndex, totalSalesCount)}</span> de{" "}
+        <div className="flex flex-col gap-3 border-t border-border px-3 py-3 text-xs text-text-muted sm:flex-row sm:items-center sm:justify-between">
+          <p>
             <span className="font-bold text-text-primary">{totalSalesCount}</span> ventas
-          </div>
+            encontradas
+            {totalSalesCount > 0 ? (
+              <>
+                {" "}
+                · {startIndex + 1}-{Math.min(endIndex, totalSalesCount)}
+              </>
+            ) : null}
+          </p>
 
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Page Size Select */}
-            <div className="flex items-center gap-1.5">
-              <span>Ventas por página:</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-2">
+              <span>Por página</span>
               <select
                 value={pageSize}
                 onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                className="h-8 px-2 rounded-lg border border-border bg-white text-xs font-bold text-text-primary outline-none focus:border-primary"
+                className="h-9 rounded-lg border border-border bg-white px-2 text-xs font-bold text-text-primary outline-none focus:border-primary"
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
@@ -301,52 +273,12 @@ function VentasPage() {
                 <option value={50}>50</option>
                 <option value={100}>100</option>
               </select>
-            </div>
-
-            {/* Page Navigation Controls */}
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => setCurrentPage(1)}
-                disabled={validCurrentPage === 1}
-                className="p-1.5 rounded-lg border border-border bg-white text-text-secondary hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition"
-                title="Primera página"
-              >
-                <ChevronsLeft className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={validCurrentPage === 1}
-                className="p-1.5 rounded-lg border border-border bg-white text-text-secondary hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition"
-                title="Página anterior"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-
-              <span className="px-2 font-semibold text-text-primary">
-                {validCurrentPage} / {totalPages}
-              </span>
-
-              <button
-                type="button"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={validCurrentPage >= totalPages}
-                className="p-1.5 rounded-lg border border-border bg-white text-text-secondary hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition"
-                title="Página siguiente"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentPage(totalPages)}
-                disabled={validCurrentPage >= totalPages}
-                className="p-1.5 rounded-lg border border-border bg-white text-text-secondary hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition"
-                title="Última página"
-              >
-                <ChevronsRight className="h-4 w-4" />
-              </button>
-            </div>
+            </label>
+            <Pager
+              currentPage={validCurrentPage}
+              totalPages={totalPages}
+              setCurrentPage={setCurrentPage}
+            />
           </div>
         </div>
       </div>
@@ -572,74 +504,17 @@ function VentasPage() {
             </table>
           </div>
 
-          {/* Bottom Paginator Controls */}
-          <div className="bg-white border border-border rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-text-muted">
+          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-white p-3 text-xs text-text-muted shadow-card sm:flex-row sm:items-center sm:justify-between">
             <div>
               Mostrando <span className="font-bold text-text-primary">{startIndex + 1}</span> a{" "}
               <span className="font-bold text-text-primary">{Math.min(endIndex, totalSalesCount)}</span> de{" "}
               <span className="font-bold text-text-primary">{totalSalesCount}</span> ventas
             </div>
-
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-1.5">
-                <span>Ventas por página:</span>
-                <select
-                  value={pageSize}
-                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                  className="h-8 px-2 rounded-lg border border-border bg-white text-xs font-bold text-text-primary outline-none focus:border-primary"
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={30}>30</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(1)}
-                  disabled={validCurrentPage === 1}
-                  className="p-1.5 rounded-lg border border-border bg-white text-text-secondary hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  title="Primera página"
-                >
-                  <ChevronsLeft className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={validCurrentPage === 1}
-                  className="p-1.5 rounded-lg border border-border bg-white text-text-secondary hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  title="Página anterior"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-
-                <span className="px-2 font-semibold text-text-primary">
-                  {validCurrentPage} / {totalPages}
-                </span>
-
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={validCurrentPage >= totalPages}
-                  className="p-1.5 rounded-lg border border-border bg-white text-text-secondary hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  title="Página siguiente"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={validCurrentPage >= totalPages}
-                  className="p-1.5 rounded-lg border border-border bg-white text-text-secondary hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  title="Última página"
-                >
-                  <ChevronsRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
+            <Pager
+              currentPage={validCurrentPage}
+              totalPages={totalPages}
+              setCurrentPage={setCurrentPage}
+            />
           </div>
         </>
       )}
@@ -764,6 +639,135 @@ function VentasPage() {
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function SummaryCard({
+  icon,
+  label,
+  value,
+  note,
+  tone = "neutral",
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  note: string;
+  tone?: "neutral" | "success" | "warning";
+}) {
+  const toneClass = {
+    neutral: "bg-primary/10 text-primary",
+    success: "bg-emerald-500/10 text-emerald-600",
+    warning: "bg-warning/10 text-warning",
+  }[tone];
+
+  const valueClass = {
+    neutral: "text-text-primary",
+    success: "text-emerald-600",
+    warning: "text-warning",
+  }[tone];
+
+  return (
+    <article className="rounded-2xl border border-border bg-white p-4 shadow-card">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[12px] font-bold text-text-muted">{label}</p>
+          <p className={`mt-2 font-display text-2xl font-bold leading-none ${valueClass}`}>
+            {value}
+          </p>
+          <p className="mt-2 text-xs font-medium text-text-muted">{note}</p>
+        </div>
+        <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${toneClass}`}>
+          {icon}
+        </span>
+      </div>
+    </article>
+  );
+}
+
+function SelectControl({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+}) {
+  return (
+    <label className="relative block">
+      <span className="sr-only">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-11 w-full appearance-none rounded-xl border border-border bg-background px-3 pr-9 text-sm font-semibold text-text-primary outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {label}: {option}
+          </option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+    </label>
+  );
+}
+
+function Pager({
+  currentPage,
+  totalPages,
+  setCurrentPage,
+}: {
+  currentPage: number;
+  totalPages: number;
+  setCurrentPage: Dispatch<SetStateAction<number>>;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => setCurrentPage(1)}
+        disabled={currentPage === 1}
+        className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-white text-text-secondary transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+        title="Primera página"
+      >
+        <ChevronsLeft className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+        disabled={currentPage === 1}
+        className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-white text-text-secondary transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+        title="Página anterior"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+
+      <span className="min-w-14 px-2 text-center font-semibold text-text-primary">
+        {currentPage} / {totalPages}
+      </span>
+
+      <button
+        type="button"
+        onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+        disabled={currentPage >= totalPages}
+        className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-white text-text-secondary transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+        title="Página siguiente"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => setCurrentPage(totalPages)}
+        disabled={currentPage >= totalPages}
+        className="grid h-9 w-9 place-items-center rounded-lg border border-border bg-white text-text-secondary transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+        title="Última página"
+      >
+        <ChevronsRight className="h-4 w-4" />
+      </button>
     </div>
   );
 }

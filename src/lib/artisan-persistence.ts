@@ -67,12 +67,25 @@ export async function fetchArtisanData(): Promise<ArtisanData> {
     if (!session) {
       return loadArtisanData();
     }
+    const userId = session.user.id;
 
-    // Fetch from Supabase
+    // Fetch only the signed-in user's business data. RLS should enforce the same rule server-side.
     const [productsRes, clientsRes, salesRes] = await Promise.all([
-      supabase.from("products").select("*").order("created_at", { ascending: true }),
-      supabase.from("clients").select("*").order("created_at", { ascending: true }),
-      supabase.from("sales").select("*").order("created_at", { ascending: false }),
+      supabase
+        .from("products")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("clients")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("sales")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false }),
     ]);
 
     const firstError = productsRes.error ?? clientsRes.error ?? salesRes.error;

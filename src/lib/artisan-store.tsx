@@ -202,7 +202,8 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         const { error: clientError } = await supabase
           .from("clients")
           .update({ last_delivery: "Hoy" })
-          .eq("id", s.clientId);
+          .eq("id", s.clientId)
+          .eq("user_id", session.user.id);
 
         if (clientError) {
           throw new Error(
@@ -218,7 +219,8 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
               const { error: prodError } = await supabase
                 .from("products")
                 .update({ stock: Math.max(0, prod.stock - item.qty - (item.returnQty ?? 0)) })
-                .eq("id", item.productId);
+                .eq("id", item.productId)
+                .eq("user_id", session.user.id);
               if (prodError) {
                 throw new Error(
                   `La venta se guardó, pero no se pudo actualizar el inventario de ${prod.name}: ${prodError.message}`,
@@ -250,10 +252,13 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        const session = await requireActiveSession();
+
         const { error } = await supabase
           .from("sales")
           .update({ status, payment, created_at: now })
-          .eq("id", id);
+          .eq("id", id)
+          .eq("user_id", session.user.id);
 
         if (error) {
           console.error("Error updating sale status:", error);
@@ -301,7 +306,13 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const { error } = await supabase.from("clients").delete().eq("id", id);
+        const session = await requireActiveSession();
+
+        const { error } = await supabase
+          .from("clients")
+          .delete()
+          .eq("id", id)
+          .eq("user_id", session.user.id);
         if (error) {
           console.error("Error deleting client:", error);
           throw new Error(`Error al eliminar el cliente: ${error.message}`);
@@ -341,7 +352,13 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const { error } = await supabase.from("products").delete().eq("id", id);
+        const session = await requireActiveSession();
+
+        const { error } = await supabase
+          .from("products")
+          .delete()
+          .eq("id", id)
+          .eq("user_id", session.user.id);
         if (error) {
           console.error("Error deleting product:", error);
           throw new Error(`Error al eliminar el producto: ${error.message}`);
@@ -359,6 +376,8 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        const session = await requireActiveSession();
+
         const { error } = await supabase
           .from("products")
           .update({
@@ -368,7 +387,8 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
             public_price: p.publicPrice,
             stock: p.stock,
           })
-          .eq("id", p.id);
+          .eq("id", p.id)
+          .eq("user_id", session.user.id);
 
         if (error) {
           console.error("Error updating product:", error);
