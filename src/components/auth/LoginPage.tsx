@@ -345,7 +345,7 @@ export function LoginPage() {
                     <input
                       type="text"
                       required
-                      placeholder="ej. Pan Pita Artesanal"
+                      placeholder="ej. Taller Demo"
                       value={businessName}
                       onChange={(e) => setBusinessName(e.target.value)}
                       className="w-full h-11 pl-10 pr-3.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[15px]"
@@ -530,4 +530,3 @@ export function LoginPage() {
     </main>
   );
 }
-

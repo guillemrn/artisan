@@ -343,7 +343,7 @@ function Productos() {
                       disabled={isSubmittingAdd}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Ej. Pan Pita Integral Grande"
+                      placeholder="Ej. Vela Ambar Grande"
                       className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60"
                     />
                   </div>
@@ -496,7 +496,7 @@ function Productos() {
                       disabled={isSubmittingEdit}
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      placeholder="Ej. Pan Pita Integral Grande"
+                      placeholder="Ej. Vela Ambar Grande"
                       className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60"
                     />
                   </div>

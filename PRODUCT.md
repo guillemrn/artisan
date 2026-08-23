@@ -38,7 +38,7 @@ Known product constraints:
 
 ## Brand Commitments
 
-The product name is Artisan. The current interface language is Spanish and should remain approachable, practical, and business-owner friendly. Existing seed content references a demo business, Pan Pita Artesanal, with products such as pan pita, chile, and chamoy; future work must not treat that seed data as universal customer proof.
+The product name is Artisan. The current interface language is Spanish and should remain approachable, practical, and business-owner friendly. Seed content must stay fictional and generic; future work must not treat demo data as universal customer proof.
 
 ## Evidence on Hand
 

@@ -50,7 +50,7 @@ const DEMO_USER: User = {
   user_metadata: {
     full_name: "María (demo)",
     avatar_url: "",
-    business_name: "Pan Pita Artesanal",
+    business_name: "Taller Demo",
   },
   identities: [],
   created_at: new Date().toISOString(),
@@ -199,4 +199,3 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
   return ctx;
 }
-
