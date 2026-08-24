@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { ModalSuccessState } from "@/components/ui/ModalSuccessState";
 import { toast } from "sonner";
+import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
 
 export const Route = createFileRoute("/ventas")({
   head: () => ({ meta: [{ title: "Histórico de Ventas — Artisan" }] }),
@@ -35,7 +36,7 @@ export const Route = createFileRoute("/ventas")({
 });
 
 function VentasPage() {
-  const { sales, updateSaleStatus } = useArtisan();
+  const { sales, updateSaleStatus, isLoading, loadError } = useArtisan();
 
   // Filters state
   const [searchQuery, setSearchQuery] = useState("");
@@ -160,6 +161,14 @@ function VentasPage() {
     setPageSize(newSize);
     setCurrentPage(1);
   };
+
+  if (loadError) {
+    return <DataLoadError message={loadError} />;
+  }
+
+  if (isLoading) {
+    return <DataLoadSkeleton variant="table" title="Cargando ventas" />;
+  }
 
   return (
     <div className="page-shell space-y-5 md:px-0 md:pt-8">

@@ -55,104 +55,99 @@ export function saveArtisanData(data: ArtisanData): void {
 }
 
 export async function fetchArtisanData(): Promise<ArtisanData> {
-  try {
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-    if (sessionError) {
-      throw new Error(`No se pudo validar la sesión: ${sessionError.message}`);
-    }
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+  if (sessionError) {
+    throw new Error(`No se pudo validar la sesión: ${sessionError.message}`);
+  }
 
-    if (!session) {
-      return loadArtisanData();
-    }
-    const userId = session.user.id;
-
-    // Fetch only the signed-in user's business data. RLS should enforce the same rule server-side.
-    const [productsRes, clientsRes, salesRes] = await Promise.all([
-      supabase
-        .from("products")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("clients")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("sales")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false }),
-    ]);
-
-    const firstError = productsRes.error ?? clientsRes.error ?? salesRes.error;
-    if (firstError) {
-      throw new Error(`No se pudieron cargar los datos del negocio: ${firstError.message}`);
-    }
-
-    const dbProducts = productsRes.data ?? [];
-    const dbClients = clientsRes.data ?? [];
-    const dbSales = salesRes.data ?? [];
-
-    // Map database models to client types
-    const products: Product[] = dbProducts.map((p) => ({
-      id: p.id,
-      name: p.name,
-      cost: Number(p.cost),
-      distributorPrice: Number(p.distributor_price),
-      publicPrice: Number(p.public_price),
-      stock: p.stock,
-    }));
-
-    const clients: Client[] = dbClients.map((c) => ({
-      id: c.id,
-      name: c.name,
-      channel: c.channel as "PDV" | "Público",
-      lastDelivery: c.last_delivery || undefined,
-    }));
-
-    const salesMap = new Map<string, Sale>();
-
-    dbSales.forEach((s) => {
-      const dbItems = (s.items as any[]) ?? [];
-      const actualPayment = dbItems[0]?._paymentMethod || s.payment;
-
-      const cleanedItems: SaleItem[] = dbItems.map((item: any) => {
-        const { _paymentMethod, ...cleanItem } = item;
-        return cleanItem as SaleItem;
-      });
-
-      const normalizedCreatedAt = normalizeIsoDate(s.created_at);
-
-      const sale: Sale = {
-        id: s.id,
-        clientId: s.client_id,
-        clientName: s.client_name,
-        channel: s.channel as "PDV" | "Público",
-        items: cleanedItems,
-        total: Number(s.total),
-        cost: Number(s.cost),
-        profit: Number(s.profit),
-        payment: actualPayment as PaymentMethod,
-        status: s.status as "Pendiente" | "Entregado",
-        createdAt: normalizedCreatedAt,
-      };
-
-      salesMap.set(sale.id, sale);
-    });
-
-    const sales = Array.from(salesMap.values()).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
-
-    return { products, clients, sales };
-  } catch (err) {
-    console.error("Error fetching artisan data:", err);
+  if (!session) {
     return loadArtisanData();
   }
+  const userId = session.user.id;
+
+  // Fetch only the signed-in user's business data. RLS should enforce the same rule server-side.
+  const [productsRes, clientsRes, salesRes] = await Promise.all([
+    supabase
+      .from("products")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("clients")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("sales")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const firstError = productsRes.error ?? clientsRes.error ?? salesRes.error;
+  if (firstError) {
+    throw new Error(`No se pudieron cargar los datos del negocio: ${firstError.message}`);
+  }
+
+  const dbProducts = productsRes.data ?? [];
+  const dbClients = clientsRes.data ?? [];
+  const dbSales = salesRes.data ?? [];
+
+  // Map database models to client types
+  const products: Product[] = dbProducts.map((p) => ({
+    id: p.id,
+    name: p.name,
+    cost: Number(p.cost),
+    distributorPrice: Number(p.distributor_price),
+    publicPrice: Number(p.public_price),
+    stock: p.stock,
+  }));
+
+  const clients: Client[] = dbClients.map((c) => ({
+    id: c.id,
+    name: c.name,
+    channel: c.channel as "PDV" | "Público",
+    lastDelivery: c.last_delivery || undefined,
+  }));
+
+  const salesMap = new Map<string, Sale>();
+
+  dbSales.forEach((s) => {
+    const dbItems = (s.items as any[]) ?? [];
+    const actualPayment = dbItems[0]?._paymentMethod || s.payment;
+
+    const cleanedItems: SaleItem[] = dbItems.map((item: any) => {
+      const { _paymentMethod, ...cleanItem } = item;
+      return cleanItem as SaleItem;
+    });
+
+    const normalizedCreatedAt = normalizeIsoDate(s.created_at);
+
+    const sale: Sale = {
+      id: s.id,
+      clientId: s.client_id,
+      clientName: s.client_name,
+      channel: s.channel as "PDV" | "Público",
+      items: cleanedItems,
+      total: Number(s.total),
+      cost: Number(s.cost),
+      profit: Number(s.profit),
+      payment: actualPayment as PaymentMethod,
+      status: s.status as "Pendiente" | "Entregado",
+      createdAt: normalizedCreatedAt,
+    };
+
+    salesMap.set(sale.id, sale);
+  });
+
+  const sales = Array.from(salesMap.values()).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+
+  return { products, clients, sales };
 }
 
 export const artisanQueryKeys = {

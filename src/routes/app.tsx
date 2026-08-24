@@ -74,6 +74,7 @@ import {
   parseClientsCSV,
   parseProductsCSV,
 } from "@/lib/csv";
+import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
 
 export const Route = createFileRoute("/app")({
   head: () => ({ meta: [{ title: "Panel — Artisan" }] }),
@@ -104,7 +105,8 @@ function startOfYear(d: Date) {
 function Home() {
   const { user } = useAuth();
 
-  const { sales, products, clients, updateSaleStatus, updateProduct } = useArtisan();
+  const { sales, products, clients, updateSaleStatus, updateProduct, isLoading, loadError } =
+    useArtisan();
 
   // State for filters
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("Hoy");
@@ -478,6 +480,14 @@ function Home() {
       venta: client.total,
     }));
   }, [clientMovement]);
+
+  if (loadError) {
+    return <DataLoadError message={loadError} />;
+  }
+
+  if (isLoading) {
+    return <DataLoadSkeleton variant="dashboard" />;
+  }
 
   return (
     <div className="page-shell space-y-5 md:px-0 md:pt-6">

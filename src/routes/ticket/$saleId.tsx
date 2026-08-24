@@ -5,6 +5,7 @@ import { BUSINESS_NAME, formatMXN, formatMXNc } from "@/lib/artisan-data";
 import { useArtisan } from "@/lib/artisan-store";
 import { Logo } from "@/components/ui/logo";
 import { toPng } from "html-to-image";
+import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
 
 export const Route = createFileRoute("/ticket/$saleId")({
   head: () => ({ meta: [{ title: "Ticket — Artisan" }] }),
@@ -13,7 +14,7 @@ export const Route = createFileRoute("/ticket/$saleId")({
 
 function Ticket() {
   const { saleId } = Route.useParams();
-  const { getSale, resetDraft, isLoading, lastSaleId } = useArtisan();
+  const { getSale, resetDraft, isLoading, loadError, lastSaleId } = useArtisan();
   const navigate = useNavigate();
   const sale = getSale(saleId);
   const isLatest = lastSaleId === saleId;
@@ -74,12 +75,12 @@ function Ticket() {
     }
   };
 
+  if (loadError) {
+    return <DataLoadError message={loadError} />;
+  }
+
   if (isLoading) {
-    return (
-      <div className="page-shell text-center md:px-0 md:pt-8">
-        <p className="text-text-secondary">Cargando ticket…</p>
-      </div>
-    );
+    return <DataLoadSkeleton variant="detail" title="Cargando ticket" />;
   }
 
   if (!sale) {

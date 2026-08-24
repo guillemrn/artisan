@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ModalSuccessState } from "@/components/ui/ModalSuccessState";
+import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
 
 export const Route = createFileRoute("/productos_/$productId")({
   head: () => ({ meta: [{ title: "Detalle Producto — Artisan" }] }),
@@ -27,7 +28,7 @@ export const Route = createFileRoute("/productos_/$productId")({
 
 function ProductDetail() {
   const { productId } = Route.useParams();
-  const { products, sales, updateProduct } = useArtisan();
+  const { products, sales, updateProduct, isLoading, loadError } = useArtisan();
   const navigate = useNavigate();
 
   const [filter, setFilter] = useState<"all" | "month">("all");
@@ -165,6 +166,14 @@ function ProductDetail() {
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
     return stats.productSales.filter((s) => new Date(s.createdAt) >= oneMonthAgo);
   }, [stats.productSales, filter]);
+
+  if (loadError) {
+    return <DataLoadError message={loadError} />;
+  }
+
+  if (isLoading) {
+    return <DataLoadSkeleton variant="detail" title="Cargando producto" />;
+  }
 
   if (!product) {
     return (

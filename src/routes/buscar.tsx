@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Package, Receipt, Search, Store, User } from "lucide-react";
 import { useArtisan } from "@/lib/artisan-store";
 import { formatMXN } from "@/lib/artisan-data";
+import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
 
 type SearchParams = { q?: string };
 
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/buscar")({
 function Buscar() {
   const navigate = useNavigate();
   const { q = "" } = Route.useSearch();
-  const { sales, clients, products } = useArtisan();
+  const { sales, clients, products, isLoading, loadError } = useArtisan();
   const [inputVal, setInputVal] = useState(q);
   const query = (inputVal || q).trim().toLowerCase();
 
@@ -51,6 +52,14 @@ function Buscar() {
   }, [sales, clients, products, query]);
 
   const total = results.sales.length + results.clients.length + results.products.length;
+
+  if (loadError) {
+    return <DataLoadError message={loadError} />;
+  }
+
+  if (isLoading) {
+    return <DataLoadSkeleton variant="list" title="Preparando búsqueda" />;
+  }
 
   return (
     <div className="page-shell pb-12 md:px-0 md:pt-8">

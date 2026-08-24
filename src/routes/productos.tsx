@@ -13,6 +13,7 @@ import {
 import { useArtisan } from "@/lib/artisan-store";
 import { formatMXN, formatMXNc, type Product } from "@/lib/artisan-data";
 import { ModalSuccessState } from "@/components/ui/ModalSuccessState";
+import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
 
 export const Route = createFileRoute("/productos")({
   head: () => ({ meta: [{ title: "Productos — Artisan" }] }),
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/productos")({
 });
 
 function Productos() {
-  const { products, addProduct, updateProduct } = useArtisan();
+  const { products, addProduct, updateProduct, isLoading, loadError } = useArtisan();
   const [q, setQ] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -150,6 +151,14 @@ function Productos() {
       setIsSubmittingEdit(false);
     }
   };
+
+  if (loadError) {
+    return <DataLoadError message={loadError} />;
+  }
+
+  if (isLoading) {
+    return <DataLoadSkeleton variant="list" title="Cargando productos" />;
+  }
 
   return (
     <div className="page-shell md:px-0 md:pt-8">

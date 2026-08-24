@@ -4,6 +4,7 @@ import { Search, Store, User, Plus, Users, TrendingUp } from "lucide-react";
 import { AddClientSheet } from "@/components/artisan/AddClientSheet";
 import { useArtisan } from "@/lib/artisan-store";
 import { formatMXN } from "@/lib/artisan-data";
+import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
 
 export const Route = createFileRoute("/clientes")({
   head: () => ({ meta: [{ title: "Clientes — Artisan" }] }),
@@ -11,7 +12,7 @@ export const Route = createFileRoute("/clientes")({
 });
 
 function Clientes() {
-  const { clients, sales, addClient } = useArtisan();
+  const { clients, sales, addClient, isLoading, loadError } = useArtisan();
   const [q, setQ] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -32,6 +33,14 @@ function Clientes() {
 
   const pdvCount = clients.filter((c) => c.channel === "PDV").length;
   const publicCount = clients.filter((c) => c.channel === "Público").length;
+
+  if (loadError) {
+    return <DataLoadError message={loadError} />;
+  }
+
+  if (isLoading) {
+    return <DataLoadSkeleton variant="list" title="Cargando clientes" />;
+  }
 
   return (
     <div className="page-shell md:px-0 md:pt-8">

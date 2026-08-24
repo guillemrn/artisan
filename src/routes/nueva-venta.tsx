@@ -11,6 +11,7 @@ import {
 } from "@/lib/artisan-data";
 import { buildSaleItems, useArtisan } from "@/lib/artisan-store";
 import { useAuth } from "@/core/auth/auth-context";
+import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
 
 export const Route = createFileRoute("/nueva-venta")({
   head: () => ({ meta: [{ title: "Nueva venta — Artisan" }] }),
@@ -20,7 +21,8 @@ export const Route = createFileRoute("/nueva-venta")({
 function NuevaVenta() {
   const { user } = useAuth();
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const { draft, setDraft, resetDraft, addSale, products, sales } = useArtisan();
+  const { draft, setDraft, resetDraft, addSale, products, sales, isLoading, loadError } =
+    useArtisan();
   const navigate = useNavigate();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -39,6 +41,14 @@ function NuevaVenta() {
   const canContinue2 = items.length > 0;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (loadError) {
+    return <DataLoadError message={loadError} />;
+  }
+
+  if (isLoading) {
+    return <DataLoadSkeleton variant="form" title="Preparando nueva venta" />;
+  }
 
   const confirm = async () => {
     if (!draft.client) return;

@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { ArrowLeft, Activity, Receipt, CheckCircle2, Clock, Search } from "lucide-react";
 import { formatMXN } from "@/lib/artisan-data";
 import { useArtisan } from "@/lib/artisan-store";
+import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
 
 export const Route = createFileRoute("/actividad")({
   head: () => ({ meta: [{ title: "Actividad — Artisan" }] }),
@@ -13,7 +14,7 @@ type StatusFilter = "Todos" | "Entregado" | "Pendiente";
 
 function Actividad() {
   const navigate = useNavigate();
-  const { sales } = useArtisan();
+  const { sales, isLoading, loadError } = useArtisan();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("Todos");
 
@@ -44,6 +45,14 @@ function Actividad() {
       return matchesSearch && matchesStatus;
     });
   }, [sales, searchQuery, statusFilter]);
+
+  if (loadError) {
+    return <DataLoadError message={loadError} />;
+  }
+
+  if (isLoading) {
+    return <DataLoadSkeleton variant="list" title="Cargando actividad" />;
+  }
 
   return (
     <div className="page-shell pb-10 md:px-0 md:pt-8">

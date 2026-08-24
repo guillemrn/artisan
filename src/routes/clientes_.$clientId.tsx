@@ -12,6 +12,7 @@ import {
   Filter,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
 
 export const Route = createFileRoute("/clientes_/$clientId")({
   head: () => ({ meta: [{ title: "Detalle Cliente — Artisan" }] }),
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/clientes_/$clientId")({
 
 function ClientDetail() {
   const { clientId } = Route.useParams();
-  const { clients, sales } = useArtisan();
+  const { clients, sales, isLoading, loadError } = useArtisan();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<"all" | "month">("all");
 
@@ -96,6 +97,14 @@ function ClientDetail() {
     const d = new Date(isoStr);
     return d.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" });
   };
+
+  if (loadError) {
+    return <DataLoadError message={loadError} />;
+  }
+
+  if (isLoading) {
+    return <DataLoadSkeleton variant="detail" title="Cargando cliente" />;
+  }
 
   if (!client) {
     return (

@@ -54,9 +54,13 @@ type Ctx = {
   updateProduct: (p: Product) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   isLoading: boolean;
+  loadError: string | null;
 };
 
 const ArtisanContext = createContext<Ctx | null>(null);
+const EMPTY_SALES: Sale[] = [];
+const EMPTY_CLIENTS: Client[] = [];
+const EMPTY_PRODUCTS: Product[] = [];
 
 function applyStockDeduction(products: Product[], sale: Sale): Product[] {
   return products.map((p) => {
@@ -89,15 +93,17 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const { isDemo } = useAuth();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: artisanQueryKeys.data(),
     queryFn: fetchArtisanData,
     staleTime: Infinity,
+    retry: 1,
   });
 
-  const sales = data?.sales ?? SEED_SALES;
-  const clients = data?.clients ?? CLIENTS;
-  const products = data?.products ?? PRODUCTS;
+  const sales = data?.sales ?? (isDemo ? SEED_SALES : EMPTY_SALES);
+  const clients = data?.clients ?? (isDemo ? CLIENTS : EMPTY_CLIENTS);
+  const products = data?.products ?? (isDemo ? PRODUCTS : EMPTY_PRODUCTS);
+  const loadError = error instanceof Error ? error.message : error ? "No se pudieron cargar los datos." : null;
 
   const [lastSaleId, setLastSaleId] = useState<string | null>(null);
   const [draft, setDraftState] = useState<DraftSale>(emptyDraft());
@@ -142,6 +148,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
     () => ({
       sales,
       isLoading,
+      loadError,
       lastSaleId,
       setLastSaleId,
       getSale: (id) => sales.find((s) => s.id === id),
@@ -352,7 +359,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         });
       },
     }),
-    [sales, clients, products, draft, lastSaleId, isLoading, persist, isDemo, queryClient],
+    [sales, clients, products, draft, lastSaleId, isLoading, loadError, persist, isDemo, queryClient],
   );
 
   return <ArtisanContext.Provider value={value}>{children}</ArtisanContext.Provider>;
