@@ -102,6 +102,15 @@
     line-height: 1.15;
     letter-spacing: 0;
   }
+
+  a[href],
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
 }
 
 @keyframes drawerSlideIn {
@@ -154,6 +163,22 @@
   .splash-dot {
     animation: none;
     opacity: 0.7;
+  }
+}
+
+html[data-cookie-banner="visible"] .auth-shell-content {
+  padding-bottom: 13rem;
+}
+
+@media (min-width: 640px) {
+  html[data-cookie-banner="visible"] .auth-shell-content {
+    padding-bottom: 10rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  html[data-cookie-banner="visible"] .auth-shell-content {
+    padding-bottom: 8rem;
   }
 }
 

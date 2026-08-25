@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CheckCircle2, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Check, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 
-import { Logo } from "@/components/ui/logo";
+import { AuthShell } from "@/components/auth/AuthShell";
+import { PasswordInput } from "@/components/auth/PasswordInput";
 import { PasswordRequirements } from "@/components/auth/PasswordRequirements";
 import { useAuth } from "@/core/auth/auth-context";
 import { cn } from "@/lib/utils";
@@ -22,8 +23,11 @@ function ResetPasswordPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isComplete, setIsComplete] = useState(false);
 
+  const passwordsMatch = Boolean(confirmation) && password === confirmation;
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (isSubmitting) return;
     setErrorMessage(null);
 
     if (!isStrongPassword(password)) {
@@ -31,160 +35,163 @@ function ResetPasswordPage() {
       return;
     }
 
-    if (password !== confirmation) {
+    if (!passwordsMatch) {
       setErrorMessage("Las contraseñas no coinciden.");
       return;
     }
 
     setIsSubmitting(true);
-    const { error } = await updatePassword(password);
+    try {
+      const { error } = await updatePassword(password);
+      if (error) {
+        setErrorMessage("El enlace expiró o ya fue utilizado. Solicita uno nuevo.");
+        return;
+      }
 
-    if (error) {
-      setErrorMessage("El enlace expiró o no es válido. Solicita uno nuevo.");
+      await signOut();
+      setIsComplete(true);
+    } catch {
+      setErrorMessage("No pudimos actualizar la contraseña. Revisa tu conexión e intenta de nuevo.");
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    await signOut();
-    setIsComplete(true);
-    setIsSubmitting(false);
   };
 
+  const title = isComplete
+    ? "Contraseña actualizada"
+    : session
+      ? "Crea una nueva contraseña"
+      : "El enlace ya no es válido";
+  const description = isComplete
+    ? "Tu cuenta quedó protegida con la nueva contraseña."
+    : session
+      ? "Elige una contraseña segura y distinta a las que usas en otros servicios."
+      : "Puede haber expirado o haber sido utilizado anteriormente.";
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#F7F3EC] px-4 py-12 text-text-primary">
-      <section className="w-full max-w-[480px] rounded-2xl border border-border bg-white p-8 shadow-card md:p-10">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <Logo variant="full" className="mb-6 h-11 w-auto" />
-          <h1 className="font-display text-[26px] font-bold leading-tight text-[#2F3437]">
-            {isComplete ? "Contraseña actualizada" : "Crea una nueva contraseña"}
+    <AuthShell>
+      <div className="space-y-8">
+        <div>
+          <h1 className="font-display text-[32px] font-bold leading-[1.12] text-text-primary sm:text-[36px]">
+            {title}
           </h1>
-          <p className="mt-2 text-[14px] leading-6 text-text-secondary">
-            {isComplete
-              ? "Tu acceso quedó protegido con la nueva contraseña."
-              : "Usa una contraseña distinta a las que utilizas en otros servicios."}
+          <p className="mt-3 max-w-[44ch] text-[15px] leading-6 text-text-secondary">
+            {description}
           </p>
         </div>
 
         {isComplete ? (
-          <div className="text-center">
-            <CheckCircle2 className="mx-auto h-11 w-11 text-primary" aria-hidden="true" />
+          <div>
+            <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary-light text-primary">
+              <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
+            </div>
             <Link
               to="/login"
-              className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-lg bg-primary px-5 text-[15px] font-bold text-white transition hover:bg-[#246448]"
+              className="mt-7 inline-flex h-12 w-full items-center justify-center rounded-xl bg-primary px-5 text-[15px] font-bold text-white shadow-fab transition-colors hover:bg-[#1f5b41] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               Iniciar sesión
             </Link>
           </div>
         ) : session ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <PasswordField
-              label="Nueva contraseña"
-              value={password}
-              onChange={setPassword}
-              visible={showPassword}
-              onToggle={() => setShowPassword((current) => !current)}
-            />
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-3">
+              <PasswordInput
+                id="new-password"
+                label="Nueva contraseña"
+                value={password}
+                onChange={setPassword}
+                visible={showPassword}
+                onToggle={() => setShowPassword((current) => !current)}
+                autoComplete="new-password"
+                describedBy="reset-password-requirements"
+                invalid={Boolean(errorMessage) && !isStrongPassword(password)}
+                minLength={PASSWORD_MIN_LENGTH}
+              />
+              <PasswordRequirements id="reset-password-requirements" password={password} />
+            </div>
 
-            <PasswordRequirements password={password} />
-
-            <PasswordField
-              label="Confirma la contraseña"
-              value={confirmation}
-              onChange={setConfirmation}
-              visible={showPassword}
-              onToggle={() => setShowPassword((current) => !current)}
-            />
-
-            <div
-              className={cn(
-                "flex items-center gap-2 text-[12px] transition-colors",
-                confirmation && confirmation === password
-                  ? "font-semibold text-primary"
-                  : "text-text-muted",
-              )}
-              aria-live="polite"
-            >
-              <span
+            <div className="space-y-3">
+              <PasswordInput
+                id="confirm-password"
+                label="Confirma la contraseña"
+                value={confirmation}
+                onChange={setConfirmation}
+                visible={showPassword}
+                onToggle={() => setShowPassword((current) => !current)}
+                autoComplete="new-password"
+                invalid={Boolean(errorMessage) && !passwordsMatch}
+                minLength={PASSWORD_MIN_LENGTH}
+              />
+              <div
                 className={cn(
-                  "grid h-4 w-4 shrink-0 place-items-center rounded-full border transition-colors",
-                  confirmation && confirmation === password
-                    ? "border-primary bg-primary text-white"
-                    : "border-border bg-white",
+                  "flex items-center gap-2 text-[12px] transition-colors",
+                  passwordsMatch ? "font-semibold text-primary" : "text-[#66716b]",
                 )}
-                aria-hidden="true"
+                aria-live="polite"
               >
-                {confirmation && confirmation === password ? (
-                  <CheckCircle2 className="h-3 w-3" strokeWidth={3} />
-                ) : null}
-              </span>
-              Las contraseñas coinciden
+                <span
+                  className={cn(
+                    "grid h-4 w-4 shrink-0 place-items-center rounded-full border transition-colors",
+                    passwordsMatch
+                      ? "border-primary bg-primary text-white"
+                      : "border-[#cbd3ce] bg-white",
+                  )}
+                  aria-hidden="true"
+                >
+                  {passwordsMatch ? <Check className="h-2.5 w-2.5" strokeWidth={3} /> : null}
+                </span>
+                Las contraseñas coinciden
+              </div>
             </div>
 
             {errorMessage ? (
-              <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-[13px] font-medium text-red-700">
-                {errorMessage}
-              </p>
+              <div
+                role="alert"
+                className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-[13px] leading-5 text-red-800"
+              >
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>{errorMessage}</span>
+              </div>
             ) : null}
 
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="flex h-12 w-full items-center justify-center rounded-lg bg-primary px-5 text-[15px] font-bold text-white transition hover:bg-[#246448] disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isSubmitting || !isStrongPassword(password) || !passwordsMatch}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-[15px] font-bold text-white shadow-fab transition-colors hover:bg-[#1f5b41] disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
-              {isSubmitting ? "Guardando…" : "Guardar nueva contraseña"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  Guardando…
+                </>
+              ) : (
+                "Guardar nueva contraseña"
+              )}
             </button>
           </form>
         ) : (
-          <div className="text-center">
-            <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-[13px] leading-5 text-amber-800">
-              Este enlace expiró o no es válido. Solicita uno nuevo desde el inicio de sesión.
+          <div>
+            <div className="grid h-12 w-12 place-items-center rounded-xl bg-amber-50 text-amber-700">
+              <AlertTriangle className="h-6 w-6" aria-hidden="true" />
+            </div>
+            <p className="mt-5 text-[14px] leading-6 text-text-secondary">
+              Solicita un enlace nuevo desde el inicio de sesión. Por seguridad, cada enlace solo
+              puede utilizarse una vez.
             </p>
-            <Link to="/login" className="mt-5 inline-flex text-[13px] font-semibold text-primary hover:underline">
-              Volver al inicio de sesión
+            <Link
+              to="/login"
+              className="mt-7 inline-flex h-12 w-full items-center justify-center rounded-xl bg-primary px-5 text-[15px] font-bold text-white shadow-fab transition-colors hover:bg-[#1f5b41] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              Solicitar otro enlace
             </Link>
           </div>
         )}
 
-        <div className="mt-8 flex items-center justify-center gap-2 border-t border-border pt-6 text-[12px] text-text-muted">
+        <div className="flex items-center gap-2 border-t border-border pt-6 text-[12px] text-text-muted">
           <ShieldCheck className="h-4 w-4 text-primary" aria-hidden="true" />
-          Tu contraseña se guarda de forma segura.
+          Artisan nunca enviará tu contraseña por correo.
         </div>
-      </section>
-    </main>
-  );
-}
-
-type PasswordFieldProps = {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  visible: boolean;
-  onToggle: () => void;
-};
-
-function PasswordField({ label, value, onChange, visible, onToggle }: PasswordFieldProps) {
-  return (
-    <div>
-      <label className="mb-1.5 block text-[13px] font-bold text-text-primary">{label}</label>
-      <div className="relative">
-        <input
-          type={visible ? "text" : "password"}
-          required
-          minLength={PASSWORD_MIN_LENGTH}
-          autoComplete="new-password"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="h-11 w-full rounded-lg border border-border px-3.5 pr-11 text-[16px] outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
-        />
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary"
-        >
-          {visible ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-        </button>
       </div>
-    </div>
+    </AuthShell>
   );
 }

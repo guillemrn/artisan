@@ -1,562 +1,602 @@
 import { useState } from "react";
-import {
-  CheckCircle2,
-  ShieldCheck,
-  Sparkles,
-  Eye,
-  EyeOff,
-  ChevronLeft,
-  Store,
-  User as UserIcon,
-  Phone,
-  Tag,
-} from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { Logo } from "@/components/ui/logo";
-import { useAuth } from "@/core/auth/auth-context";
-import { PasswordRequirements } from "@/components/auth/PasswordRequirements";
-import { isStrongPassword, PASSWORD_MIN_LENGTH } from "@/lib/password-security";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ChevronLeft,
+  Loader2,
+  MailCheck,
+  Phone,
+  Store,
+  Tag,
+  User as UserIcon,
+} from "lucide-react";
 
-// Google SVG icon (official brand colors)
-function GoogleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden>
-      <path
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-        fill="#4285F4"
-      />
-      <path
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-        fill="#34A853"
-      />
-      <path
-        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
-        fill="#FBBC05"
-      />
-      <path
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-        fill="#EA4335"
-      />
-    </svg>
-  );
-}
+import { AuthShell } from "@/components/auth/AuthShell";
+import { PasswordInput } from "@/components/auth/PasswordInput";
+import { PasswordRequirements } from "@/components/auth/PasswordRequirements";
+import { useAuth } from "@/core/auth/auth-context";
+import { isStrongPassword, PASSWORD_MIN_LENGTH } from "@/lib/password-security";
+import { cn } from "@/lib/utils";
+
+type AuthMode = "login" | "signup" | "reset";
 
 export function LoginPage() {
-  const {
-    signInWithGoogle,
-    signInWithEmail,
-    signUpWithEmail,
-    requestPasswordReset,
-    loading,
-    isDemo,
-  } = useAuth();
-
-  const [mode, setMode] = useState<"login" | "signup" | "reset">("login");
+  const { signInWithEmail, signUpWithEmail, requestPasswordReset, loading, isDemo } = useAuth();
+  const [mode, setMode] = useState<AuthMode>("login");
   const [signUpStep, setSignUpStep] = useState(1);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
-  // Form states
   const [email, setEmail] = useState(isDemo ? "demo@artisan.app" : "");
   const [password, setPassword] = useState(isDemo ? "123456" : "");
   const [showPassword, setShowPassword] = useState(false);
-
-  // Onboarding states
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [businessType, setBusinessType] = useState("Panadería");
 
-  // Feedback states
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleNextStep = (e: React.FormEvent) => {
-    e.preventDefault();
+  const switchMode = (nextMode: AuthMode) => {
+    setMode(nextMode);
+    setSignUpStep(1);
+    setAwaitingConfirmation(false);
+    setResetSent(false);
     setErrorMsg(null);
-    if (!email || !password) {
-      setErrorMsg("Por favor completa las credenciales.");
+    setShowPassword(false);
+  };
+
+  const handleNextStep = (event: React.FormEvent) => {
+    event.preventDefault();
+    setErrorMsg(null);
+
+    if (!email.trim() || !password) {
+      setErrorMsg("Completa tu correo y contraseña para continuar.");
       return;
     }
+
     if (!isStrongPassword(password)) {
       setErrorMsg("Completa todos los requisitos de seguridad de la contraseña.");
       return;
     }
+
     setSignUpStep(2);
   };
 
-  const handleSignUpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSignUpSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (isSubmitting) return;
     setErrorMsg(null);
     setIsSubmitting(true);
 
     try {
-      const { error, requiresEmailConfirmation } = await signUpWithEmail(email, password, {
-        full_name: fullName,
-        phone: phone || undefined,
-        business_name: businessName || "Mi Emprendimiento",
-        business_type: businessType,
-      });
+      const { error, requiresEmailConfirmation } = await signUpWithEmail(
+        email.trim().toLowerCase(),
+        password,
+        {
+          full_name: fullName.trim(),
+          phone: phone.trim() || undefined,
+          business_name: businessName.trim(),
+          business_type: businessType,
+        },
+      );
 
       if (error) {
-        setErrorMsg(error.message || "Error al crear la cuenta.");
+        setErrorMsg(authErrorMessage(error, "No pudimos crear tu cuenta. Intenta de nuevo."));
       } else if (requiresEmailConfirmation) {
         setPassword("");
         setAwaitingConfirmation(true);
-      } else {
-        setSuccessMsg("Cuenta creada correctamente. Ya puedes entrar a Artisan.");
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || "Error en el servidor.");
+    } catch (error) {
+      setErrorMsg(authErrorMessage(error, "No pudimos conectar con el servidor."));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLoginSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (isSubmitting) return;
     setErrorMsg(null);
     setIsSubmitting(true);
 
     try {
-      const { error } = await signInWithEmail(email, password);
+      const { error } = await signInWithEmail(email.trim().toLowerCase(), password);
       if (error) {
-        setErrorMsg(error.message || "Credenciales incorrectas.");
+        setErrorMsg(authErrorMessage(error, "No pudimos iniciar sesión. Intenta de nuevo."));
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || "Error al conectar con el servidor.");
+    } catch (error) {
+      setErrorMsg(authErrorMessage(error, "No pudimos conectar con el servidor."));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleResetSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleResetSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (isSubmitting) return;
     setErrorMsg(null);
-    setSuccessMsg(null);
-    setIsSubmitting(true);
 
     if (isDemo) {
-      setErrorMsg("La recuperación de contraseña no está disponible en modo Demo.");
-      setIsSubmitting(false);
+      setErrorMsg("La recuperación no está disponible en la demostración local.");
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      const { error } = await requestPasswordReset(email);
-
+      const { error } = await requestPasswordReset(email.trim().toLowerCase());
       if (error) {
-        setErrorMsg(
-          error.message.toLowerCase().includes("rate limit")
-            ? "Se solicitaron demasiados enlaces. Espera unos minutos e intenta de nuevo."
-            : "No pudimos enviar el enlace. Revisa tu conexión e intenta de nuevo.",
-        );
+        setErrorMsg(authErrorMessage(error, "No pudimos enviar el enlace. Intenta de nuevo."));
       } else {
-        setSuccessMsg(
-          "Si existe una cuenta con ese correo, recibirás un enlace para cambiar tu contraseña.",
-        );
+        setResetSent(true);
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || "Error al enviar el enlace.");
+    } catch (error) {
+      setErrorMsg(authErrorMessage(error, "No pudimos conectar con el servidor."));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <main className="min-h-screen bg-[#F7F3EC] text-text-primary flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden">
-      {/* Decorative Background Elements */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(46,125,91,0.06),transparent_30%),radial-gradient(circle_at_88%_82%,rgba(201,120,74,0.05),transparent_35%)] pointer-events-none" />
+  const copy = authCopy(mode, signUpStep, awaitingConfirmation, resetSent);
 
-      <div className="w-full max-w-[480px] bg-white rounded-2xl border border-border p-8 md:p-10 shadow-[0_12px_40px_rgba(36,52,55,0.05)] relative z-10">
-        
-        {/* Logo and Header */}
-        <div className="flex flex-col items-center text-center mb-8">
-          <Logo variant="full" className="h-11 w-auto mb-6" />
-          
-          <p className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F5F0] px-3 py-1 text-[12px] font-bold text-primary mb-3">
-            <Sparkles className="h-3.5 w-3.5" />
-            Panel Artisan
-          </p>
-          
-          <h1 className="font-display text-[26px] font-bold text-[#2F3437] leading-tight">
-            {mode === "login" && "Bienvenido de nuevo"}
-            {mode === "signup" && (signUpStep === 1 ? "Comienza tu viaje" : "Cuéntanos de tu negocio")}
-            {mode === "reset" && "¿Olvidaste tu contraseña?"}
+  return (
+    <AuthShell>
+      <div className="space-y-8">
+        {mode !== "reset" && !awaitingConfirmation ? (
+          <div className="grid grid-cols-2 rounded-xl bg-[#f0f3f1] p-1" aria-label="Tipo de acceso">
+            <button
+              type="button"
+              onClick={() => switchMode("login")}
+              className={cn(
+                "h-10 rounded-lg text-[13px] font-bold transition-[background-color,color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                mode === "login"
+                  ? "bg-white text-text-primary shadow-sm"
+                  : "text-text-secondary hover:text-text-primary",
+              )}
+              aria-pressed={mode === "login"}
+            >
+              Iniciar sesión
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMode("signup")}
+              className={cn(
+                "h-10 rounded-lg text-[13px] font-bold transition-[background-color,color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                mode === "signup"
+                  ? "bg-white text-text-primary shadow-sm"
+                  : "text-text-secondary hover:text-text-primary",
+              )}
+              aria-pressed={mode === "signup"}
+            >
+              Crear cuenta
+            </button>
+          </div>
+        ) : null}
+
+        <div>
+          {mode === "reset" && !resetSent ? (
+            <button
+              type="button"
+              onClick={() => switchMode("login")}
+              className="mb-6 inline-flex min-h-11 items-center gap-1.5 rounded-lg pr-3 text-[13px] font-semibold text-text-secondary transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              Volver
+            </button>
+          ) : null}
+          <h1 className="font-display text-[32px] font-bold leading-[1.12] text-text-primary sm:text-[36px]">
+            {copy.title}
           </h1>
-          <p className="text-[14px] text-text-secondary mt-1.5">
-            {mode === "login" && "Ingresa para gestionar ventas, productos e inventario."}
-            {mode === "signup" && (signUpStep === 1 ? "Crea tu cuenta de Artisan gratis hoy." : "Personaliza tu inventario y catálogo.")}
-            {mode === "reset" && "Ingresa tu correo y te enviaremos instrucciones de recuperación."}
+          <p className="mt-3 max-w-[42ch] text-[15px] leading-6 text-text-secondary">
+            {copy.description}
           </p>
         </div>
 
-        {/* Success message */}
-        {successMsg && (
-          <div className="mb-6 rounded-lg bg-green-50 border border-green-200 p-4 text-[13px] text-green-700 font-medium">
-            {successMsg}
-          </div>
-        )}
-
-        {/* Error message */}
-        {errorMsg && (
-          <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4 text-[13px] text-red-600 font-medium">
-            {errorMsg}
-          </div>
-        )}
-
-        {/* LOGIN MODE */}
-        {mode === "login" && (
-          <form onSubmit={handleLoginSubmit} className="space-y-4">
-            <div>
-              <label className="block text-[13px] font-bold text-text-primary mb-1.5">
-                Correo Electrónico
-              </label>
-              <input
-                type="email"
-                required
-                placeholder="ejemplo@artisan.app"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full h-11 px-3.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[15px]"
+        {mode === "signup" && !awaitingConfirmation ? (
+          <div aria-label={`Paso ${signUpStep} de 2`}>
+            <div className="mb-2 flex items-center justify-between text-[12px] font-semibold text-text-secondary">
+              <span>{signUpStep === 1 ? "Datos de acceso" : "Tu negocio"}</span>
+              <span>Paso {signUpStep} de 2</span>
+            </div>
+            <div className="h-1 overflow-hidden rounded-full bg-[#e7ece9]">
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-300"
+                style={{ width: signUpStep === 1 ? "50%" : "100%" }}
               />
             </div>
+          </div>
+        ) : null}
 
-            <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label className="text-[13px] font-bold text-text-primary">
-                  Contraseña
-                </label>
+        {errorMsg ? (
+          <div
+            role="alert"
+            className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-[13px] leading-5 text-red-800"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{errorMsg}</span>
+          </div>
+        ) : null}
+
+        {mode === "login" ? (
+          <form onSubmit={handleLoginSubmit} className="space-y-5" noValidate={false}>
+            <EmailField email={email} setEmail={setEmail} invalid={Boolean(errorMsg)} />
+            <PasswordInput
+              id="login-password"
+              label="Contraseña"
+              value={password}
+              onChange={setPassword}
+              visible={showPassword}
+              onToggle={() => setShowPassword((current) => !current)}
+              autoComplete="current-password"
+              invalid={Boolean(errorMsg)}
+              labelAction={
                 <button
                   type="button"
-                  onClick={() => setMode("reset")}
-                  className="text-[12px] font-semibold text-primary hover:underline"
+                  onClick={() => switchMode("reset")}
+                  className="min-h-8 rounded-md px-1 text-[12px] font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
-                  ¿La olvidaste?
+                  ¿Olvidaste tu contraseña?
                 </button>
-              </div>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-11 pl-3.5 pr-10 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[15px]"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary"
-                >
-                  {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting || loading}
-              className="flex h-12 w-full items-center justify-center gap-3 rounded-lg bg-primary px-5 text-[15px] font-bold text-white shadow-[0_10px_24px_rgba(46,125,91,0.22)] transition hover:bg-[#246448] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSubmitting ? (
-                <span className="h-5 w-5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-              ) : (
-                "Iniciar Sesión"
-              )}
-            </button>
+              }
+            />
+            <PrimaryButton loading={isSubmitting} disabled={loading} loadingLabel="Ingresando…">
+              Iniciar sesión
+            </PrimaryButton>
           </form>
-        )}
+        ) : null}
 
-        {/* SIGNUP MODE */}
-        {mode === "signup" && (
-          <div className="space-y-4">
-            {awaitingConfirmation ? (
-              <div className="text-center">
-                <CheckCircle2 className="mx-auto h-11 w-11 text-primary" aria-hidden="true" />
-                <h2 className="mt-4 text-[17px] font-bold text-text-primary">Revisa tu correo</h2>
-                <p className="mt-2 text-[13px] leading-5 text-text-secondary">
-                  Enviamos un enlace de confirmación a <strong>{email}</strong>. Confirma tu
-                  dirección para entrar a Artisan.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode("login");
-                    setAwaitingConfirmation(false);
-                  }}
-                  className="mt-6 h-11 w-full rounded-lg border border-border bg-white px-4 text-[14px] font-bold text-text-primary transition hover:bg-gray-50"
-                >
-                  Volver al inicio de sesión
-                </button>
-              </div>
-            ) : signUpStep === 1 ? (
-              <form onSubmit={handleNextStep} className="space-y-4">
-                <div>
-                  <label className="block text-[13px] font-bold text-text-primary mb-1.5">
-                    Correo Electrónico
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="ejemplo@artisan.app"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full h-11 px-3.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[15px]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[13px] font-bold text-text-primary mb-1.5">
-                    Contraseña
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      required
-                      minLength={PASSWORD_MIN_LENGTH}
-                      autoComplete="new-password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full h-11 pl-3.5 pr-10 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[15px]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary"
-                    >
-                      {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
-                    </button>
-                  </div>
-                  <PasswordRequirements password={password} />
-                </div>
-
-                <button
-                  type="submit"
-                  className="flex h-12 w-full items-center justify-center gap-3 rounded-lg bg-primary px-5 text-[15px] font-bold text-white shadow-[0_10px_24px_rgba(46,125,91,0.22)] transition hover:bg-[#246448] active:scale-[0.99]"
-                >
-                  Continuar
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleSignUpSubmit} className="space-y-4">
-                <button
-                  type="button"
-                  onClick={() => setSignUpStep(1)}
-                  className="inline-flex items-center gap-1 text-[12px] text-text-secondary font-semibold hover:text-primary mb-2"
-                >
-                  <ChevronLeft className="h-4 w-4" /> Volver a credenciales
-                </button>
-
-                <div>
-                  <label className="block text-[13px] font-bold text-text-primary mb-1.5">
-                    Tu Nombre Completo
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      required
-                      placeholder="ej. María López"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full h-11 pl-10 pr-3.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[15px]"
-                    />
-                    <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted h-4.5 w-4.5" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[13px] font-bold text-text-primary mb-1.5">
-                    Nombre del Negocio / Emprendimiento
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      required
-                      placeholder="ej. Taller Demo"
-                      value={businessName}
-                      onChange={(e) => setBusinessName(e.target.value)}
-                      className="w-full h-11 pl-10 pr-3.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[15px]"
-                    />
-                    <Store className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted h-4.5 w-4.5" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[13px] font-bold text-text-primary mb-1.5">
-                      Teléfono (Opcional)
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="tel"
-                        placeholder="5512345678"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="w-full h-11 pl-10 pr-3.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[15px]"
-                      />
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted h-4.5 w-4.5" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[13px] font-bold text-text-primary mb-1.5">
-                      Categoría
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={businessType}
-                        onChange={(e) => setBusinessType(e.target.value)}
-                        className="w-full h-11 pl-10 pr-3.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[15px] bg-white appearance-none"
-                      >
-                        <option value="Panadería">Panadería</option>
-                        <option value="Repostería">Repostería</option>
-                        <option value="Conservas">Conservas / Salsas</option>
-                        <option value="Bebidas">Bebidas</option>
-                        <option value="Artesanías">Artesanías</option>
-                        <option value="Otros">Otros</option>
-                      </select>
-                      <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted h-4.5 w-4.5" />
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex h-12 w-full items-center justify-center gap-3 rounded-lg bg-primary px-5 text-[15px] font-bold text-white shadow-[0_10px_24px_rgba(46,125,91,0.22)] transition hover:bg-[#246448] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isSubmitting ? (
-                    <span className="h-5 w-5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-                  ) : (
-                    "Crear cuenta"
-                  )}
-                </button>
-              </form>
-            )}
-          </div>
-        )}
-
-        {/* PASSWORD RESET MODE */}
-        {mode === "reset" && (
-          <form onSubmit={handleResetSubmit} className="space-y-4">
-            <div>
-              <label className="block text-[13px] font-bold text-text-primary mb-1.5">
-                Correo Electrónico
-              </label>
-              <input
-                type="email"
-                required
-                placeholder="ejemplo@artisan.app"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full h-11 px-3.5 rounded-lg border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition text-[15px]"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex h-12 w-full items-center justify-center gap-3 rounded-lg bg-primary px-5 text-[15px] font-bold text-white shadow-[0_10px_24px_rgba(46,125,91,0.22)] transition hover:bg-[#246448] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSubmitting ? (
-                <span className="h-5 w-5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-              ) : (
-                "Enviar enlace"
-              )}
-            </button>
-
+        {mode === "signup" && awaitingConfirmation ? (
+          <StatusState
+            icon={<MailCheck className="h-6 w-6" />}
+            detail={
+              <>
+                Enviamos el enlace a <strong className="break-all text-text-primary">{email}</strong>.
+                Revisa también la carpeta de spam.
+              </>
+            }
+          >
             <button
               type="button"
-              onClick={() => {
-                setMode("login");
-                setErrorMsg(null);
-                setSuccessMsg(null);
-              }}
-              className="w-full text-center text-[13px] font-semibold text-text-secondary hover:text-primary mt-2"
+              onClick={() => switchMode("login")}
+              className="mt-7 h-12 w-full rounded-xl border border-[#dfe4e0] bg-white px-5 text-[14px] font-bold text-text-primary transition-colors hover:bg-[#f6f8f7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               Volver al inicio de sesión
             </button>
-          </form>
-        )}
+          </StatusState>
+        ) : null}
 
-        {/* Footer controls & Switcher */}
-        {mode !== "reset" && (
-          <div className="mt-6 flex flex-col items-center gap-4">
+        {mode === "signup" && !awaitingConfirmation && signUpStep === 1 ? (
+          <form onSubmit={handleNextStep} className="space-y-5">
+            <EmailField email={email} setEmail={setEmail} invalid={Boolean(errorMsg)} />
+            <div className="space-y-3">
+              <PasswordInput
+                id="signup-password"
+                label="Contraseña"
+                value={password}
+                onChange={setPassword}
+                visible={showPassword}
+                onToggle={() => setShowPassword((current) => !current)}
+                autoComplete="new-password"
+                describedBy="signup-password-requirements"
+                invalid={Boolean(errorMsg) && !isStrongPassword(password)}
+                minLength={PASSWORD_MIN_LENGTH}
+              />
+              <PasswordRequirements id="signup-password-requirements" password={password} />
+            </div>
+            <PrimaryButton>Continuar</PrimaryButton>
+          </form>
+        ) : null}
+
+        {mode === "signup" && !awaitingConfirmation && signUpStep === 2 ? (
+          <form onSubmit={handleSignUpSubmit} className="space-y-5">
             <button
               type="button"
               onClick={() => {
-                setMode(mode === "login" ? "signup" : "login");
                 setSignUpStep(1);
-                setAwaitingConfirmation(false);
                 setErrorMsg(null);
-                setSuccessMsg(null);
               }}
-              className="text-[13px] font-semibold text-primary hover:underline"
+              className="inline-flex min-h-10 items-center gap-1 rounded-lg pr-3 text-[12px] font-semibold text-text-secondary transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              {mode === "login" ? "¿No tienes cuenta? Regístrate gratis" : "¿Ya tienes cuenta? Inicia sesión"}
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              Cambiar datos de acceso
             </button>
 
-            {/* 
-            <div className="relative w-full flex py-2 items-center">
-              <div className="flex-grow border-t border-border"></div>
-              <span className="flex-shrink mx-4 text-text-muted text-[12px]">o continuar con</span>
-              <div className="flex-grow border-t border-border"></div>
+            <LabeledIconField
+              id="full-name"
+              label="Nombre completo"
+              icon={<UserIcon className="h-4.5 w-4.5" />}
+            >
+              <input
+                id="full-name"
+                name="full-name"
+                type="text"
+                required
+                maxLength={100}
+                autoComplete="name"
+                placeholder="María López"
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                className={fieldClassName}
+              />
+            </LabeledIconField>
+
+            <LabeledIconField
+              id="business-name"
+              label="Nombre del negocio"
+              icon={<Store className="h-4.5 w-4.5" />}
+            >
+              <input
+                id="business-name"
+                name="business-name"
+                type="text"
+                required
+                maxLength={100}
+                autoComplete="organization"
+                placeholder="Mi emprendimiento"
+                value={businessName}
+                onChange={(event) => setBusinessName(event.target.value)}
+                className={fieldClassName}
+              />
+            </LabeledIconField>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <LabeledIconField
+                id="phone"
+                label="Teléfono (opcional)"
+                icon={<Phone className="h-4.5 w-4.5" />}
+              >
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  inputMode="tel"
+                  maxLength={20}
+                  autoComplete="tel"
+                  placeholder="55 1234 5678"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  className={fieldClassName}
+                />
+              </LabeledIconField>
+
+              <LabeledIconField
+                id="business-type"
+                label="Categoría"
+                icon={<Tag className="h-4.5 w-4.5" />}
+              >
+                <select
+                  id="business-type"
+                  name="business-type"
+                  value={businessType}
+                  onChange={(event) => setBusinessType(event.target.value)}
+                  className={cn(fieldClassName, "appearance-none bg-white")}
+                >
+                  <option value="Panadería">Panadería</option>
+                  <option value="Repostería">Repostería</option>
+                  <option value="Conservas">Conservas / Salsas</option>
+                  <option value="Bebidas">Bebidas</option>
+                  <option value="Artesanías">Artesanías</option>
+                  <option value="Otros">Otros</option>
+                </select>
+              </LabeledIconField>
             </div>
 
-            <button
-              id="btn-google-signin"
-              onClick={signInWithGoogle}
-              disabled={loading || isSubmitting}
-              className="flex h-11 w-full items-center justify-center gap-3 rounded-lg border border-border bg-white px-5 text-[14px] font-bold text-text-primary transition hover:bg-gray-50 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <GoogleIcon />
-              Google
-            </button>
-            */}
-          </div>
-        )}
+            <PrimaryButton loading={isSubmitting} loadingLabel="Creando cuenta…">
+              Crear cuenta
+            </PrimaryButton>
 
-        {/* Demo Mode Reminder */}
-        {isDemo && (
-          <div className="mt-5 rounded-lg border border-[#C9784A]/25 bg-[#C9784A]/10 px-4 py-3">
-            <p className="text-[13px] font-bold text-[#9D5632]">Modo demo activo</p>
-            <p className="mt-1 text-[12px] leading-relaxed text-[#9D5632]/78">
-              Agrega tus credenciales Supabase en <code className="font-mono">.env</code> para habilitar el acceso real.
-              Para probar el demo usa: <code className="font-mono">demo@artisan.app</code>
+            <p className="text-center text-[12px] leading-5 text-text-muted">
+              Al crear tu cuenta aceptas los{" "}
+              <Link to="/terminos" className="font-semibold text-primary hover:underline">
+                Términos
+              </Link>{" "}
+              y el{" "}
+              <Link to="/privacidad" className="font-semibold text-primary hover:underline">
+                Aviso de privacidad
+              </Link>
+              .
             </p>
+          </form>
+        ) : null}
+
+        {mode === "reset" && !resetSent ? (
+          <form onSubmit={handleResetSubmit} className="space-y-5">
+            <EmailField email={email} setEmail={setEmail} invalid={Boolean(errorMsg)} />
+            <PrimaryButton loading={isSubmitting} loadingLabel="Enviando…">
+              Enviar enlace
+            </PrimaryButton>
+          </form>
+        ) : null}
+
+        {mode === "reset" && resetSent ? (
+          <StatusState
+            icon={<MailCheck className="h-6 w-6" />}
+            detail={
+              <>
+                Si existe una cuenta con <strong className="break-all text-text-primary">{email}</strong>,
+                recibirás un enlace. Revisa también la carpeta de spam.
+              </>
+            }
+          >
+            <button
+              type="button"
+              onClick={() => switchMode("login")}
+              className="mt-7 h-12 w-full rounded-xl border border-[#dfe4e0] bg-white px-5 text-[14px] font-bold text-text-primary transition-colors hover:bg-[#f6f8f7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              Volver al inicio de sesión
+            </button>
+          </StatusState>
+        ) : null}
+
+        {isDemo ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-[13px] leading-5 text-amber-900">
+            <strong className="block">Demostración local</strong>
+            <span>Usa demo@artisan.app para explorar la aplicación.</span>
           </div>
-        )}
-
-        {/* Trust Badges */}
-        <div className="mt-8 grid gap-3 border-t border-border pt-6 text-[13px] text-text-secondary sm:grid-cols-2">
-          {["Acceso seguro a tus datos", "Diseñado para productores"].map((text) => (
-            <div key={text} className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
-              <span>{text}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-8 flex items-center justify-center gap-2 text-[12px] text-text-muted">
-          <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
-          <span>© {new Date().getFullYear()} Artisan. Tu negocio en buenas manos.</span>
-        </div>
-
-        <nav className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[12px] font-semibold text-text-muted">
-          <Link to="/privacidad" className="hover:text-primary">
-            Privacidad
-          </Link>
-          <Link to="/terminos" className="hover:text-primary">
-            Terminos
-          </Link>
-          <Link to="/cookies" className="hover:text-primary">
-            Cookies
-          </Link>
-        </nav>
-
+        ) : null}
       </div>
-    </main>
+    </AuthShell>
   );
+}
+
+function EmailField({
+  email,
+  setEmail,
+  invalid,
+}: {
+  email: string;
+  setEmail: (value: string) => void;
+  invalid: boolean;
+}) {
+  return (
+    <div>
+      <label htmlFor="auth-email" className="mb-2 block text-[13px] font-bold text-text-primary">
+        Correo electrónico
+      </label>
+      <input
+        id="auth-email"
+        name="email"
+        type="email"
+        required
+        maxLength={254}
+        autoComplete="email"
+        inputMode="email"
+        aria-invalid={invalid || undefined}
+        placeholder="nombre@negocio.com"
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        className="h-12 w-full rounded-xl border border-[#dfe4e0] bg-white px-4 text-[16px] text-text-primary outline-none transition-[border-color,box-shadow] placeholder:text-[#8b958f] focus:border-primary focus:ring-4 focus:ring-primary/10"
+      />
+    </div>
+  );
+}
+
+function PrimaryButton({
+  children,
+  loading = false,
+  disabled = false,
+  loadingLabel = "Guardando…",
+}: {
+  children: React.ReactNode;
+  loading?: boolean;
+  disabled?: boolean;
+  loadingLabel?: string;
+}) {
+  return (
+    <button
+      type="submit"
+      disabled={loading || disabled}
+      className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-[15px] font-bold text-white shadow-fab transition-[background-color,transform,box-shadow] hover:bg-[#1f5b41] hover:shadow-card-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+    >
+      {loading ? (
+        <>
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          {loadingLabel}
+        </>
+      ) : (
+        children
+      )}
+    </button>
+  );
+}
+
+function StatusState({
+  icon,
+  detail,
+  children,
+}: {
+  icon: React.ReactNode;
+  detail: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary-light text-primary">
+        {icon}
+      </div>
+      <p className="mt-5 text-[14px] leading-6 text-text-secondary">{detail}</p>
+      {children}
+    </div>
+  );
+}
+
+function LabeledIconField({
+  id,
+  label,
+  icon,
+  children,
+}: {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="mb-2 block text-[13px] font-bold text-text-primary">
+        {label}
+      </label>
+      <div className="relative">
+        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" aria-hidden="true">
+          {icon}
+        </span>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+const fieldClassName =
+  "h-12 w-full rounded-xl border border-[#dfe4e0] bg-white py-2 pl-11 pr-4 text-[16px] text-text-primary outline-none transition-[border-color,box-shadow] placeholder:text-[#8b958f] focus:border-primary focus:ring-4 focus:ring-primary/10";
+
+function authCopy(mode: AuthMode, step: number, awaitingConfirmation: boolean, resetSent: boolean) {
+  if (awaitingConfirmation) {
+    return {
+      title: "Confirma tu correo",
+      description: "Tu cuenta está lista. Falta verificar que el correo te pertenece.",
+    };
+  }
+
+  if (mode === "reset" && resetSent) {
+    return {
+      title: "Revisa tu correo",
+      description: "Te enviamos las instrucciones para recuperar tu acceso.",
+    };
+  }
+
+  if (mode === "reset") {
+    return {
+      title: "Recupera tu acceso",
+      description: "Escribe tu correo y te enviaremos un enlace seguro.",
+    };
+  }
+
+  if (mode === "signup") {
+    return step === 1
+      ? { title: "Crea tu cuenta", description: "Empieza con tus datos de acceso." }
+      : { title: "Configura tu negocio", description: "Esta información personaliza tu espacio." };
+  }
+
+  return {
+    title: "Vuelve a tu negocio",
+    description: "Ingresa para continuar donde lo dejaste.",
+  };
+}
+
+function authErrorMessage(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+
+  if (message.includes("invalid login credentials")) return "Correo o contraseña incorrectos.";
+  if (message.includes("email not confirmed")) return "Confirma tu correo antes de iniciar sesión.";
+  if (message.includes("user already registered")) return "Ya existe una cuenta con este correo.";
+  if (message.includes("rate limit") || message.includes("too many")) {
+    return "Se hicieron demasiados intentos. Espera unos minutos y vuelve a intentar.";
+  }
+  if (message.includes("weak password")) {
+    return "La contraseña no cumple los requisitos de seguridad.";
+  }
+
+  return fallback;
 }
