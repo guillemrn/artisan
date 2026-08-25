@@ -21,6 +21,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as NuevaVentaRouteImport } from './routes/nueva-venta'
 import { Route as PrivacidadRouteImport } from './routes/privacidad'
 import { Route as ProductosRouteImport } from './routes/productos'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as TerminosRouteImport } from './routes/terminos'
 import { Route as VentasRouteImport } from './routes/ventas'
 import { Route as ClientesClientIdRouteImport } from './routes/clientes_.$clientId'
@@ -88,6 +89,11 @@ const ProductosRoute = ProductosRouteImport.update({
   path: '/productos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TerminosRoute = TerminosRouteImport.update({
   id: '/terminos',
   path: '/terminos',
@@ -132,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/nueva-venta': typeof NuevaVentaRoute
   '/privacidad': typeof PrivacidadRoute
   '/productos': typeof ProductosRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/terminos': typeof TerminosRoute
   '/ventas': typeof VentasRoute
   '/clientes/$clientId': typeof ClientesClientIdRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/nueva-venta': typeof NuevaVentaRoute
   '/privacidad': typeof PrivacidadRoute
   '/productos': typeof ProductosRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/terminos': typeof TerminosRoute
   '/ventas': typeof VentasRoute
   '/clientes/$clientId': typeof ClientesClientIdRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/nueva-venta': typeof NuevaVentaRoute
   '/privacidad': typeof PrivacidadRoute
   '/productos': typeof ProductosRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/terminos': typeof TerminosRoute
   '/ventas': typeof VentasRoute
   '/clientes_/$clientId': typeof ClientesClientIdRoute
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
     | '/nueva-venta'
     | '/privacidad'
     | '/productos'
+    | '/reset-password'
     | '/terminos'
     | '/ventas'
     | '/clientes/$clientId'
@@ -215,6 +225,7 @@ export interface FileRouteTypes {
     | '/nueva-venta'
     | '/privacidad'
     | '/productos'
+    | '/reset-password'
     | '/terminos'
     | '/ventas'
     | '/clientes/$clientId'
@@ -235,6 +246,7 @@ export interface FileRouteTypes {
     | '/nueva-venta'
     | '/privacidad'
     | '/productos'
+    | '/reset-password'
     | '/terminos'
     | '/ventas'
     | '/clientes_/$clientId'
@@ -256,6 +268,7 @@ export interface RootRouteChildren {
   NuevaVentaRoute: typeof NuevaVentaRoute
   PrivacidadRoute: typeof PrivacidadRoute
   ProductosRoute: typeof ProductosRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   TerminosRoute: typeof TerminosRoute
   VentasRoute: typeof VentasRoute
   ClientesClientIdRoute: typeof ClientesClientIdRoute
@@ -350,6 +363,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terminos': {
       id: '/terminos'
       path: '/terminos'
@@ -408,6 +428,7 @@ const rootRouteChildren: RootRouteChildren = {
   NuevaVentaRoute: NuevaVentaRoute,
   PrivacidadRoute: PrivacidadRoute,
   ProductosRoute: ProductosRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   TerminosRoute: TerminosRoute,
   VentasRoute: VentasRoute,
   ClientesClientIdRoute: ClientesClientIdRoute,

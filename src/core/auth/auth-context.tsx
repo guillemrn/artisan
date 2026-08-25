@@ -22,7 +22,9 @@ type AuthCtx = {
       business_name: string;
       business_type: string;
     }
-  ) => Promise<{ error: any }>;
+  ) => Promise<{ error: Error | null; requiresEmailConfirmation: boolean }>;
+  requestPasswordReset: (email: string) => Promise<{ error: Error | null }>;
+  updatePassword: (password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 };
 
@@ -146,7 +148,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   ) => {
     if (!HAS_SUPABASE) {
-      return { error: new Error("El registro no está disponible en modo Demo.") };
+      return {
+        error: new Error("El registro no está disponible en modo Demo."),
+        requiresEmailConfirmation: false,
+      };
     }
 
     const { data, error } = await supabase.auth.signUp({
@@ -154,15 +159,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: {
         data: metadata,
+        emailRedirectTo: `${window.location.origin}/login`,
       },
     });
-    if (error) return { error };
+    if (error) return { error, requiresEmailConfirmation: false };
 
     setSession(data.session);
-    setUser(data.user);
-    return { error: null };
+    setUser(data.session?.user ?? null);
+    return {
+      error: null,
+      requiresEmailConfirmation: Boolean(data.user && !data.session),
+    };
   };
 
+  const requestPasswordReset = async (email: string) => {
+    if (!HAS_SUPABASE) {
+      return { error: new Error("La recuperación no está disponible en modo Demo.") };
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    return { error };
+  };
+
+  const updatePassword = async (password: string) => {
+    if (!HAS_SUPABASE) {
+      return { error: new Error("La recuperación no está disponible en modo Demo.") };
+    }
+
+    const { error } = await supabase.auth.updateUser({ password });
+    return { error };
+  };
 
   const signOut = async () => {
     if (!HAS_SUPABASE) {
@@ -184,6 +212,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithGoogle,
         signInWithEmail,
         signUpWithEmail,
+        requestPasswordReset,
+        updatePassword,
         signOut,
       }}
     >

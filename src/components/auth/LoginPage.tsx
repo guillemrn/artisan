@@ -14,6 +14,8 @@ import {
 import { Link } from "@tanstack/react-router";
 import { Logo } from "@/components/ui/logo";
 import { useAuth } from "@/core/auth/auth-context";
+import { PasswordRequirements } from "@/components/auth/PasswordRequirements";
+import { isStrongPassword, PASSWORD_MIN_LENGTH } from "@/lib/password-security";
 
 // Google SVG icon (official brand colors)
 function GoogleIcon() {
@@ -40,10 +42,18 @@ function GoogleIcon() {
 }
 
 export function LoginPage() {
-  const { signInWithGoogle, signInWithEmail, signUpWithEmail, loading, isDemo } = useAuth();
+  const {
+    signInWithGoogle,
+    signInWithEmail,
+    signUpWithEmail,
+    requestPasswordReset,
+    loading,
+    isDemo,
+  } = useAuth();
 
   const [mode, setMode] = useState<"login" | "signup" | "reset">("login");
   const [signUpStep, setSignUpStep] = useState(1);
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
   // Form states
   const [email, setEmail] = useState(isDemo ? "demo@artisan.app" : "");
@@ -68,8 +78,8 @@ export function LoginPage() {
       setErrorMsg("Por favor completa las credenciales.");
       return;
     }
-    if (password.length < 6) {
-      setErrorMsg("La contraseña debe tener al menos 6 caracteres.");
+    if (!isStrongPassword(password)) {
+      setErrorMsg("Completa todos los requisitos de seguridad de la contraseña.");
       return;
     }
     setSignUpStep(2);
@@ -81,7 +91,7 @@ export function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const { error } = await signUpWithEmail(email, password, {
+      const { error, requiresEmailConfirmation } = await signUpWithEmail(email, password, {
         full_name: fullName,
         phone: phone || undefined,
         business_name: businessName || "Mi Emprendimiento",
@@ -90,10 +100,11 @@ export function LoginPage() {
 
       if (error) {
         setErrorMsg(error.message || "Error al crear la cuenta.");
+      } else if (requiresEmailConfirmation) {
+        setPassword("");
+        setAwaitingConfirmation(true);
       } else {
-        setSuccessMsg(
-          "¡Cuenta creada! Revisa tu correo de confirmación o inicia sesión."
-        );
+        setSuccessMsg("Cuenta creada correctamente. Ya puedes entrar a Artisan.");
       }
     } catch (err: any) {
       setErrorMsg(err.message || "Error en el servidor.");
@@ -125,28 +136,25 @@ export function LoginPage() {
     setSuccessMsg(null);
     setIsSubmitting(true);
 
-    // En modo demo simulamos éxito
     if (isDemo) {
-      setTimeout(() => {
-        setSuccessMsg("Enlace de restablecimiento enviado (Simulado en modo demo).");
-        setIsSubmitting(false);
-      }, 1000);
+      setErrorMsg("La recuperación de contraseña no está disponible en modo Demo.");
+      setIsSubmitting(false);
       return;
     }
 
     try {
-      // Usar cliente de supabase directamente para restablecimiento
-      const { error } = await signInWithEmail(email, "reset"); // fallback/placeholder o reset trigger
-      // Nota: Supabase auth reset password
-      const { supabase } = await import("@/core/supabase/client");
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
+      const { error } = await requestPasswordReset(email);
 
-      if (resetError) {
-        setErrorMsg(resetError.message);
+      if (error) {
+        setErrorMsg(
+          error.message.toLowerCase().includes("rate limit")
+            ? "Se solicitaron demasiados enlaces. Espera unos minutos e intenta de nuevo."
+            : "No pudimos enviar el enlace. Revisa tu conexión e intenta de nuevo.",
+        );
       } else {
-        setSuccessMsg("Se ha enviado un enlace para restablecer tu contraseña a tu correo.");
+        setSuccessMsg(
+          "Si existe una cuenta con ese correo, recibirás un enlace para cambiar tu contraseña.",
+        );
       }
     } catch (err: any) {
       setErrorMsg(err.message || "Error al enviar el enlace.");
@@ -263,7 +271,26 @@ export function LoginPage() {
         {/* SIGNUP MODE */}
         {mode === "signup" && (
           <div className="space-y-4">
-            {signUpStep === 1 ? (
+            {awaitingConfirmation ? (
+              <div className="text-center">
+                <CheckCircle2 className="mx-auto h-11 w-11 text-primary" aria-hidden="true" />
+                <h2 className="mt-4 text-[17px] font-bold text-text-primary">Revisa tu correo</h2>
+                <p className="mt-2 text-[13px] leading-5 text-text-secondary">
+                  Enviamos un enlace de confirmación a <strong>{email}</strong>. Confirma tu
+                  dirección para entrar a Artisan.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("login");
+                    setAwaitingConfirmation(false);
+                  }}
+                  className="mt-6 h-11 w-full rounded-lg border border-border bg-white px-4 text-[14px] font-bold text-text-primary transition hover:bg-gray-50"
+                >
+                  Volver al inicio de sesión
+                </button>
+              </div>
+            ) : signUpStep === 1 ? (
               <form onSubmit={handleNextStep} className="space-y-4">
                 <div>
                   <label className="block text-[13px] font-bold text-text-primary mb-1.5">
@@ -281,13 +308,14 @@ export function LoginPage() {
 
                 <div>
                   <label className="block text-[13px] font-bold text-text-primary mb-1.5">
-                    Contraseña (mínimo 6 caracteres)
+                    Contraseña
                   </label>
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
                       required
-                      minLength={6}
+                      minLength={PASSWORD_MIN_LENGTH}
+                      autoComplete="new-password"
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -301,6 +329,7 @@ export function LoginPage() {
                       {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
                     </button>
                   </div>
+                  <PasswordRequirements password={password} />
                 </div>
 
                 <button
@@ -401,7 +430,7 @@ export function LoginPage() {
                   {isSubmitting ? (
                     <span className="h-5 w-5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
                   ) : (
-                    "Crear cuenta e ingresar"
+                    "Crear cuenta"
                   )}
                 </button>
               </form>
@@ -460,6 +489,7 @@ export function LoginPage() {
               onClick={() => {
                 setMode(mode === "login" ? "signup" : "login");
                 setSignUpStep(1);
+                setAwaitingConfirmation(false);
                 setErrorMsg(null);
                 setSuccessMsg(null);
               }}

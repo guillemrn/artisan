@@ -79,8 +79,9 @@ function RootComponent() {
 
 /** Renders the login screen or the full app depending on auth state. */
 function AuthGate() {
-  const { user, loading } = useAuth();
+  const { user, session, loading, isDemo } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isAuthenticated = isDemo ? Boolean(user) : Boolean(session?.user);
 
   if (loading) return <SplashScreen />;
 
@@ -93,7 +94,16 @@ function AuthGate() {
     );
   }
 
-  if (!user) {
+  if (pathname === "/reset-password") {
+    return (
+      <>
+        <Outlet />
+        <CookieBanner />
+      </>
+    );
+  }
+
+  if (!isAuthenticated) {
     if (pathname === "/" || pathname === "/login") {
       return (
         <>
