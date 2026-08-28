@@ -252,6 +252,9 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
 
         if (error) {
           console.error("Error inserting client:", error);
+          if (error.code === "23505") {
+            throw new Error("Este cliente ya está registrado en tu cuenta.");
+          }
           throw new Error(`Error al agregar el cliente: ${error.message}`);
         }
 
