@@ -10,7 +10,7 @@ import {
   ReceiptText,
   Share2,
 } from "lucide-react";
-import { BUSINESS_NAME, formatMXN, formatMXNc } from "@/lib/artisan-data";
+import { BUSINESS_NAME, formatMXNc } from "@/lib/artisan-data";
 import { useArtisan } from "@/lib/artisan-store";
 import { Logo } from "@/components/ui/logo";
 import { toPng } from "html-to-image";
@@ -21,6 +21,65 @@ export const Route = createFileRoute("/ticket/$saleId")({
   head: () => ({ meta: [{ title: "Ticket — Artisan" }] }),
   component: Ticket,
 });
+
+function getChannelLabel(channel: string): string {
+  if (channel === "PDV") return "Punto de venta";
+  if (channel === "Público") return "Venta al público";
+  return channel;
+}
+
+function getCollectionStatus(sale: { payment: string; status: string; paidAt?: string }): {
+  statusLabel: string;
+  methodLabel: string;
+  isPending: boolean;
+  isConsignation: boolean;
+  isGratis: boolean;
+} {
+  if (sale.payment === "Pendiente") {
+    return {
+      statusLabel: "Pendiente de cobro",
+      methodLabel: "Por definir",
+      isPending: true,
+      isConsignation: false,
+      isGratis: false,
+    };
+  }
+  if (sale.payment === "Consignación") {
+    return {
+      statusLabel: "En consignación",
+      methodLabel: "Consignación",
+      isPending: true,
+      isConsignation: true,
+      isGratis: false,
+    };
+  }
+  if (sale.payment === "Cortesía") {
+    return {
+      statusLabel: "Cortesía / Muestra",
+      methodLabel: "Sin costo",
+      isPending: false,
+      isConsignation: false,
+      isGratis: true,
+    };
+  }
+  // "Efectivo" | "Transferencia"
+  if (sale.status === "Pendiente" && !sale.paidAt) {
+    return {
+      statusLabel: "Pendiente de cobro",
+      methodLabel: sale.payment,
+      isPending: true,
+      isConsignation: false,
+      isGratis: false,
+    };
+  }
+  return {
+    statusLabel: "Pagado",
+    methodLabel: sale.payment,
+    isPending: false,
+    isConsignation: false,
+    isGratis: false,
+  };
+}
 
 function Ticket() {
   const { saleId } = Route.useParams();
@@ -99,22 +158,37 @@ function Ticket() {
   const timeStr = date.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
   const soldCount = sale.items.reduce((sum, item) => sum + item.qty, 0);
   const returnCount = sale.items.reduce((sum, item) => sum + (item.returnQty ?? 0), 0);
+
+  const channelLabel = getChannelLabel(sale.channel);
+  const paymentInfo = getCollectionStatus(sale);
+
   const shareText =
-    `${businessName}\n${dateStr} ${timeStr}\nCliente: ${sale.clientName}\n\n` +
+    `*${businessName}*\n` +
+    `Comprobante de Venta · Folio: ${sale.id}\n` +
+    `Fecha: ${dateStr} ${timeStr}\n` +
+    `Cliente: ${sale.clientName}\n` +
+    `Canal: ${channelLabel}\n\n` +
+    `*DETALLE:*\n` +
     sale.items
       .map((item) => {
-        const lines = [];
+        const lines: string[] = [];
         if (item.qty > 0) {
-          lines.push(`${item.productName} x${item.qty} - ${formatMXNc(item.unitPrice * item.qty)}`);
+          lines.push(
+            `• ${item.productName}\n  ${item.qty} × ${formatMXNc(item.unitPrice)} = ${formatMXNc(item.unitPrice * item.qty)}`
+          );
         }
         if (item.returnQty && item.returnQty > 0) {
-          lines.push(`[Cambio: ${item.returnQty} paq. de ${item.productName}]`);
+          lines.push(`• [Cambio: ${item.returnQty} pza. de ${item.productName}] (Sin cobro)`);
         }
         return lines.join("\n");
       })
       .filter(Boolean)
       .join("\n") +
-    `\n\nTotal: ${formatMXNc(sale.total)}\nPago: ${sale.payment}\n\n¡Gracias!`;
+    `\n\n*TOTAL: ${formatMXNc(sale.total)}*\n` +
+    `Estado de cobro: ${paymentInfo.statusLabel}\n` +
+    `Método: ${paymentInfo.methodLabel}\n` +
+    `Entrega: ${sale.status}\n\n` +
+    `¡Gracias por tu preferencia!`;
 
   const handleShareTicket = async () => {
     setExportAction("share");
@@ -177,52 +251,72 @@ function Ticket() {
       </header>
 
       <div className="mt-6 grid items-start gap-7 lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)] lg:justify-center">
-        <div className="rounded-lg border border-border bg-muted/55 p-3 sm:p-5">
+        <div className="rounded-lg border border-border bg-muted/55 p-2 sm:p-5">
           <div
             ref={ticketRef}
-            className="mx-auto w-full max-w-[420px] bg-white px-5 py-6 shadow-[0_12px_28px_rgba(15,23,42,0.08)] sm:px-7"
+            className="mx-auto w-full max-w-[420px] rounded-sm border border-slate-200 bg-white px-5 py-6 shadow-[0_8px_20px_rgba(15,23,42,0.06)] sm:px-6 sm:py-7"
             style={{
-              border: "1px dashed #cbd5e1",
               fontFamily: "'JetBrains Mono', ui-monospace, monospace",
             }}
           >
+            {/* Header del Ticket */}
             <div className="flex flex-col items-center text-center">
               <Logo variant="icon" className="mb-2 h-8 w-8" />
-              <p className="text-[15px] font-bold">{businessName}</p>
-              <p className="mt-0.5 text-[11px] text-text-muted">
+              <p className="text-[15px] font-bold text-slate-900 leading-tight">{businessName}</p>
+              <p className="mt-1 text-[12px] font-medium text-slate-600">
                 {dateStr} · {timeStr}
               </p>
-              <p className="mt-1 text-[10px] text-text-muted">{sale.id}</p>
+              <p className="mt-0.5 text-[11px] font-bold tracking-wider text-slate-500">
+                FOLIO: {sale.id}
+              </p>
             </div>
 
             <TicketRule />
-            <p className="text-[12px]">
-              Cliente: <span className="font-semibold">{sale.clientName}</span>
-            </p>
-            <p className="text-[12px]">
-              Canal: <span className="font-semibold">{sale.channel}</span>
-            </p>
+
+            {/* Metadatos del Cliente y Canal */}
+            <div className="space-y-1 text-[13px]">
+              <div className="flex justify-between gap-2">
+                <span className="text-slate-500">Cliente:</span>
+                <span className="font-bold text-slate-900 text-right">{sale.clientName}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-slate-500">Canal:</span>
+                <span className="font-semibold text-slate-800 text-right">{channelLabel}</span>
+              </div>
+            </div>
+
             <TicketRule />
 
-            <ul className="space-y-2.5 text-[12px]">
+            {/* Partidas Desglosadas con Precio Unitario */}
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 pb-1.5 flex justify-between">
+              <span>Descripción / Cant.</span>
+              <span>Importe</span>
+            </div>
+
+            <ul className="space-y-3 text-[13px]">
               {sale.items.map((item) => (
-                <li key={item.productId}>
+                <li key={item.productId} className="space-y-0.5">
                   {item.qty > 0 && (
-                    <div className="flex justify-between gap-3">
-                      <span className="min-w-0">
-                        {item.productName} <span className="text-text-muted">x{item.qty}</span>
-                      </span>
-                      <span className="shrink-0 font-semibold">
-                        {formatMXNc(item.unitPrice * item.qty)}
-                      </span>
+                    <div>
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="font-semibold text-slate-900 break-words min-w-0">
+                          {item.productName}
+                        </span>
+                        <span className="shrink-0 font-bold text-slate-900 text-right">
+                          {formatMXNc(item.unitPrice * item.qty)}
+                        </span>
+                      </div>
+                      <div className="text-[12px] text-slate-600">
+                        {item.qty} × {formatMXNc(item.unitPrice)}
+                      </div>
                     </div>
                   )}
                   {Boolean(item.returnQty) && (
-                    <div className="mt-1 flex justify-between gap-3 text-[11px] font-semibold text-warning">
-                      <span>
-                        Cambio: {item.productName} x{item.returnQty}
+                    <div className="mt-1 flex justify-between items-start gap-2 rounded bg-amber-50 px-2 py-1 text-[12px] font-medium text-amber-800 border border-amber-200/60">
+                      <span className="break-words min-w-0">
+                        Cambio: {item.productName} ({item.returnQty} {item.returnQty === 1 ? "pza" : "pzas"})
                       </span>
-                      <span className="shrink-0">Sin cobro</span>
+                      <span className="shrink-0 font-bold text-right">Sin cobro</span>
                     </div>
                   )}
                 </li>
@@ -230,15 +324,49 @@ function Ticket() {
             </ul>
 
             <TicketRule />
-            <div className="flex justify-between text-[15px] font-bold">
+
+            {/* Totales y Estados Operativos Claros */}
+            <div className="flex justify-between items-baseline text-[16px] font-black text-slate-900">
               <span>TOTAL</span>
-              <span>{formatMXN(sale.total)}</span>
+              <span className="tracking-tight">{formatMXNc(sale.total)}</span>
             </div>
-            <p className="mt-1 text-[12px]">
-              Pago: <span className="font-semibold">{sale.payment}</span>
-            </p>
+
+            <div className="mt-3 space-y-1.5 rounded bg-slate-50 p-2.5 text-[12px] border border-slate-100">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">Estado de cobro:</span>
+                <span
+                  className={`rounded px-2 py-0.5 text-[11px] font-bold ${
+                    paymentInfo.isPending
+                      ? "bg-amber-100 text-amber-900 border border-amber-200"
+                      : paymentInfo.isGratis
+                      ? "bg-blue-100 text-blue-900 border border-blue-200"
+                      : "bg-emerald-100 text-emerald-900 border border-emerald-200"
+                  }`}
+                >
+                  {paymentInfo.statusLabel}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-slate-700">
+                <span className="text-slate-600">Método de pago:</span>
+                <span className="font-bold text-slate-900">{paymentInfo.methodLabel}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-700">
+                <span className="text-slate-600">Estado de entrega:</span>
+                <span className="font-semibold text-slate-900">
+                  {sale.status === "Entregado" ? "Entregado" : "Pendiente"}
+                </span>
+              </div>
+            </div>
+
             <TicketRule />
-            <p className="text-center text-[11px] text-text-muted">Gracias por tu preferencia</p>
+
+            {/* Pie de ticket con buen contraste */}
+            <div className="text-center space-y-1 pt-0.5">
+              <p className="text-[12px] font-bold text-slate-800">¡Gracias por tu preferencia!</p>
+              <p className="text-[10px] font-medium tracking-wide uppercase text-slate-500">
+                Comprobante de venta · Artisan
+              </p>
+            </div>
           </div>
         </div>
 
@@ -268,7 +396,7 @@ function Ticket() {
             </div>
             <div className="bg-white px-5 py-4">
               <p className="text-xs text-text-muted">Total</p>
-              <p className="mt-1 text-lg font-extrabold text-primary">{formatMXN(sale.total)}</p>
+              <p className="mt-1 text-lg font-extrabold text-primary">{formatMXNc(sale.total)}</p>
             </div>
           </div>
 
@@ -345,5 +473,6 @@ function Ticket() {
 }
 
 function TicketRule() {
-  return <div className="my-4 border-t border-dashed border-border" />;
+  return <div className="my-3.5 border-t border-dashed border-slate-300" />;
 }
+
