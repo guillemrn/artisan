@@ -133,6 +133,7 @@ export async function fetchArtisanData(expectedUserId?: string): Promise<Artisan
     });
 
     const normalizedCreatedAt = normalizeIsoDate(s.created_at);
+    const normalizedPaidAt = s.paid_at ? normalizeIsoDate(s.paid_at) : undefined;
 
     const sale: Sale = {
       id: s.id,
@@ -146,6 +147,7 @@ export async function fetchArtisanData(expectedUserId?: string): Promise<Artisan
       payment: actualPayment as PaymentMethod,
       status: s.status as "Pendiente" | "Entregado",
       createdAt: normalizedCreatedAt,
+      paidAt: normalizedPaidAt,
     };
 
     salesMap.set(sale.id, sale);

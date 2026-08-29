@@ -14,7 +14,8 @@ export type Client = {
   lastDelivery?: string;
 };
 
-export type PaymentMethod = "Efectivo" | "Transferencia" | "Pendiente" | "Consignación" | "Cortesía";
+export type PaymentMethod =
+  "Efectivo" | "Transferencia" | "Pendiente" | "Consignación" | "Cortesía";
 
 export type SaleItem = {
   productId: string;
@@ -37,7 +38,13 @@ export type Sale = {
   payment: PaymentMethod;
   status: "Pendiente" | "Entregado";
   createdAt: string; // ISO
+  paidAt?: string; // ISO; when payment was actually received
 };
+
+export function getSalePaymentDate(sale: Sale): string | undefined {
+  if (sale.paidAt) return sale.paidAt;
+  return sale.status === "Entregado" ? sale.createdAt : undefined;
+}
 
 export const PRODUCTS: Product[] = [
   {
@@ -87,8 +94,18 @@ export const CLIENTS: Client[] = [
   { id: "cafe-aurora", name: "Cafe Aurora", channel: "PDV", lastDelivery: "Hace 2 dias" },
   { id: "bazar-central", name: "Bazar Central", channel: "PDV", lastDelivery: "Hace 3 dias" },
   { id: "tienda-rio", name: "Tienda Rio", channel: "PDV", lastDelivery: "Hace 5 dias" },
-  { id: "cliente-muestra-a", name: "Cliente Muestra A", channel: "Público", lastDelivery: "Hace 1 semana" },
-  { id: "cliente-muestra-b", name: "Cliente Muestra B", channel: "Público", lastDelivery: "Hace 2 semanas" },
+  {
+    id: "cliente-muestra-a",
+    name: "Cliente Muestra A",
+    channel: "Público",
+    lastDelivery: "Hace 1 semana",
+  },
+  {
+    id: "cliente-muestra-b",
+    name: "Cliente Muestra B",
+    channel: "Público",
+    lastDelivery: "Hace 2 semanas",
+  },
 ];
 
 export const BUSINESS_NAME = "Artisan - Punto de venta";

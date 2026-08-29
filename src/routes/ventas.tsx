@@ -66,7 +66,7 @@ function VentasPage() {
     setCobroSuccess(null);
     setIsCobrando(false);
     setSelectedPayment(
-      ["Pendiente", "Consignación"].includes(sale.payment) ? "Efectivo" : sale.payment
+      ["Pendiente", "Consignación"].includes(sale.payment) ? "Efectivo" : sale.payment,
     );
   };
 
@@ -148,7 +148,9 @@ function VentasPage() {
   const totalSalesCount = filteredSales.length;
   const totalPages = Math.max(1, Math.ceil(totalSalesCount / pageSize));
   const activeFilterCount =
-    (statusFilter !== "Todos" ? 1 : 0) + (paymentFilter !== "Todos" ? 1 : 0) + (searchQuery ? 1 : 0);
+    (statusFilter !== "Todos" ? 1 : 0) +
+    (paymentFilter !== "Todos" ? 1 : 0) +
+    (searchQuery ? 1 : 0);
 
   // Ensure current page is valid when filters or pageSize change
   const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
@@ -306,11 +308,18 @@ function VentasPage() {
             {paginatedSales.map((s) => {
               const open = expandedSaleId === s.id;
               const d = new Date(s.createdAt);
-              const dateStr = d.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "2-digit" });
+              const dateStr = d.toLocaleDateString("es-MX", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "2-digit",
+              });
               const timeStr = d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
 
               return (
-                <li key={s.id} className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition">
+                <li
+                  key={s.id}
+                  className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm transition"
+                >
                   <button
                     type="button"
                     className="flex w-full items-center gap-3 px-4 py-3.5 text-left cursor-pointer"
@@ -318,27 +327,46 @@ function VentasPage() {
                   >
                     <div
                       className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
-                        s.channel === "PDV" ? "bg-primary-light text-primary" : "bg-[#F5F3FF] text-[#6D28D9]"
+                        s.channel === "PDV"
+                          ? "bg-primary-light text-primary"
+                          : "bg-[#F5F3FF] text-[#6D28D9]"
                       }`}
                     >
-                      {s.channel === "PDV" ? <Store className="h-5 w-5" /> : <User className="h-5 w-5" />}
+                      {s.channel === "PDV" ? (
+                        <Store className="h-5 w-5" />
+                      ) : (
+                        <User className="h-5 w-5" />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="truncate text-[14px] font-bold text-text-primary">{s.clientName}</p>
+                      <p className="truncate text-[14px] font-bold text-text-primary">
+                        {s.clientName}
+                      </p>
                       <p className="text-[12px] text-text-muted truncate">
                         {s.items
                           .map((i) => {
                             const list = [];
                             if (i.qty > 0) list.push(`${i.productName} ×${i.qty}`);
-                            if (i.returnQty && i.returnQty > 0) list.push(`[Cambio: ${i.productName} ×${i.returnQty}]`);
+                            if (i.returnQty && i.returnQty > 0)
+                              list.push(`[Cambio: ${i.productName} ×${i.returnQty}]`);
                             return list.join(" ");
                           })
                           .filter(Boolean)
                           .join(" · ")}
                       </p>
                       <p className="mt-0.5 text-[11px] text-text-muted">
-                        {dateStr} · {timeStr}
+                        Entregado {dateStr} · {timeStr}
                       </p>
+                      {s.paidAt && s.paidAt !== s.createdAt && (
+                        <p className="mt-0.5 text-[11px] font-medium text-primary">
+                          Cobrado{" "}
+                          {new Date(s.paidAt).toLocaleDateString("es-MX", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "2-digit",
+                          })}
+                        </p>
+                      )}
                     </div>
                     <div className="shrink-0 text-right flex flex-col items-end gap-1">
                       <p className="text-[14px] font-bold">{formatMXN(s.total)}</p>
@@ -352,7 +380,9 @@ function VentasPage() {
                         </span>
                       )}
                     </div>
-                    <ChevronDown className={`h-4 w-4 text-text-muted transition ml-1 ${open ? "rotate-180" : ""}`} />
+                    <ChevronDown
+                      className={`h-4 w-4 text-text-muted transition ml-1 ${open ? "rotate-180" : ""}`}
+                    />
                   </button>
 
                   {open && (
@@ -365,13 +395,16 @@ function VentasPage() {
                                 <span>
                                   {i.productName} <span className="text-text-muted">×{i.qty}</span>
                                 </span>
-                                <span className="font-semibold">{formatMXNc(i.unitPrice * i.qty)}</span>
+                                <span className="font-semibold">
+                                  {formatMXNc(i.unitPrice * i.qty)}
+                                </span>
                               </div>
                             )}
                             {(i.returnQty ?? 0) > 0 && (
                               <div className="flex justify-between text-[12px] text-warning font-medium">
                                 <span>
-                                  Cambio (Merma): {i.productName} <span className="opacity-70">×{i.returnQty}</span>
+                                  Cambio (Merma): {i.productName}{" "}
+                                  <span className="opacity-70">×{i.returnQty}</span>
                                 </span>
                                 <span>(Sin costo)</span>
                               </div>
@@ -436,20 +469,38 @@ function VentasPage() {
               <tbody className="divide-y divide-border/60">
                 {paginatedSales.map((s) => {
                   const d = new Date(s.createdAt);
-                  const dateStr = d.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" });
-                  const timeStr = d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+                  const dateStr = d.toLocaleDateString("es-MX", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                  });
+                  const timeStr = d.toLocaleTimeString("es-MX", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
 
                   return (
                     <tr key={s.id} className="hover:bg-gray-50/50 transition">
                       <td className="py-3.5 px-4 text-text-muted">
                         <div className="font-semibold text-text-primary">{dateStr}</div>
                         <div className="text-[11px] opacity-75">{timeStr}</div>
+                        {s.paidAt && s.paidAt !== s.createdAt && (
+                          <div className="mt-1 text-[10px] font-semibold text-primary">
+                            Cobrado{" "}
+                            {new Date(s.paidAt).toLocaleDateString("es-MX", {
+                              day: "2-digit",
+                              month: "2-digit",
+                            })}
+                          </div>
+                        )}
                       </td>
                       <td className="py-3.5 px-4 font-bold text-text-primary">{s.clientName}</td>
                       <td className="py-3.5 px-4">
                         <span
                           className={`rounded-full text-[10px] font-bold px-2 py-0.5 ${
-                            s.channel === "PDV" ? "bg-primary-light text-primary" : "bg-[#F5F3FF] text-[#6D28D9]"
+                            s.channel === "PDV"
+                              ? "bg-primary-light text-primary"
+                              : "bg-[#F5F3FF] text-[#6D28D9]"
                           }`}
                         >
                           {s.channel}
@@ -485,7 +536,9 @@ function VentasPage() {
                           </span>
                         )}
                       </td>
-                      <td className="py-3.5 px-4 text-right font-bold text-text-primary">{formatMXN(s.total)}</td>
+                      <td className="py-3.5 px-4 text-right font-bold text-text-primary">
+                        {formatMXN(s.total)}
+                      </td>
                       <td className="py-3.5 px-4">
                         <div className="flex justify-end gap-1.5">
                           {s.status === "Pendiente" && (
@@ -516,8 +569,10 @@ function VentasPage() {
           <div className="flex flex-col gap-3 rounded-2xl border border-border bg-white p-3 text-xs text-text-muted shadow-card sm:flex-row sm:items-center sm:justify-between">
             <div>
               Mostrando <span className="font-bold text-text-primary">{startIndex + 1}</span> a{" "}
-              <span className="font-bold text-text-primary">{Math.min(endIndex, totalSalesCount)}</span> de{" "}
-              <span className="font-bold text-text-primary">{totalSalesCount}</span> ventas
+              <span className="font-bold text-text-primary">
+                {Math.min(endIndex, totalSalesCount)}
+              </span>{" "}
+              de <span className="font-bold text-text-primary">{totalSalesCount}</span> ventas
             </div>
             <Pager
               currentPage={validCurrentPage}
@@ -537,7 +592,17 @@ function VentasPage() {
               title="¡Cobro realizado con éxito!"
               description={
                 <span>
-                  Se registró el pago de <strong className="font-bold text-text-primary">{formatMXN(cobroSuccess.total)}</strong> para el cliente <strong className="font-bold text-text-primary">{cobroSuccess.clientName}</strong> mediante <strong className="font-bold text-text-primary">{cobroSuccess.paymentMethod}</strong>.
+                  Se registró el pago de{" "}
+                  <strong className="font-bold text-text-primary">
+                    {formatMXN(cobroSuccess.total)}
+                  </strong>{" "}
+                  para el cliente{" "}
+                  <strong className="font-bold text-text-primary">{cobroSuccess.clientName}</strong>{" "}
+                  mediante{" "}
+                  <strong className="font-bold text-text-primary">
+                    {cobroSuccess.paymentMethod}
+                  </strong>
+                  .
                 </span>
               }
               details={[
@@ -587,7 +652,9 @@ function VentasPage() {
                     </div>
                     <div className="border-t border-border pt-2 flex justify-between items-center text-sm">
                       <span className="text-text-muted font-medium">Monto Total:</span>
-                      <span className="text-base font-bold text-emerald-700">{formatMXN(saleToCobrar.total)}</span>
+                      <span className="text-base font-bold text-emerald-700">
+                        {formatMXN(saleToCobrar.total)}
+                      </span>
                     </div>
                   </div>
 

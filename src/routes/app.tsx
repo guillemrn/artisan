@@ -38,6 +38,7 @@ import {
   USER_NAME,
   formatMXN,
   formatMXNc,
+  getSalePaymentDate,
   type Sale,
   type PaymentMethod,
   type Product,
@@ -100,6 +101,16 @@ function startOfMonth(d: Date) {
 
 function startOfYear(d: Date) {
   return new Date(d.getFullYear(), 0, 1).getTime();
+}
+
+function isDateInPeriod(date: string | undefined, timeFilter: TimeFilter): boolean {
+  if (!date) return false;
+  const timestamp = new Date(date).getTime();
+  if (timeFilter === "Hoy") return timestamp >= startOfDay(new Date());
+  if (timeFilter === "Semana") return timestamp >= startOfWeek(new Date());
+  if (timeFilter === "Mes") return timestamp >= startOfMonth(new Date());
+  if (timeFilter === "Año") return timestamp >= startOfYear(new Date());
+  return true;
 }
 
 function Home() {
@@ -246,12 +257,12 @@ function Home() {
     activeFilterCount === 0
       ? "Hoy"
       : [
-        timeFilter,
-        productFilter !== "Todos" ? selectedProductLabel : null,
-        clientFilter !== "Todos" ? selectedClientLabel : null,
-      ]
-        .filter(Boolean)
-        .join(" · ");
+          timeFilter,
+          productFilter !== "Todos" ? selectedProductLabel : null,
+          clientFilter !== "Todos" ? selectedClientLabel : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
 
   useEffect(() => {
     if (!filtersOpen) return;
@@ -278,29 +289,37 @@ function Home() {
   }, [filtersOpen]);
 
   // 1. Filter Sales by Time
-  const timeFilteredSales = useMemo(() => {
-    const now = Date.now();
-    return sales.filter((s) => {
-      const t = new Date(s.createdAt).getTime();
-      if (timeFilter === "Hoy") return t >= startOfDay(new Date());
-      if (timeFilter === "Semana") return t >= startOfWeek(new Date());
-      if (timeFilter === "Mes") return t >= startOfMonth(new Date());
-      if (timeFilter === "Año") return t >= startOfYear(new Date());
-      return true; // "Todo"
-    });
+  const deliveryTimeFilteredSales = useMemo(() => {
+    return sales.filter((sale) => isDateInPeriod(sale.createdAt, timeFilter));
+  }, [sales, timeFilter]);
+
+  const paymentTimeFilteredSales = useMemo(() => {
+    return sales.filter((sale) => isDateInPeriod(getSalePaymentDate(sale), timeFilter));
   }, [sales, timeFilter]);
 
   // 2. Filter Sales by Client
   const clientFilteredSales = useMemo(() => {
-    if (clientFilter === "Todos") return timeFilteredSales;
-    return timeFilteredSales.filter((s) => s.clientId === clientFilter);
-  }, [timeFilteredSales, clientFilter]);
+    if (clientFilter === "Todos") return deliveryTimeFilteredSales;
+    return deliveryTimeFilteredSales.filter((s) => s.clientId === clientFilter);
+  }, [deliveryTimeFilteredSales, clientFilter]);
+
+  const paidClientFilteredSales = useMemo(() => {
+    if (clientFilter === "Todos") return paymentTimeFilteredSales;
+    return paymentTimeFilteredSales.filter((s) => s.clientId === clientFilter);
+  }, [paymentTimeFilteredSales, clientFilter]);
 
   // 3. Filter Sales by Product (Only matching items inside each sale)
   const fullyFilteredSales = useMemo(() => {
     if (productFilter === "Todos") return clientFilteredSales;
     return clientFilteredSales.filter((s) => s.items.some((i) => i.productId === productFilter));
   }, [clientFilteredSales, productFilter]);
+
+  const fullyFilteredPaidSales = useMemo(() => {
+    if (productFilter === "Todos") return paidClientFilteredSales;
+    return paidClientFilteredSales.filter((s) =>
+      s.items.some((i) => i.productId === productFilter),
+    );
+  }, [paidClientFilteredSales, productFilter]);
 
   // 4. Filter History Sales by Search and Status
   const historyFilteredSales = useMemo(() => {
@@ -322,19 +341,24 @@ function Home() {
     let returnsTotal = 0;
     const productQuantities: Record<string, number> = {};
 
-    fullyFilteredSales.forEach((s) => {
+    fullyFilteredPaidSales.forEach((s) => {
       s.items.forEach((item) => {
-        // If product filter is active, only sum metrics for this product
         if (productFilter === "Todos" || item.productId === productFilter) {
           const itemTotal = s.payment === "Cortesía" ? 0 : item.qty * item.unitPrice;
           const itemCost = item.qty * item.cost;
 
-          if (s.status === "Entregado") {
-            salesTotal += itemTotal;
-            costTotal += itemCost;
-          } else {
-            pendingSalesTotal += itemTotal;
-          }
+          salesTotal += itemTotal;
+          costTotal += itemCost;
+        }
+      });
+    });
+
+    fullyFilteredSales.forEach((s) => {
+      s.items.forEach((item) => {
+        if (productFilter === "Todos" || item.productId === productFilter) {
+          const itemTotal = s.payment === "Cortesía" ? 0 : item.qty * item.unitPrice;
+
+          if (s.status === "Pendiente") pendingSalesTotal += itemTotal;
 
           packagesTotal += item.qty;
           returnsTotal += item.returnQty ?? 0;
@@ -369,7 +393,7 @@ function Home() {
       topProduct,
       maxQty,
     };
-  }, [fullyFilteredSales, productFilter]);
+  }, [fullyFilteredSales, fullyFilteredPaidSales, productFilter]);
 
   // --- Product Economy Table calculations ---
   const productPerformance = useMemo(() => {
@@ -435,12 +459,14 @@ function Home() {
     const dailyMap: Record<string, number> = {};
 
     // Sort chronological order
-    const sortedSales = [...fullyFilteredSales].sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    const sortedSales = [...fullyFilteredPaidSales].sort(
+      (a, b) =>
+        new Date(getSalePaymentDate(a) ?? 0).getTime() -
+        new Date(getSalePaymentDate(b) ?? 0).getTime(),
     );
 
     sortedSales.forEach((s) => {
-      const dateKey = new Date(s.createdAt).toLocaleDateString("es-MX", {
+      const dateKey = new Date(getSalePaymentDate(s) ?? s.createdAt).toLocaleDateString("es-MX", {
         day: "2-digit",
         month: "2-digit",
       });
@@ -460,7 +486,7 @@ function Home() {
       fecha,
       Ventas: total,
     }));
-  }, [fullyFilteredSales, productFilter]);
+  }, [fullyFilteredPaidSales, productFilter]);
 
   const productChartData = useMemo(() => {
     return productPerformance
@@ -547,7 +573,7 @@ function Home() {
           <Kpi
             label="Ventas cobradas"
             value={formatMXN(kpiData.salesTotal)}
-            sub={`${fullyFilteredSales.filter((s) => s.status === "Entregado").length} cobradas`}
+            sub={`${fullyFilteredPaidSales.length} cobradas`}
             icon={<DollarSign className="h-4 w-4" />}
             accent="green"
           />
@@ -788,14 +814,24 @@ function Home() {
                         <td className="py-3 px-4 text-text-muted">
                           <div>{dateStr}</div>
                           <div className="text-[11px] opacity-75">{timeStr}</div>
+                          {s.paidAt && s.paidAt !== s.createdAt && (
+                            <div className="mt-1 text-[10px] font-semibold text-primary">
+                              Cobrado{" "}
+                              {new Date(s.paidAt).toLocaleDateString("es-MX", {
+                                day: "2-digit",
+                                month: "2-digit",
+                              })}
+                            </div>
+                          )}
                         </td>
                         <td className="py-3 px-4 font-bold text-text-primary">{s.clientName}</td>
                         <td className="py-3 px-4">
                           <span
-                            className={`rounded-full text-[10px] font-bold px-2 py-0.5 ${s.channel === "PDV"
-                              ? "bg-primary-light text-primary"
-                              : "bg-[#F5F3FF] text-[#6D28D9]"
-                              }`}
+                            className={`rounded-full text-[10px] font-bold px-2 py-0.5 ${
+                              s.channel === "PDV"
+                                ? "bg-primary-light text-primary"
+                                : "bg-[#F5F3FF] text-[#6D28D9]"
+                            }`}
                           >
                             {s.channel}
                           </span>
@@ -926,10 +962,11 @@ function Home() {
                       key={method}
                       type="button"
                       onClick={() => setSelectedPayment(method)}
-                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${selectedPayment === method
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border bg-white text-text-secondary hover:bg-gray-50"
-                        }`}
+                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${
+                        selectedPayment === method
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-white text-text-secondary hover:bg-gray-50"
+                      }`}
                     >
                       {method}
                     </button>
@@ -1046,10 +1083,10 @@ function Home() {
               details={
                 addStockSuccess.totalAdded > 0
                   ? [
-                    { label: "Piezas Agregadas", value: `+${addStockSuccess.totalAdded} u.` },
-                    { label: "Productos Actualizados", value: `${addStockSuccess.itemsCount}` },
-                    { label: "Estado Inventario", value: "Sincronizado" },
-                  ]
+                      { label: "Piezas Agregadas", value: `+${addStockSuccess.totalAdded} u.` },
+                      { label: "Productos Actualizados", value: `${addStockSuccess.itemsCount}` },
+                      { label: "Estado Inventario", value: "Sincronizado" },
+                    ]
                   : []
               }
               onDone={handleCloseAddStockModal}
@@ -1175,10 +1212,11 @@ function Kpi({
     },
   }[accent];
 
-  const className = `relative flex min-h-[108px] flex-col justify-between rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)] transition-all duration-200 ${onClick
-    ? "cursor-pointer select-none hover:-translate-y-0.5 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-    : ""
-    }`;
+  const className = `relative flex min-h-[108px] flex-col justify-between rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)] transition-all duration-200 ${
+    onClick
+      ? "cursor-pointer select-none hover:-translate-y-0.5 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+      : ""
+  }`;
 
   const content = (
     <>
@@ -1425,8 +1463,9 @@ function SaleCardItem({
         onClick={onToggle}
       >
         <div
-          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${s.channel === "PDV" ? "bg-primary-light text-primary" : "bg-[#F5F3FF] text-[#6D28D9]"
-            }`}
+          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
+            s.channel === "PDV" ? "bg-primary-light text-primary" : "bg-[#F5F3FF] text-[#6D28D9]"
+          }`}
         >
           {s.channel === "PDV" ? <Store className="h-5 w-5" /> : <User className="h-5 w-5" />}
         </div>
@@ -1601,10 +1640,11 @@ function CSVSheet({ onClose }: { onClose: () => void }) {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex-1 rounded-full py-1.5 text-[13px] font-semibold border transition ${tab === t.id
-                ? "bg-primary text-white border-primary"
-                : "bg-background text-text-secondary border-border hover:bg-muted"
-                }`}
+              className={`flex-1 rounded-full py-1.5 text-[13px] font-semibold border transition ${
+                tab === t.id
+                  ? "bg-primary text-white border-primary"
+                  : "bg-background text-text-secondary border-border hover:bg-muted"
+              }`}
             >
               {t.label}
             </button>
@@ -1733,8 +1773,9 @@ function InfoBox({
 }) {
   return (
     <div
-      className={`rounded-xl px-3.5 py-3 text-[12px] leading-relaxed ${tone === "green" ? "bg-primary-light text-primary/80" : "bg-muted text-text-muted"
-        }`}
+      className={`rounded-xl px-3.5 py-3 text-[12px] leading-relaxed ${
+        tone === "green" ? "bg-primary-light text-primary/80" : "bg-muted text-text-muted"
+      }`}
     >
       {children}
     </div>
@@ -1757,14 +1798,16 @@ function ActionRow({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 rounded-xl px-4 py-3.5 border transition ${variant === "primary"
-        ? "bg-primary text-white border-primary hover:bg-emerald-700"
-        : "bg-background text-text-primary border-border hover:bg-muted"
-        }`}
+      className={`w-full flex items-center gap-3 rounded-xl px-4 py-3.5 border transition ${
+        variant === "primary"
+          ? "bg-primary text-white border-primary hover:bg-emerald-700"
+          : "bg-background text-text-primary border-border hover:bg-muted"
+      }`}
     >
       <span
-        className={`h-8 w-8 rounded-lg grid place-items-center shrink-0 ${variant === "primary" ? "bg-white/20" : "bg-primary-light text-primary"
-          }`}
+        className={`h-8 w-8 rounded-lg grid place-items-center shrink-0 ${
+          variant === "primary" ? "bg-white/20" : "bg-primary-light text-primary"
+        }`}
       >
         {icon}
       </span>
@@ -1820,8 +1863,9 @@ function OnboardingModal({ onClose, onRemindLater }: OnboardingModalProps) {
             {[1, 2, 3].map((n) => (
               <div
                 key={n}
-                className={`h-1.5 rounded-full transition-all duration-300 ${n === step ? "w-6 bg-primary" : "w-1.5 bg-border"
-                  }`}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  n === step ? "w-6 bg-primary" : "w-1.5 bg-border"
+                }`}
               />
             ))}
           </div>

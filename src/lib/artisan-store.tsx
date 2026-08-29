@@ -203,12 +203,12 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         queryClient.invalidateQueries({ queryKey });
       },
       updateSaleStatus: async (id, status, payment) => {
-        const now = new Date().toISOString();
+        const paidAt = status === "Entregado" ? new Date().toISOString() : undefined;
 
         if (isDemo) {
           persist({
             sales: sales.map((sale) =>
-              sale.id === id ? { ...sale, status, payment, createdAt: now } : sale,
+              sale.id === id ? { ...sale, status, payment, paidAt } : sale,
             ),
             clients,
             products,
@@ -220,7 +220,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
 
         const { error } = await supabase
           .from("sales")
-          .update({ status, payment, created_at: now })
+          .update({ status, payment, paid_at: paidAt ?? null })
           .eq("id", id)
           .eq("user_id", session.user.id);
 
@@ -231,7 +231,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
 
         persist({
           sales: sales.map((sale) =>
-            sale.id === id ? { ...sale, status, payment, createdAt: now } : sale,
+            sale.id === id ? { ...sale, status, payment, paidAt } : sale,
           ),
           clients,
           products,

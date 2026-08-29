@@ -82,6 +82,8 @@ function NuevaVenta() {
         candidateId = `${prefix}-${Date.now().toString().slice(-6)}`;
       }
       const id = candidateId;
+      const createdAt = new Date().toISOString();
+      const isPaid = draft.payment !== "Pendiente" && draft.payment !== "Consignación";
 
       await addSale({
         id,
@@ -93,15 +95,18 @@ function NuevaVenta() {
         cost,
         profit,
         payment: draft.payment,
-        status: (draft.payment === "Pendiente" || draft.payment === "Consignación") ? "Pendiente" : "Entregado",
-        createdAt: new Date().toISOString(),
+        status: isPaid ? "Entregado" : "Pendiente",
+        createdAt,
+        paidAt: isPaid ? createdAt : undefined,
       });
       resetDraft();
       navigate({ to: "/ticket/$saleId", params: { saleId: id } });
     } catch (error) {
       console.error(error);
       setIsSubmitting(false);
-      setSubmitError(error instanceof Error ? error.message : "Error desconocido al registrar la venta");
+      setSubmitError(
+        error instanceof Error ? error.message : "Error desconocido al registrar la venta",
+      );
     }
   };
 
@@ -110,7 +115,9 @@ function NuevaVenta() {
       <div className="page-shell flex flex-col items-center justify-center min-h-[60vh] text-center md:px-0 md:pt-8">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mb-4" />
         <h2 className="text-lg font-bold text-text-primary">Registrando venta...</h2>
-        <p className="text-sm text-text-muted mt-1">Guardando información y actualizando inventario.</p>
+        <p className="text-sm text-text-muted mt-1">
+          Guardando información y actualizando inventario.
+        </p>
       </div>
     );
   }
@@ -176,7 +183,7 @@ function NuevaVenta() {
           setReturnQty={(id, qty) =>
             setDraft((d) => ({
               ...d,
-              returns: { ...d.returns || {}, [id]: Math.max(0, qty) },
+              returns: { ...(d.returns || {}), [id]: Math.max(0, qty) },
             }))
           }
         />
@@ -501,11 +508,17 @@ function StepConfirm({
                   </td>
                   <td className="text-center py-2 text-[12px] leading-tight">
                     {i.qty > 0 && <div className="font-bold text-emerald-600">Venta: {i.qty}</div>}
-                    {(i.returnQty ?? 0) > 0 && <div className="font-bold text-amber-600">Cambio: {i.returnQty}</div>}
+                    {(i.returnQty ?? 0) > 0 && (
+                      <div className="font-bold text-amber-600">Cambio: {i.returnQty}</div>
+                    )}
                   </td>
                   <td className="text-right font-bold py-2">
-                    {i.qty > 0 && <div className="text-emerald-600">+{formatMXN(itemSubtotal)}</div>}
-                    {(i.returnQty ?? 0) > 0 && <div className="text-amber-600">-{formatMXN(itemReturnCredit)}</div>}
+                    {i.qty > 0 && (
+                      <div className="text-emerald-600">+{formatMXN(itemSubtotal)}</div>
+                    )}
+                    {(i.returnQty ?? 0) > 0 && (
+                      <div className="text-amber-600">-{formatMXN(itemReturnCredit)}</div>
+                    )}
                   </td>
                 </tr>
               );
@@ -517,7 +530,11 @@ function StepConfirm({
           {/* Internal Business Metrics */}
           <div className="bg-background rounded-2xl p-3 mb-2 space-y-1 border border-black/[0.04] text-[12px]">
             <Row label="Costo de producción" value={formatMXN(cost)} muted />
-            <Row label="Ganancia estimada" value={formatMXN(profit)} accent="text-emerald-600 font-bold" />
+            <Row
+              label="Ganancia estimada"
+              value={formatMXN(profit)}
+              accent="text-emerald-600 font-bold"
+            />
             <Row label="Margen estimado" value={`${margin}%`} muted />
           </div>
 
@@ -541,9 +558,19 @@ function StepConfirm({
       </div>
 
       <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2.5">MÉTODO DE PAGO</p>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2.5">
+          MÉTODO DE PAGO
+        </p>
         <div className="flex flex-wrap gap-2">
-          {(["Efectivo", "Transferencia", "Pendiente", "Consignación", "Cortesía"] as PaymentMethod[]).map((p) => (
+          {(
+            [
+              "Efectivo",
+              "Transferencia",
+              "Pendiente",
+              "Consignación",
+              "Cortesía",
+            ] as PaymentMethod[]
+          ).map((p) => (
             <button
               key={p}
               onClick={() => setPayment(p)}

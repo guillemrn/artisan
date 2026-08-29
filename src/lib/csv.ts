@@ -1,4 +1,4 @@
-import type { Sale, Client, Product } from "./artisan-data";
+import { getSalePaymentDate, type Sale, type Client, type Product } from "./artisan-data";
 
 // ─── Generic helpers ──────────────────────────────────────────────────────────
 
@@ -65,7 +65,8 @@ export function downloadCSV(filename: string, content: string) {
 
 const SALE_HEADERS = [
   "id",
-  "fecha",
+  "fecha_entrega",
+  "fecha_cobro",
   "cliente",
   "canal",
   "productos",
@@ -79,7 +80,10 @@ const SALE_HEADERS = [
 export function exportSalesCSV(sales: Sale[]) {
   const rows = sales.map((s) => ({
     id: s.id,
-    fecha: new Date(s.createdAt).toLocaleString("es-MX"),
+    fecha_entrega: new Date(s.createdAt).toLocaleString("es-MX"),
+    fecha_cobro: getSalePaymentDate(s)
+      ? new Date(getSalePaymentDate(s)!).toLocaleString("es-MX")
+      : "",
     cliente: s.clientName,
     canal: s.channel,
     productos: s.items.map((i) => `${i.productName} ×${i.qty}`).join(" | "),
