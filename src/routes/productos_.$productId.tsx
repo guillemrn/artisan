@@ -20,6 +20,7 @@ import {
 import { useMemo, useState } from "react";
 import { ModalSuccessState } from "@/components/ui/ModalSuccessState";
 import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
+import { getSaleItemCost, getSaleItemRevenue } from "@/lib/artisan-sale-calculations";
 
 export const Route = createFileRoute("/productos_/$productId")({
   head: () => ({ meta: [{ title: "Detalle Producto — Artisan" }] }),
@@ -102,8 +103,8 @@ function ProductDetail() {
     sales.forEach((s) => {
       s.items.forEach((item) => {
         if (item.productId === product.id) {
-          const itemTotal = item.qty * item.unitPrice;
-          const itemCost = item.qty * item.cost;
+          const itemTotal = getSaleItemRevenue(item, s.payment);
+          const itemCost = getSaleItemCost(item);
 
           totalSoldQty += item.qty;
           totalSalesAmount += itemTotal;

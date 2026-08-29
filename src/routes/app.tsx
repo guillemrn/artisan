@@ -76,6 +76,10 @@ import {
   parseProductsCSV,
 } from "@/lib/csv";
 import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
+import {
+  getSaleItemCost,
+  getSaleItemRevenue,
+} from "@/lib/artisan-sale-calculations";
 
 export const Route = createFileRoute("/app")({
   head: () => ({ meta: [{ title: "Panel — Artisan" }] }),
@@ -376,8 +380,8 @@ function Home() {
     fullyFilteredPaidSales.forEach((s) => {
       s.items.forEach((item) => {
         if (productFilter === "Todos" || item.productId === productFilter) {
-          const itemTotal = s.payment === "Cortesía" ? 0 : item.qty * item.unitPrice;
-          const itemCost = item.qty * item.cost;
+          const itemTotal = getSaleItemRevenue(item, s.payment);
+          const itemCost = getSaleItemCost(item);
 
           salesTotal += itemTotal;
           costTotal += itemCost;
@@ -388,7 +392,7 @@ function Home() {
     fullyFilteredSales.forEach((s) => {
       s.items.forEach((item) => {
         if (productFilter === "Todos" || item.productId === productFilter) {
-          const itemTotal = s.payment === "Cortesía" ? 0 : item.qty * item.unitPrice;
+          const itemTotal = getSaleItemRevenue(item, s.payment);
 
           if (s.status === "Pendiente") pendingSalesTotal += itemTotal;
 
@@ -438,8 +442,8 @@ function Home() {
       clientFilteredSales.forEach((s) => {
         s.items.forEach((item) => {
           if (item.productId === prod.id) {
-            salesAmount += s.payment === "Cortesía" ? 0 : item.qty * item.unitPrice;
-            costAmount += item.qty * item.cost;
+            salesAmount += getSaleItemRevenue(item, s.payment);
+            costAmount += getSaleItemCost(item);
             qtySold += item.qty;
           }
         });
@@ -475,7 +479,7 @@ function Home() {
             total: 0,
           };
           current.packages += item.qty;
-          current.total += sale.payment === "Cortesía" ? 0 : item.qty * item.unitPrice;
+          current.total += getSaleItemRevenue(item, sale.payment);
           map[sale.clientId] = current;
         }
       });
@@ -507,7 +511,7 @@ function Home() {
       let val = 0;
       s.items.forEach((item) => {
         if (productFilter === "Todos" || item.productId === productFilter) {
-          val += s.payment === "Cortesía" ? 0 : item.qty * item.unitPrice;
+          val += getSaleItemRevenue(item, s.payment);
         }
       });
 

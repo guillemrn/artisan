@@ -12,6 +12,7 @@ import {
 import { buildSaleItems, useArtisan } from "@/lib/artisan-store";
 import { useAuth } from "@/core/auth/auth-context";
 import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
+import { calculateSaleFinancials } from "@/lib/artisan-sale-calculations";
 
 export const Route = createFileRoute("/nueva-venta")({
   head: () => ({ meta: [{ title: "Nueva venta — Artisan" }] }),
@@ -30,12 +31,8 @@ function NuevaVenta() {
     () => buildSaleItems(draft.quantities, draft.returns || {}, draft.priceMode, products),
     [draft.quantities, draft.returns, draft.priceMode, products],
   );
-  const subtotal = items.reduce((s, i) => s + i.unitPrice * i.qty, 0);
   const returnsTotal = items.reduce((s, i) => s + i.unitPrice * (i.returnQty ?? 0), 0);
-  const netTotal = draft.payment === "Cortesía" ? 0 : subtotal; // Cortesías charge 0, but track cost
-  const cost = items.reduce((s, i) => s + i.cost * i.qty, 0);
-  const profit = netTotal - cost;
-  const margin = netTotal > 0 ? Math.round((profit / netTotal) * 100) : 0;
+  const { total: netTotal, cost, profit, margin } = calculateSaleFinancials(items, draft.payment);
 
   const canContinue1 = !!draft.client;
   const canContinue2 = items.length > 0;
@@ -221,7 +218,7 @@ function NuevaVenta() {
             <div className="flex-1">
               <p className="text-[11px] text-text-muted">Total Venta</p>
               <p className="text-[16px] font-bold">
-                {formatMXN(subtotal)}
+                {formatMXN(netTotal)}
                 {returnsTotal > 0 && (
                   <span className="text-[11px] font-medium text-warning ml-1.5">
                     ({items.reduce((acc, x) => acc + (x.returnQty ?? 0), 0)} cambios)
@@ -499,7 +496,6 @@ function StepConfirm({
           <tbody>
             {items.map((i) => {
               const itemSubtotal = i.qty * i.unitPrice;
-              const itemReturnCredit = (i.returnQty ?? 0) * i.unitPrice;
               return (
                 <tr key={i.productName} className="border-t border-border/80">
                   <td className="py-2">
@@ -517,7 +513,7 @@ function StepConfirm({
                       <div className="text-emerald-600">+{formatMXN(itemSubtotal)}</div>
                     )}
                     {(i.returnQty ?? 0) > 0 && (
-                      <div className="text-amber-600">-{formatMXN(itemReturnCredit)}</div>
+                      <div className="text-amber-600">Sin cobro</div>
                     )}
                   </td>
                 </tr>
