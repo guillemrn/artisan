@@ -136,6 +136,8 @@ function Home() {
   // States for Cobrar Confirmation & Pending Sales Modals
   const [saleToCobrar, setSaleToCobrar] = useState<Sale | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>("Efectivo");
+  const [isCobrando, setIsCobrando] = useState(false);
+  const [cobroError, setCobroError] = useState<string | null>(null);
   const [isPendingSalesModalOpen, setIsPendingSalesModalOpen] = useState(false);
   const [modalOpenId, setModalOpenId] = useState<string | null>(null);
 
@@ -189,9 +191,39 @@ function Home() {
 
   const handleOpenCobrarModal = (sale: Sale) => {
     setSaleToCobrar(sale);
+    setCobroError(null);
+    setIsCobrando(false);
     setSelectedPayment(
       ["Pendiente", "Consignación"].includes(sale.payment) ? "Efectivo" : sale.payment,
     );
+  };
+
+  const handleCloseCobrarModal = () => {
+    if (isCobrando) return;
+    setSaleToCobrar(null);
+    setCobroError(null);
+  };
+
+  const handleConfirmCobro = async () => {
+    if (!saleToCobrar || isCobrando) return;
+
+    setIsCobrando(true);
+    setCobroError(null);
+
+    try {
+      await updateSaleStatus(saleToCobrar.id, "Entregado", selectedPayment);
+      toast.success("Venta marcada como cobrada correctamente");
+      setSaleToCobrar(null);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo registrar el cobro. Inténtalo nuevamente.";
+      setCobroError(message);
+      toast.error("No se pudo registrar el cobro");
+    } finally {
+      setIsCobrando(false);
+    }
   };
 
   const allPendingSales = useMemo(() => {
@@ -908,7 +940,10 @@ function Home() {
       )}
 
       {/* Modal 1: Confirmation Modal for Cobrar */}
-      <Dialog open={!!saleToCobrar} onOpenChange={(open) => !open && setSaleToCobrar(null)}>
+      <Dialog
+        open={!!saleToCobrar}
+        onOpenChange={(open) => !open && handleCloseCobrarModal()}
+      >
         <DialogContent className="max-w-md rounded-2xl p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-text-primary flex items-center gap-2">
@@ -961,12 +996,13 @@ function Home() {
                     <button
                       key={method}
                       type="button"
+                      disabled={isCobrando}
                       onClick={() => setSelectedPayment(method)}
                       className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${
                         selectedPayment === method
                           ? "border-primary bg-primary/10 text-primary"
                           : "border-border bg-white text-text-secondary hover:bg-gray-50"
-                      }`}
+                      } disabled:opacity-60`}
                     >
                       {method}
                     </button>
@@ -974,25 +1010,41 @@ function Home() {
                 </div>
               </div>
 
+              {cobroError && (
+                <div
+                  role="alert"
+                  className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-xs font-medium text-red-700"
+                >
+                  {cobroError}
+                </div>
+              )}
+
               <div className="flex gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setSaleToCobrar(null)}
-                  className="flex-1 py-2.5 rounded-xl border border-border text-xs font-semibold text-text-secondary hover:bg-gray-100 transition cursor-pointer"
+                  disabled={isCobrando}
+                  onClick={handleCloseCobrarModal}
+                  className="flex-1 py-2.5 rounded-xl border border-border text-xs font-semibold text-text-secondary hover:bg-gray-100 transition cursor-pointer disabled:opacity-60"
                 >
                   Cancelar
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    updateSaleStatus(saleToCobrar.id, "Entregado", selectedPayment);
-                    toast.success("Venta marcada como cobrada correctamente");
-                    setSaleToCobrar(null);
-                  }}
-                  className="flex-1 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-[#1f523b] transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                  disabled={isCobrando}
+                  onClick={handleConfirmCobro}
+                  className="flex-1 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-[#1f523b] transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-80"
                 >
-                  <CheckCircle2 className="h-4 w-4" />
-                  Confirmar Cobro
+                  {isCobrando ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Procesando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" />
+                      Confirmar Cobro
+                    </>
+                  )}
                 </button>
               </div>
             </div>

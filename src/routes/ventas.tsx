@@ -54,6 +54,7 @@ function VentasPage() {
   const [saleToCobrar, setSaleToCobrar] = useState<Sale | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>("Efectivo");
   const [isCobrando, setIsCobrando] = useState(false);
+  const [cobroError, setCobroError] = useState<string | null>(null);
   const [cobroSuccess, setCobroSuccess] = useState<{
     saleId: string;
     clientName: string;
@@ -64,6 +65,7 @@ function VentasPage() {
   const handleOpenCobrarModal = (sale: Sale) => {
     setSaleToCobrar(sale);
     setCobroSuccess(null);
+    setCobroError(null);
     setIsCobrando(false);
     setSelectedPayment(
       ["Pendiente", "Consignación"].includes(sale.payment) ? "Efectivo" : sale.payment,
@@ -73,17 +75,18 @@ function VentasPage() {
   const handleCloseCobrarModal = () => {
     setSaleToCobrar(null);
     setCobroSuccess(null);
+    setCobroError(null);
     setIsCobrando(false);
   };
 
-  const handleConfirmCobro = () => {
+  const handleConfirmCobro = async () => {
     if (!saleToCobrar || isCobrando) return;
 
     setIsCobrando(true);
+    setCobroError(null);
 
-    setTimeout(() => {
-      updateSaleStatus(saleToCobrar.id, "Entregado", selectedPayment);
-      setIsCobrando(false);
+    try {
+      await updateSaleStatus(saleToCobrar.id, "Entregado", selectedPayment);
       setCobroSuccess({
         saleId: saleToCobrar.id,
         clientName: saleToCobrar.clientName,
@@ -91,7 +94,16 @@ function VentasPage() {
         paymentMethod: selectedPayment,
       });
       toast.success("Venta marcada como cobrada correctamente");
-    }, 600);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo registrar el cobro. Inténtalo nuevamente.";
+      setCobroError(message);
+      toast.error("No se pudo registrar el cobro");
+    } finally {
+      setIsCobrando(false);
+    }
   };
 
   // 1. Filter and sort sales
@@ -584,7 +596,10 @@ function VentasPage() {
       )}
 
       {/* Confirmation Modal for Cobrar */}
-      <Dialog open={!!saleToCobrar} onOpenChange={(open) => !open && handleCloseCobrarModal()}>
+      <Dialog
+        open={!!saleToCobrar}
+        onOpenChange={(open) => !open && !isCobrando && handleCloseCobrarModal()}
+      >
         <DialogContent className="max-w-md rounded-2xl p-6">
           {cobroSuccess ? (
             <ModalSuccessState
@@ -680,6 +695,15 @@ function VentasPage() {
                       ))}
                     </div>
                   </div>
+
+                  {cobroError && (
+                    <div
+                      role="alert"
+                      className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-xs font-medium text-red-700"
+                    >
+                      {cobroError}
+                    </div>
+                  )}
 
                   <div className="flex gap-2 pt-2">
                     <button
