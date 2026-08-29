@@ -124,13 +124,7 @@ export async function fetchArtisanData(expectedUserId?: string): Promise<Artisan
   const salesMap = new Map<string, Sale>();
 
   dbSales.forEach((s) => {
-    const dbItems = (s.items as any[]) ?? [];
-    const actualPayment = dbItems[0]?._paymentMethod || s.payment;
-
-    const cleanedItems: SaleItem[] = dbItems.map((item: any) => {
-      const { _paymentMethod, ...cleanItem } = item;
-      return cleanItem as SaleItem;
-    });
+    const dbItems = ((s.items as SaleItem[]) ?? []) as SaleItem[];
 
     const normalizedCreatedAt = normalizeIsoDate(s.created_at);
     const normalizedPaidAt = s.paid_at ? normalizeIsoDate(s.paid_at) : undefined;
@@ -140,11 +134,11 @@ export async function fetchArtisanData(expectedUserId?: string): Promise<Artisan
       clientId: s.client_id,
       clientName: s.client_name,
       channel: s.channel as "PDV" | "Público",
-      items: cleanedItems,
+      items: dbItems,
       total: Number(s.total),
       cost: Number(s.cost),
       profit: Number(s.profit),
-      payment: actualPayment as PaymentMethod,
+      payment: s.payment as PaymentMethod,
       status: s.status as "Pendiente" | "Entregado",
       createdAt: normalizedCreatedAt,
       paidAt: normalizedPaidAt,
