@@ -13,9 +13,11 @@ import {
 import {
   artisanQueryKeys,
   fetchArtisanData,
+  mapDatabaseSale,
   saveArtisanData,
   type ArtisanData,
 } from "./artisan-persistence";
+import { buildRegisterSalePayload } from "./artisan-sale-registration";
 
 import { useAuth } from "@/core/auth/auth-context";
 import { supabase } from "@/core/supabase/client";
@@ -175,31 +177,28 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
 
         await requireActiveSession();
 
-        const { error: saleError } = await supabase.rpc("register_sale", {
-          p_sale_id: s.id,
-          p_client_id: s.clientId,
-          p_client_name: s.clientName,
-          p_channel: s.channel,
-          p_items: s.items,
-          p_total: s.total,
-          p_cost: s.cost,
-          p_profit: s.profit,
-          p_payment: s.payment,
-          p_status: s.status,
-          p_created_at: s.createdAt,
-        });
+        const { data: registeredRow, error: saleError } = await supabase.rpc(
+          "register_sale",
+          buildRegisterSalePayload(s),
+        );
 
         if (saleError) {
           console.error("Error registering sale transaction:", saleError);
           throw new Error(`Error al registrar la venta: ${saleError.message}`);
         }
 
+        const row = Array.isArray(registeredRow) ? registeredRow[0] : registeredRow;
+        if (!row) {
+          throw new Error("Supabase no devolvió la venta registrada.");
+        }
+        const registeredSale = mapDatabaseSale(row);
+
         persist({
-          sales: [s, ...sales],
+          sales: [registeredSale, ...sales],
           clients: nextClients,
           products: nextProducts,
         });
-        setLastSaleId(s.id);
+        setLastSaleId(registeredSale.id);
         queryClient.invalidateQueries({ queryKey });
       },
       updateSaleStatus: async (id, status, payment) => {

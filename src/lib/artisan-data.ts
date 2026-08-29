@@ -16,6 +16,7 @@ export type Client = {
 
 export type PaymentMethod =
   "Efectivo" | "Transferencia" | "Pendiente" | "Consignación" | "Cortesía";
+export type PriceMode = "distributor" | "public";
 
 export type SaleItem = {
   productId: string;
@@ -39,6 +40,7 @@ export type Sale = {
   status: "Pendiente" | "Entregado";
   createdAt: string; // ISO
   paidAt?: string; // ISO; when payment was actually received
+  priceMode?: PriceMode;
 };
 
 export function getSalePaymentDate(sale: Sale): string | undefined {

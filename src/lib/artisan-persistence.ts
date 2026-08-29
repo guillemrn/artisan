@@ -55,6 +55,43 @@ export function saveArtisanData(data: ArtisanData): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
+type DatabaseSale = {
+  id: string;
+  client_id: string;
+  client_name: string;
+  channel: string;
+  items: unknown;
+  total: number | string;
+  cost: number | string;
+  profit: number | string;
+  payment: string;
+  status: string;
+  created_at: string;
+  paid_at?: string | null;
+  price_mode?: string | null;
+};
+
+export function mapDatabaseSale(sale: DatabaseSale): Sale {
+  return {
+    id: sale.id,
+    clientId: sale.client_id,
+    clientName: sale.client_name,
+    channel: sale.channel as "PDV" | "Público",
+    items: (sale.items as SaleItem[]) ?? [],
+    total: Number(sale.total),
+    cost: Number(sale.cost),
+    profit: Number(sale.profit),
+    payment: sale.payment as PaymentMethod,
+    status: sale.status as "Pendiente" | "Entregado",
+    createdAt: normalizeIsoDate(sale.created_at),
+    paidAt: sale.paid_at ? normalizeIsoDate(sale.paid_at) : undefined,
+    priceMode:
+      sale.price_mode === "distributor" || sale.price_mode === "public"
+        ? sale.price_mode
+        : undefined,
+  };
+}
+
 export async function fetchArtisanData(expectedUserId?: string): Promise<ArtisanData> {
   const {
     data: { session },
@@ -124,25 +161,7 @@ export async function fetchArtisanData(expectedUserId?: string): Promise<Artisan
   const salesMap = new Map<string, Sale>();
 
   dbSales.forEach((s) => {
-    const dbItems = ((s.items as SaleItem[]) ?? []) as SaleItem[];
-
-    const normalizedCreatedAt = normalizeIsoDate(s.created_at);
-    const normalizedPaidAt = s.paid_at ? normalizeIsoDate(s.paid_at) : undefined;
-
-    const sale: Sale = {
-      id: s.id,
-      clientId: s.client_id,
-      clientName: s.client_name,
-      channel: s.channel as "PDV" | "Público",
-      items: dbItems,
-      total: Number(s.total),
-      cost: Number(s.cost),
-      profit: Number(s.profit),
-      payment: s.payment as PaymentMethod,
-      status: s.status as "Pendiente" | "Entregado",
-      createdAt: normalizedCreatedAt,
-      paidAt: normalizedPaidAt,
-    };
+    const sale = mapDatabaseSale(s as DatabaseSale);
 
     salesMap.set(sale.id, sale);
   });
