@@ -1,6 +1,8 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/core/supabase/client";
+import { clearArtisanCache } from "@/lib/artisan-query-cache";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,7 +23,7 @@ type AuthCtx = {
       phone?: string;
       business_name: string;
       business_type: string;
-    }
+    },
   ) => Promise<{ error: Error | null; requiresEmailConfirmation: boolean }>;
   requestPasswordReset: (email: string) => Promise<{ error: Error | null }>;
   updatePassword: (password: string) => Promise<{ error: Error | null }>;
@@ -61,9 +63,11 @@ const DEMO_USER: User = {
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const activeUserId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!HAS_SUPABASE) {
@@ -78,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .getSession()
       .then(({ data }) => {
         if (!isMounted) return;
+        activeUserId.current = data.session?.user.id ?? null;
         setSession(data.session);
         setUser(data.session?.user ?? null);
         setLoading(false);
@@ -89,6 +94,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       if (!isMounted) return;
+      const nextUserId = newSession?.user.id ?? null;
+      if (activeUserId.current && activeUserId.current !== nextUserId) {
+        clearArtisanCache(queryClient);
+      }
+      activeUserId.current = nextUserId;
       setSession(newSession);
       setUser(newSession?.user ?? null);
     });
@@ -103,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(timer);
       listener.subscription.unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
   const signInWithGoogle = async () => {
     if (!HAS_SUPABASE) {
@@ -145,7 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       phone?: string;
       business_name: string;
       business_type: string;
-    }
+    },
   ) => {
     if (!HAS_SUPABASE) {
       return {
@@ -194,10 +204,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     if (!HAS_SUPABASE) {
+      clearArtisanCache(queryClient);
       setUser(null);
       return;
     }
     await supabase.auth.signOut();
+    clearArtisanCache(queryClient);
+    activeUserId.current = null;
     setUser(null);
     setSession(null);
   };

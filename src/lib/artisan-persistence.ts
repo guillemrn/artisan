@@ -9,6 +9,7 @@ import {
   type SaleItem,
   type PaymentMethod,
 } from "./artisan-data";
+export { artisanQueryKeys } from "./artisan-query-cache";
 
 const STORAGE_KEY = "artisan-data-v1";
 
@@ -54,7 +55,7 @@ export function saveArtisanData(data: ArtisanData): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-export async function fetchArtisanData(): Promise<ArtisanData> {
+export async function fetchArtisanData(expectedUserId?: string): Promise<ArtisanData> {
   const {
     data: { session },
     error: sessionError,
@@ -64,9 +65,16 @@ export async function fetchArtisanData(): Promise<ArtisanData> {
   }
 
   if (!session) {
+    if (expectedUserId) {
+      throw new Error("La sesión cambió mientras se cargaban los datos. Vuelve a intentarlo.");
+    }
     return loadArtisanData();
   }
   const userId = session.user.id;
+
+  if (expectedUserId && userId !== expectedUserId) {
+    throw new Error("La sesión cambió mientras se cargaban los datos. Vuelve a intentarlo.");
+  }
 
   // Fetch only the signed-in user's business data. RLS should enforce the same rule server-side.
   const [productsRes, clientsRes, salesRes] = await Promise.all([
@@ -149,8 +157,3 @@ export async function fetchArtisanData(): Promise<ArtisanData> {
 
   return { products, clients, sales };
 }
-
-export const artisanQueryKeys = {
-  all: ["artisan"] as const,
-  data: () => [...artisanQueryKeys.all, "data"] as const,
-};

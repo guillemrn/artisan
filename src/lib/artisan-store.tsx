@@ -91,11 +91,17 @@ async function requireActiveSession() {
 
 export function ArtisanProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const { isDemo } = useAuth();
+  const { isDemo, user } = useAuth();
+  const cacheOwnerId = isDemo ? "demo" : user?.id;
+  const queryKey = useMemo(
+    () => artisanQueryKeys.data(cacheOwnerId ?? "signed-out"),
+    [cacheOwnerId],
+  );
 
   const { data, isLoading, error } = useQuery({
-    queryKey: artisanQueryKeys.data(),
-    queryFn: fetchArtisanData,
+    queryKey,
+    queryFn: () => fetchArtisanData(isDemo ? undefined : cacheOwnerId),
+    enabled: isDemo || Boolean(cacheOwnerId),
     staleTime: Infinity,
     retry: 1,
   });
@@ -103,14 +109,15 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
   const sales = data?.sales ?? (isDemo ? SEED_SALES : EMPTY_SALES);
   const clients = data?.clients ?? (isDemo ? CLIENTS : EMPTY_CLIENTS);
   const products = data?.products ?? (isDemo ? PRODUCTS : EMPTY_PRODUCTS);
-  const loadError = error instanceof Error ? error.message : error ? "No se pudieron cargar los datos." : null;
+  const loadError =
+    error instanceof Error ? error.message : error ? "No se pudieron cargar los datos." : null;
 
   const [lastSaleId, setLastSaleId] = useState<string | null>(null);
   const [draft, setDraftState] = useState<DraftSale>(emptyDraft());
 
   const persist = useCallback(
     (next: ArtisanData) => {
-      queryClient.setQueryData<ArtisanData>(artisanQueryKeys.data(), (old) => {
+      queryClient.setQueryData<ArtisanData>(queryKey, (old) => {
         if (!old) {
           if (isDemo) saveArtisanData(next);
           return next;
@@ -141,7 +148,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         return merged;
       });
     },
-    [queryClient, isDemo],
+    [queryClient, queryKey, isDemo],
   );
 
   const value = useMemo<Ctx>(
@@ -193,7 +200,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           products: nextProducts,
         });
         setLastSaleId(s.id);
-        queryClient.invalidateQueries({ queryKey: artisanQueryKeys.data() });
+        queryClient.invalidateQueries({ queryKey });
       },
       updateSaleStatus: async (id, status, payment) => {
         const now = new Date().toISOString();
@@ -362,7 +369,19 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         });
       },
     }),
-    [sales, clients, products, draft, lastSaleId, isLoading, loadError, persist, isDemo, queryClient],
+    [
+      sales,
+      clients,
+      products,
+      draft,
+      lastSaleId,
+      isLoading,
+      loadError,
+      persist,
+      isDemo,
+      queryClient,
+      queryKey,
+    ],
   );
 
   return <ArtisanContext.Provider value={value}>{children}</ArtisanContext.Provider>;
