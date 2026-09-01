@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getSalePaymentDate, type Sale } from "../src/lib/artisan-data.ts";
+import {
+  getSaleDashboardDate,
+  getSalePaymentDate,
+  type Sale,
+} from "../src/lib/artisan-data.ts";
 
 const pendingSale: Sale = {
   id: "sale-1",
@@ -18,6 +22,7 @@ const pendingSale: Sale = {
 
 test("a pending sale has no payment date", () => {
   assert.equal(getSalePaymentDate(pendingSale), undefined);
+  assert.equal(getSaleDashboardDate(pendingSale), pendingSale.createdAt);
 });
 
 test("an existing settled sale falls back to its original date", () => {
@@ -37,5 +42,6 @@ test("a later payment date does not replace the delivery date", () => {
   };
 
   assert.equal(getSalePaymentDate(sale), paidAt);
+  assert.equal(getSaleDashboardDate(sale), paidAt);
   assert.equal(sale.createdAt, pendingSale.createdAt);
 });

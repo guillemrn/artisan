@@ -48,6 +48,10 @@ export function getSalePaymentDate(sale: Sale): string | undefined {
   return sale.status === "Entregado" ? sale.createdAt : undefined;
 }
 
+export function getSaleDashboardDate(sale: Sale): string {
+  return getSalePaymentDate(sale) ?? sale.createdAt;
+}
+
 export const PRODUCTS: Product[] = [
   {
     id: "vela-ambar",

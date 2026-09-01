@@ -38,6 +38,7 @@ import {
   USER_NAME,
   formatMXN,
   formatMXNc,
+  getSaleDashboardDate,
   getSalePaymentDate,
   type Sale,
   type PaymentMethod,
@@ -357,16 +358,29 @@ function Home() {
     );
   }, [paidClientFilteredSales, productFilter]);
 
-  // 4. Filter History Sales by Search and Status
+  // 4. History follows the collection date while preserving delivery reporting above.
   const historyFilteredSales = useMemo(() => {
-    return fullyFilteredSales.filter((s) => {
-      const matchesSearch =
-        s.clientName.toLowerCase().includes(historySearch.toLowerCase()) ||
-        s.id.toLowerCase().includes(historySearch.toLowerCase());
-      const matchesStatus = historyStatus === "Todos" || s.status === historyStatus;
-      return matchesSearch && matchesStatus;
-    });
-  }, [fullyFilteredSales, historySearch, historyStatus]);
+    return sales
+      .filter((sale) => isDateInPeriod(getSaleDashboardDate(sale), timeFilter))
+      .filter((sale) => clientFilter === "Todos" || sale.clientId === clientFilter)
+      .filter(
+        (sale) =>
+          productFilter === "Todos" ||
+          sale.items.some((item) => item.productId === productFilter),
+      )
+      .filter((sale) => {
+        const search = historySearch.toLowerCase();
+        const matchesSearch =
+          sale.clientName.toLowerCase().includes(search) || sale.id.toLowerCase().includes(search);
+        const matchesStatus = historyStatus === "Todos" || sale.status === historyStatus;
+        return matchesSearch && matchesStatus;
+      })
+      .sort(
+        (a, b) =>
+          new Date(getSaleDashboardDate(b)).getTime() -
+          new Date(getSaleDashboardDate(a)).getTime(),
+      );
+  }, [sales, timeFilter, clientFilter, productFilter, historySearch, historyStatus]);
 
   // --- KPIs Calculations ---
   const kpiData = useMemo(() => {
@@ -835,7 +849,9 @@ function Home() {
                 </thead>
                 <tbody className="divide-y divide-border/60">
                   {historyFilteredSales.slice(0, 20).map((s) => {
-                    const d = new Date(s.createdAt);
+                    const dashboardDate = getSaleDashboardDate(s);
+                    const d = new Date(dashboardDate);
+                    const wasPaidLater = Boolean(s.paidAt && s.paidAt !== s.createdAt);
                     const dateStr = d.toLocaleDateString("es-MX", {
                       day: "2-digit",
                       month: "2-digit",
@@ -850,10 +866,10 @@ function Home() {
                         <td className="py-3 px-4 text-text-muted">
                           <div>{dateStr}</div>
                           <div className="text-[11px] opacity-75">{timeStr}</div>
-                          {s.paidAt && s.paidAt !== s.createdAt && (
-                            <div className="mt-1 text-[10px] font-semibold text-primary">
-                              Cobrado{" "}
-                              {new Date(s.paidAt).toLocaleDateString("es-MX", {
+                          {wasPaidLater && (
+                            <div className="mt-1 text-[10px] font-medium text-text-muted">
+                              Entrega{" "}
+                              {new Date(s.createdAt).toLocaleDateString("es-MX", {
                                 day: "2-digit",
                                 month: "2-digit",
                               })}
@@ -1501,7 +1517,9 @@ function SaleCardItem({
   onToggle: () => void;
   onCobrar: (sale: Sale) => void;
 }) {
-  const d = new Date(s.createdAt);
+  const dashboardDate = getSaleDashboardDate(s);
+  const d = new Date(dashboardDate);
+  const wasPaidLater = Boolean(s.paidAt && s.paidAt !== s.createdAt);
   const t = d.toLocaleTimeString("es-MX", {
     hour: "2-digit",
     minute: "2-digit",
@@ -1541,7 +1559,17 @@ function SaleCardItem({
           </p>
           <p className="mt-0.5 text-[11px] text-text-muted">
             {dateStr} · {t}
+            {wasPaidLater ? " · Cobro" : ""}
           </p>
+          {wasPaidLater && (
+            <p className="text-[10px] text-text-muted">
+              Entrega{" "}
+              {new Date(s.createdAt).toLocaleDateString("es-MX", {
+                day: "2-digit",
+                month: "2-digit",
+              })}
+            </p>
+          )}
         </div>
         <div className="shrink-0 text-right flex flex-col items-end gap-1">
           <p className="text-[14px] font-bold">{formatMXN(s.total)}</p>
