@@ -79,6 +79,7 @@ import {
 import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
 import {
   getSaleItemCost,
+  getSaleItemMermaCost,
   getSaleItemRevenue,
 } from "@/lib/artisan-sale-calculations";
 
@@ -386,6 +387,7 @@ function Home() {
   const kpiData = useMemo(() => {
     let salesTotal = 0;
     let costTotal = 0;
+    let mermaCostTotal = 0;
     let pendingSalesTotal = 0;
     let packagesTotal = 0;
     let returnsTotal = 0;
@@ -396,9 +398,11 @@ function Home() {
         if (productFilter === "Todos" || item.productId === productFilter) {
           const itemTotal = getSaleItemRevenue(item, s.payment);
           const itemCost = getSaleItemCost(item);
+          const itemMermaCost = getSaleItemMermaCost(item);
 
           salesTotal += itemTotal;
           costTotal += itemCost;
+          mermaCostTotal += itemMermaCost;
         }
       });
     });
@@ -435,6 +439,7 @@ function Home() {
     return {
       salesTotal,
       costTotal,
+      mermaCostTotal,
       profitTotal,
       pendingSalesTotal,
       margin,
@@ -628,16 +633,20 @@ function Home() {
             accent="green"
           />
           <Kpi
-            label="Costos totales"
+            label="Costos de venta"
             value={formatMXN(kpiData.costTotal)}
-            sub="entregados y cortesias"
+            sub={
+              kpiData.mermaCostTotal > 0
+                ? `Merma aparte: ${formatMXN(kpiData.mermaCostTotal)}`
+                : "solo piezas vendidas"
+            }
             icon={<DollarSign className="h-4 w-4" />}
             accent="red"
           />
           <Kpi
-            label="Ganancia neta"
+            label="Ganancia de ventas"
             value={formatMXN(kpiData.profitTotal)}
-            sub={`${kpiData.margin}% margen util`}
+            sub={`${kpiData.margin}% margen útil`}
             icon={<TrendingUp className="h-4 w-4" />}
             accent="green"
           />

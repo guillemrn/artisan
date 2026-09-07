@@ -65,7 +65,13 @@ function NuevaVenta() {
     [draft.quantities, draft.returns, draft.priceMode, products],
   );
   const returnsCount = items.reduce((sum, item) => sum + (item.returnQty ?? 0), 0);
-  const { total: netTotal, cost, profit, margin } = calculateSaleFinancials(items, draft.payment);
+  const {
+    total: netTotal,
+    cost,
+    mermaCost,
+    profit,
+    margin,
+  } = calculateSaleFinancials(items, draft.payment);
   const canContinue1 = Boolean(draft.client);
   const canContinue2 = items.length > 0;
 
@@ -194,6 +200,7 @@ function NuevaVenta() {
           items={items}
           total={netTotal}
           cost={cost}
+          mermaCost={mermaCost}
           profit={profit}
           margin={margin}
           returnsCount={returnsCount}
@@ -748,6 +755,7 @@ function SaleSummary({
   items,
   total,
   cost,
+  mermaCost,
   profit,
   margin,
   returnsCount,
@@ -762,6 +770,7 @@ function SaleSummary({
   items: SaleItem[];
   total: number;
   cost: number;
+  mermaCost: number;
   profit: number;
   margin: number;
   returnsCount: number;
@@ -813,7 +822,10 @@ function SaleSummary({
         {step === 3 && (
           <div className="space-y-2 border-t border-border pt-4 text-sm">
             <SummaryRow label="Costo" value={formatMXN(cost)} />
-            <SummaryRow label="Ganancia estimada" value={formatMXN(profit)} accent />
+            {mermaCost > 0 && (
+              <SummaryRow label="Costo de cambios" value={formatMXN(mermaCost)} />
+            )}
+            <SummaryRow label="Ganancia de venta" value={formatMXN(profit)} accent />
             <SummaryRow label="Margen" value={`${margin}%`} />
           </div>
         )}

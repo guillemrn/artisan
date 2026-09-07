@@ -13,19 +13,19 @@ begin
         sale.cost,
         sale.profit,
         sum(
-          (coalesce((item->>'qty')::numeric, 0) + coalesce((item->>'returnQty')::numeric, 0))
+          coalesce((item->>'qty')::numeric, 0)
           * coalesce((item->>'cost')::numeric, 0)
-        ) as actual_cost
+        ) as sale_cost
       from public.sales as sale
       cross join lateral jsonb_array_elements(sale.items) as item
       group by sale.user_id, sale.id, sale.total, sale.cost, sale.profit
     )
     select 1
     from expected
-    where cost is distinct from actual_cost
-       or profit is distinct from total - actual_cost
+    where cost is distinct from sale_cost
+       or profit is distinct from total - sale_cost
   ) then
-    raise exception 'Stored sale cost or profit does not include replacement costs.';
+    raise exception 'Stored sale cost or profit incorrectly mixes in replacement costs.';
   end if;
 end;
 $$;
