@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Activity, Receipt, CheckCircle2, Clock, Search } from "lucide-react";
 import { formatMXN } from "@/lib/artisan-data";
@@ -30,15 +30,15 @@ function Actividad() {
       timestamp: new Date(s.createdAt),
       saleId: s.id,
     }));
-    
+
     // Ordenamos por fecha descendente
     const sortedEvents = allEvents.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
     // Filtramos según la búsqueda y el estado seleccionado
     return sortedEvents.filter((evt) => {
       const matchesSearch = evt.clientName.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = 
-        statusFilter === "Todos" || 
+      const matchesStatus =
+        statusFilter === "Todos" ||
         (statusFilter === "Entregado" && evt.status === "Entregado") ||
         (statusFilter === "Pendiente" && evt.status === "Pendiente");
 
@@ -65,10 +65,10 @@ function Actividad() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-[20px] font-bold leading-tight text-text-primary">Actividad Reciente</h1>
-          <p className="text-[13px] text-text-muted">
-            Historial de eventos y movimientos
-          </p>
+          <h1 className="text-[20px] font-bold leading-tight text-text-primary">
+            Actividad Reciente
+          </h1>
+          <p className="text-[13px] text-text-muted">Historial de eventos y movimientos</p>
         </div>
       </div>
 
@@ -119,13 +119,18 @@ function Actividad() {
               const timeStr = t.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
 
               return (
-                <li key={evt.id} className="flex items-start gap-4 px-5 py-4 hover:bg-muted/40 transition">
+                <li
+                  key={evt.id}
+                  className="flex items-start gap-4 px-5 py-4 hover:bg-muted/40 transition"
+                >
                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary mt-0.5">
                     <Receipt className="h-4 w-4" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
-                      <p className="text-[14px] font-bold text-text-primary truncate pr-2">{evt.title}</p>
+                      <p className="text-[14px] font-bold text-text-primary truncate pr-2">
+                        {evt.title}
+                      </p>
                       <p className="text-[12px] text-text-muted shrink-0 whitespace-nowrap">
                         {dateStr}, {timeStr}
                       </p>

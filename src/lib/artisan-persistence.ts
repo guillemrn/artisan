@@ -9,6 +9,7 @@ import {
   type SaleItem,
   type PaymentMethod,
 } from "./artisan-data";
+import type { ProductCosting, ProductCostingItem } from "./product-costing";
 export { artisanQueryKeys } from "./artisan-query-cache";
 
 const STORAGE_KEY = "artisan-data-v1";
@@ -17,6 +18,16 @@ export type ArtisanData = {
   sales: Sale[];
   clients: Client[];
   products: Product[];
+};
+
+type DatabaseProductCosting = {
+  product_id: string;
+  yield_quantity: number | string;
+  units_per_product: number | string;
+  items: unknown;
+  batch_cost: number | string;
+  unit_cost: number | string;
+  product_cost: number | string;
 };
 
 const DEFAULT_DATA: ArtisanData = {
@@ -114,7 +125,7 @@ export async function fetchArtisanData(expectedUserId?: string): Promise<Artisan
   }
 
   // Fetch only the signed-in user's business data. RLS should enforce the same rule server-side.
-  const [productsRes, clientsRes, salesRes] = await Promise.all([
+  const [productsRes, clientsRes, salesRes, costingsRes] = await Promise.all([
     supabase
       .from("products")
       .select("*")
@@ -130,9 +141,16 @@ export async function fetchArtisanData(expectedUserId?: string): Promise<Artisan
       .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false }),
+    supabase.from("product_costings").select("*").eq("user_id", userId),
   ]);
 
-  const firstError = productsRes.error ?? clientsRes.error ?? salesRes.error;
+  // Keep the existing business data available during a staged rollout where the
+  // optional costing table has not reached the connected Supabase project yet.
+  const costingsTableMissing =
+    costingsRes.error?.code === "PGRST205" &&
+    costingsRes.error.message.includes("product_costings");
+  const costingsError = costingsTableMissing ? null : costingsRes.error;
+  const firstError = productsRes.error ?? clientsRes.error ?? salesRes.error ?? costingsError;
   if (firstError) {
     throw new Error(`No se pudieron cargar los datos del negocio: ${firstError.message}`);
   }
@@ -140,6 +158,19 @@ export async function fetchArtisanData(expectedUserId?: string): Promise<Artisan
   const dbProducts = productsRes.data ?? [];
   const dbClients = clientsRes.data ?? [];
   const dbSales = salesRes.data ?? [];
+  const costingByProduct = new Map<string, ProductCosting>();
+
+  (costingsRes.data ?? []).forEach((row) => {
+    const costing = row as DatabaseProductCosting;
+    costingByProduct.set(costing.product_id, {
+      yieldQuantity: Number(costing.yield_quantity),
+      unitsPerProduct: Number(costing.units_per_product),
+      items: (costing.items as ProductCostingItem[]) ?? [],
+      batchCost: Number(costing.batch_cost),
+      unitCost: Number(costing.unit_cost),
+      productCost: Number(costing.product_cost),
+    });
+  });
 
   // Map database models to client types
   const products: Product[] = dbProducts.map((p) => ({
@@ -149,6 +180,7 @@ export async function fetchArtisanData(expectedUserId?: string): Promise<Artisan
     distributorPrice: Number(p.distributor_price),
     publicPrice: Number(p.public_price),
     stock: p.stock,
+    costing: costingByProduct.get(p.id),
   }));
 
   const clients: Client[] = dbClients.map((c) => ({

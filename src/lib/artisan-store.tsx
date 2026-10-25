@@ -18,6 +18,7 @@ import {
   type ArtisanData,
 } from "./artisan-persistence";
 import { buildRegisterSalePayload } from "./artisan-sale-registration";
+import type { ProductCosting } from "./product-costing";
 
 import { useAuth } from "@/core/auth/auth-context";
 import { supabase } from "@/core/supabase/client";
@@ -52,7 +53,7 @@ type Ctx = {
   addClient: (c: Client) => Promise<void>;
   deleteClient: (id: string) => Promise<void>;
   products: Product[];
-  addProduct: (p: Product) => Promise<void>;
+  addProduct: (p: Product, costing?: ProductCosting) => Promise<void>;
   updateProduct: (p: Product) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   isLoading: boolean;
@@ -287,22 +288,23 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         persist({ sales, clients: clients.filter((c) => c.id !== id), products });
       },
       products,
-      addProduct: async (p) => {
+      addProduct: async (p, costing) => {
+        const product = costing ? { ...p, cost: costing.productCost, costing } : p;
         if (isDemo) {
-          persist({ sales, clients, products: [...products, p] });
+          persist({ sales, clients, products: [...products, product] });
           return;
         }
 
-        const session = await requireActiveSession();
+        await requireActiveSession();
 
-        const { error } = await supabase.from("products").insert({
-          id: p.id,
-          name: p.name,
-          cost: p.cost,
-          distributor_price: p.distributorPrice,
-          public_price: p.publicPrice,
-          stock: p.stock,
-          user_id: session.user.id,
+        const { data: createdRow, error } = await supabase.rpc("create_product_with_costing", {
+          p_product_id: product.id,
+          p_name: product.name,
+          p_cost: product.cost,
+          p_distributor_price: product.distributorPrice,
+          p_public_price: product.publicPrice,
+          p_stock: product.stock,
+          p_costing: costing ?? null,
         });
 
         if (error) {
@@ -310,7 +312,19 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           throw new Error(`Error al agregar el producto: ${error.message}`);
         }
 
-        persist({ sales, clients, products: [...products, p] });
+        const row = Array.isArray(createdRow) ? createdRow[0] : createdRow;
+        const savedProduct = row
+          ? {
+              ...product,
+              name: row.name,
+              cost: Number(row.cost),
+              distributorPrice: Number(row.distributor_price),
+              publicPrice: Number(row.public_price),
+              stock: Number(row.stock),
+            }
+          : product;
+
+        persist({ sales, clients, products: [...products, savedProduct] });
       },
       deleteProduct: async (id) => {
         if (isDemo) {

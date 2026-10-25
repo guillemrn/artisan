@@ -9,7 +9,6 @@ import {
   Calendar,
   Receipt,
   AlertCircle,
-  Filter,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";

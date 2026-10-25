@@ -14,6 +14,7 @@ import { useArtisan } from "@/lib/artisan-store";
 import { formatMXN, formatMXNc, type Product } from "@/lib/artisan-data";
 import { ModalSuccessState } from "@/components/ui/ModalSuccessState";
 import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
+import { ProductCreationFlow } from "@/components/products/ProductCreationFlow";
 
 export const Route = createFileRoute("/productos")({
   head: () => ({ meta: [{ title: "Productos — Artisan" }] }),
@@ -24,16 +25,6 @@ function Productos() {
   const { products, addProduct, updateProduct, isLoading, loadError } = useArtisan();
   const [q, setQ] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
-
-  // Add Form states
-  const [name, setName] = useState("");
-  const [cost, setCost] = useState("");
-  const [distPrice, setDistPrice] = useState("");
-  const [pubPrice, setPubPrice] = useState("");
-  const [stock, setStock] = useState("");
-  const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
-  const [addedProductSuccess, setAddedProductSuccess] = useState<Product | null>(null);
-  const [addError, setAddError] = useState<string | null>(null);
 
   // Edit Form states
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -58,14 +49,6 @@ function Productos() {
   }, [products]);
 
   const handleCloseAddModal = () => {
-    setName("");
-    setCost("");
-    setDistPrice("");
-    setPubPrice("");
-    setStock("");
-    setIsSubmittingAdd(false);
-    setAddedProductSuccess(null);
-    setAddError(null);
     setShowAddForm(false);
   };
 
@@ -75,36 +58,6 @@ function Productos() {
       throw new Error(`${fieldName} debe ser un número válido mayor o igual a cero.`);
     }
     return parsed;
-  };
-
-  const handleCreateProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || isSubmittingAdd) return;
-
-    setIsSubmittingAdd(true);
-    setAddError(null);
-
-    try {
-      const trimmedName = name.trim();
-      const newProd: Product = {
-        id: trimmedName
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/(^-|-$)/g, ""),
-        name: trimmedName,
-        cost: parseNonNegativeNumber(cost, "El costo"),
-        distributorPrice: parseNonNegativeNumber(distPrice, "El precio distribuidor"),
-        publicPrice: parseNonNegativeNumber(pubPrice, "El precio público"),
-        stock: Math.floor(parseNonNegativeNumber(stock, "El stock inicial")),
-      };
-
-      await addProduct(newProd);
-      setAddedProductSuccess(newProd);
-    } catch (error) {
-      setAddError(error instanceof Error ? error.message : "No se pudo guardar el producto.");
-    } finally {
-      setIsSubmittingAdd(false);
-    }
   };
 
   const handleStartEdit = (p: Product) => {
@@ -141,6 +94,7 @@ function Productos() {
         distributorPrice: parseNonNegativeNumber(editDistPrice, "El precio distribuidor"),
         publicPrice: parseNonNegativeNumber(editPubPrice, "El precio público"),
         stock: Math.floor(parseNonNegativeNumber(editStock, "El inventario")),
+        costing: editingProduct.costing,
       };
 
       await updateProduct(updated);
@@ -301,163 +255,8 @@ function Productos() {
         })}
       </ul>
 
-      {/* Slide-up Add Product Modal */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center px-4 backdrop-blur-xs">
-          <div className="w-full max-w-[calc(100vw-2rem)] sm:max-w-[440px] md:max-w-[540px] bg-surface rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200 mb-6 sm:mb-0">
-            {addedProductSuccess ? (
-              <ModalSuccessState
-                badgeText="Catálogo Actualizado"
-                title={`¡${addedProductSuccess.name} agregado!`}
-                description={
-                  <span>
-                    El producto{" "}
-                    <strong className="font-bold text-text-primary">
-                      {addedProductSuccess.name}
-                    </strong>{" "}
-                    ha sido guardado exitosamente con un stock inicial de{" "}
-                    <strong className="font-bold text-text-primary">
-                      {addedProductSuccess.stock} u.
-                    </strong>
-                  </span>
-                }
-                details={[
-                  {
-                    label: "Precio Distribuidor",
-                    value: formatMXN(addedProductSuccess.distributorPrice),
-                  },
-                  { label: "Precio Público", value: formatMXN(addedProductSuccess.publicPrice) },
-                  { label: "Stock Inicial", value: `${addedProductSuccess.stock} unidades` },
-                ]}
-                onDone={handleCloseAddModal}
-                actionText="Entendido"
-              />
-            ) : (
-              <>
-                <h3 className="text-[18px] font-bold text-primary">Agregar nuevo producto</h3>
-                <form onSubmit={handleCreateProduct} className="mt-4 space-y-4">
-                  {addError && (
-                    <div className="flex items-start gap-2 rounded-xl border border-danger/20 bg-red-50 px-3 py-2.5 text-[13px] text-danger">
-                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                      <p>{addError}</p>
-                    </div>
-                  )}
-                  <div>
-                    <label className="text-[12px] font-semibold text-text-secondary block mb-1">
-                      Nombre del producto
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      disabled={isSubmittingAdd}
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Ej. Vela Ambar Grande"
-                      className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[12px] font-semibold text-text-secondary block mb-1">
-                        Costo de producción ($)
-                      </label>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.01"
-                        min="0"
-                        required
-                        disabled={isSubmittingAdd}
-                        value={cost}
-                        onChange={(e) => setCost(e.target.value)}
-                        placeholder="20.50"
-                        className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[12px] font-semibold text-text-secondary block mb-1">
-                        Stock Inicial
-                      </label>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        min="0"
-                        required
-                        disabled={isSubmittingAdd}
-                        value={stock}
-                        onChange={(e) => setStock(e.target.value)}
-                        placeholder="50"
-                        className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[12px] font-semibold text-text-secondary block mb-1">
-                        Precio Distribuidor ($)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        required
-                        disabled={isSubmittingAdd}
-                        value={distPrice}
-                        onChange={(e) => setDistPrice(e.target.value)}
-                        placeholder="60.00"
-                        className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[12px] font-semibold text-text-secondary block mb-1">
-                        Precio Público ($)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        required
-                        disabled={isSubmittingAdd}
-                        value={pubPrice}
-                        onChange={(e) => setPubPrice(e.target.value)}
-                        placeholder="75.00"
-                        className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      type="button"
-                      disabled={isSubmittingAdd}
-                      onClick={handleCloseAddModal}
-                      className="flex-1 rounded-xl border border-border py-3 text-[14px] font-semibold text-text-secondary hover:bg-muted transition disabled:opacity-60"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isSubmittingAdd}
-                      className="flex-1 rounded-xl bg-primary text-white py-3 text-[14px] font-semibold shadow-lg hover:bg-emerald-700 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-80"
-                    >
-                      {isSubmittingAdd ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>Guardando...</span>
-                        </>
-                      ) : (
-                        "Guardar"
-                      )}
-                    </button>
-                  </div>
-                </form>
-              </>
-            )}
-          </div>
-        </div>
+        <ProductCreationFlow onClose={handleCloseAddModal} onCreate={addProduct} />
       )}
 
       {/* Slide-up Edit Product Modal */}
@@ -521,11 +320,16 @@ function Productos() {
                         step="0.01"
                         min="0"
                         required
-                        disabled={isSubmittingEdit}
+                        disabled={isSubmittingEdit || Boolean(editingProduct.costing)}
                         value={editCost}
                         onChange={(e) => setEditCost(e.target.value)}
                         className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60"
                       />
+                      {editingProduct.costing && (
+                        <p className="mt-1.5 text-[11px] leading-relaxed text-text-muted">
+                          Este costo proviene del costeo de producción guardado.
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="text-[12px] font-semibold text-text-secondary block mb-1">

@@ -1,3 +1,5 @@
+import type { ProductCosting } from "./product-costing";
+
 export type Product = {
   id: string;
   name: string;
@@ -5,6 +7,7 @@ export type Product = {
   distributorPrice: number;
   publicPrice: number;
   stock: number;
+  costing?: ProductCosting;
 };
 
 export type Client = {

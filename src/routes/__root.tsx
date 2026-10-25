@@ -11,7 +11,6 @@ import { useEffect } from "react";
 import { ArtisanProvider } from "@/lib/artisan-store";
 import { AppShell } from "@/components/artisan/AppShell";
 import { AuthProvider, useAuth } from "@/core/auth/auth-context";
-import { LoginPage } from "@/components/auth/LoginPage";
 import { CookieBanner } from "@/components/legal/CookieBanner";
 
 // ─── Error & 404 ──────────────────────────────────────────────────────────────

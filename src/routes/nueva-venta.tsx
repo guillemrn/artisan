@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
   AlertCircle,
@@ -822,9 +822,7 @@ function SaleSummary({
         {step === 3 && (
           <div className="space-y-2 border-t border-border pt-4 text-sm">
             <SummaryRow label="Costo" value={formatMXN(cost)} />
-            {mermaCost > 0 && (
-              <SummaryRow label="Costo de cambios" value={formatMXN(mermaCost)} />
-            )}
+            {mermaCost > 0 && <SummaryRow label="Costo de cambios" value={formatMXN(mermaCost)} />}
             <SummaryRow label="Ganancia de venta" value={formatMXN(profit)} accent />
             <SummaryRow label="Margen" value={`${margin}%`} />
           </div>

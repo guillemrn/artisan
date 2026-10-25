@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef, useState, useMemo, useEffect } from "react";
 import {
-  Menu,
   Store,
   User,
   CheckCircle2,
@@ -14,22 +13,11 @@ import {
   TrendingUp,
   DollarSign,
   ChevronDown,
-  ArrowRight,
-  Check,
-  Sparkles,
   RefreshCw,
   Search,
-  Instagram,
-  Monitor,
-  Smartphone,
-  Users,
   X,
   Download,
   Upload,
-  Star,
-  Zap,
-  Send,
-  CheckCircle,
   Loader2,
   SlidersHorizontal,
 } from "lucide-react";
@@ -45,7 +33,6 @@ import {
   type Product,
   type Client,
 } from "@/lib/artisan-data";
-import { Logo } from "@/components/ui/logo";
 import { useAuth } from "@/core/auth/auth-context";
 import {
   Dialog,
@@ -278,7 +265,6 @@ function Home() {
   });
 
   const displayName = user?.user_metadata?.full_name ?? USER_NAME;
-  const initials = displayName.slice(0, 2).toUpperCase();
 
   const currentHour = new Date().getHours();
   const greeting =
@@ -366,8 +352,7 @@ function Home() {
       .filter((sale) => clientFilter === "Todos" || sale.clientId === clientFilter)
       .filter(
         (sale) =>
-          productFilter === "Todos" ||
-          sale.items.some((item) => item.productId === productFilter),
+          productFilter === "Todos" || sale.items.some((item) => item.productId === productFilter),
       )
       .filter((sale) => {
         const search = historySearch.toLowerCase();
@@ -378,8 +363,7 @@ function Home() {
       })
       .sort(
         (a, b) =>
-          new Date(getSaleDashboardDate(b)).getTime() -
-          new Date(getSaleDashboardDate(a)).getTime(),
+          new Date(getSaleDashboardDate(b)).getTime() - new Date(getSaleDashboardDate(a)).getTime(),
       );
   }, [sales, timeFilter, clientFilter, productFilter, historySearch, historyStatus]);
 
@@ -969,10 +953,7 @@ function Home() {
       )}
 
       {/* Modal 1: Confirmation Modal for Cobrar */}
-      <Dialog
-        open={!!saleToCobrar}
-        onOpenChange={(open) => !open && handleCloseCobrarModal()}
-      >
+      <Dialog open={!!saleToCobrar} onOpenChange={(open) => !open && handleCloseCobrarModal()}>
         <DialogContent className="max-w-md rounded-2xl p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-text-primary flex items-center gap-2">

@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   AlertCircle,
-  CheckCircle2,
   ChevronLeft,
   Loader2,
   MailCheck,
@@ -252,8 +251,9 @@ export function LoginPage() {
             icon={<MailCheck className="h-6 w-6" />}
             detail={
               <>
-                Enviamos el enlace a <strong className="break-all text-text-primary">{email}</strong>.
-                Revisa también la carpeta de spam.
+                Enviamos el enlace a{" "}
+                <strong className="break-all text-text-primary">{email}</strong>. Revisa también la
+                carpeta de spam.
               </>
             }
           >
@@ -415,8 +415,9 @@ export function LoginPage() {
             icon={<MailCheck className="h-6 w-6" />}
             detail={
               <>
-                Si existe una cuenta con <strong className="break-all text-text-primary">{email}</strong>,
-                recibirás un enlace. Revisa también la carpeta de spam.
+                Si existe una cuenta con{" "}
+                <strong className="break-all text-text-primary">{email}</strong>, recibirás un
+                enlace. Revisa también la carpeta de spam.
               </>
             }
           >
@@ -539,7 +540,10 @@ function LabeledIconField({
         {label}
       </label>
       <div className="relative">
-        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" aria-hidden="true">
+        <span
+          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted"
+          aria-hidden="true"
+        >
           {icon}
         </span>
         {children}

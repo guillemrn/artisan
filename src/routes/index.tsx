@@ -3,30 +3,23 @@ import { useState } from "react";
 import {
   ArrowRight,
   BarChart3,
-  CalendarClock,
   Check,
   CheckCircle2,
   ChevronDown,
-  Clock,
-  CreditCard,
   Flame,
   Gem,
-  HeartHandshake,
   Layers,
   Menu,
   MessageCircle,
   Package,
   Plus,
   Receipt,
-  RotateCcw,
   Send,
-  ShieldCheck,
   Sparkles,
   Store,
   Tag,
   TrendingUp,
   Truck,
-  Users,
   UtensilsCrossed,
   X,
   Zap,
@@ -282,14 +275,13 @@ function LandingPage() {
             <div className="grid items-center gap-12 lg:grid-cols-[1fr_1.15fr] lg:gap-14">
               {/* Hero Left Content */}
               <div className="flex flex-col">
-
                 <h1 className="mt-5 text-4xl font-black tracking-tight text-[#141f1a] sm:text-5xl lg:text-[58px] lg:leading-[1.08]">
                   Deja de perder ventas en una libreta.
                 </h1>
 
                 <p className="mt-5 text-lg leading-relaxed text-[#4a5850] sm:text-xl">
-                  Registra ventas, consignaciones y entregas
-                  en segundos y ve cuánto ganas de verdad.
+                  Registra ventas, consignaciones y entregas en segundos y ve cuánto ganas de
+                  verdad.
                 </p>
 
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -348,7 +340,9 @@ function LandingPage() {
                 Vender en mostrador y entregar en tiendas no debería ser un caos de libretas.
               </h2>
               <p className="mt-4 text-base text-[#4a5850] sm:text-lg">
-                Cuando creas productos con tus propias manos, tu tiempo debe estar en la producción y en tus clientes, no descifrando cuentas en servilletas o mensajes perdidos de WhatsApp.
+                Cuando creas productos con tus propias manos, tu tiempo debe estar en la producción
+                y en tus clientes, no descifrando cuentas en servilletas o mensajes perdidos de
+                WhatsApp.
               </p>
             </div>
 
@@ -361,13 +355,18 @@ function LandingPage() {
                   </div>
                   <div>
                     <h3 className="text-lg font-black text-red-950">El método tradicional</h3>
-                    <p className="text-xs font-semibold text-red-700">Libretas, notas y cálculos al aire</p>
+                    <p className="text-xs font-semibold text-red-700">
+                      Libretas, notas y cálculos al aire
+                    </p>
                   </div>
                 </div>
                 <ul className="mt-6 space-y-3.5 text-sm text-red-950/80">
                   <li className="flex items-start gap-3">
                     <X className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-                    <span>Dejas producto a consignación en tiendas y luego nadie recuerda cuántas piezas quedaron ni cuánto deben.</span>
+                    <span>
+                      Dejas producto a consignación en tiendas y luego nadie recuerda cuántas piezas
+                      quedaron ni cuánto deben.
+                    </span>
                   </li>
                   <li className="flex items-start gap-3">
                     <X className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
@@ -375,11 +374,17 @@ function LandingPage() {
                   </li>
                   <li className="flex items-start gap-3">
                     <X className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-                    <span>Confundes los precios de mayoreo para boutiques con los precios de venta directa en bazares.</span>
+                    <span>
+                      Confundes los precios de mayoreo para boutiques con los precios de venta
+                      directa en bazares.
+                    </span>
                   </li>
                   <li className="flex items-start gap-3">
                     <X className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-                    <span>Tickets hechos a mano con letra ilegible que provocan desacuerdos al momento de cobrar.</span>
+                    <span>
+                      Tickets hechos a mano con letra ilegible que provocan desacuerdos al momento
+                      de cobrar.
+                    </span>
                   </li>
                 </ul>
               </div>
@@ -392,25 +397,39 @@ function LandingPage() {
                   </div>
                   <div>
                     <h3 className="text-lg font-black text-[#141f1a]">Con Artisan en tu negocio</h3>
-                    <p className="text-xs font-semibold text-[#23684a]">Claridad y control en 10 segundos</p>
+                    <p className="text-xs font-semibold text-[#23684a]">
+                      Claridad y control en 10 segundos
+                    </p>
                   </div>
                 </div>
                 <ul className="mt-6 space-y-3.5 text-sm text-[#2a3c32]">
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#23684a]" />
-                    <span><strong>Consignaciones bajo control:</strong> Registro instantáneo de mercancía en tienda, devoluciones y saldos por cobrar.</span>
+                    <span>
+                      <strong>Consignaciones bajo control:</strong> Registro instantáneo de
+                      mercancía en tienda, devoluciones y saldos por cobrar.
+                    </span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#23684a]" />
-                    <span><strong>Margen neto calculado:</strong> Conoce tu ganancia real en cada ticket descontando costos de insumos.</span>
+                    <span>
+                      <strong>Margen neto calculado:</strong> Conoce tu ganancia real en cada ticket
+                      descontando costos de insumos.
+                    </span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#23684a]" />
-                    <span><strong>Doble precio automático:</strong> Selecciona el cliente y Artisan aplica la tarifa correcta de inmediato.</span>
+                    <span>
+                      <strong>Doble precio automático:</strong> Selecciona el cliente y Artisan
+                      aplica la tarifa correcta de inmediato.
+                    </span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#23684a]" />
-                    <span><strong>Comprobantes a WhatsApp:</strong> Envía tickets limpios y formales con un solo clic.</span>
+                    <span>
+                      <strong>Comprobantes a WhatsApp:</strong> Envía tickets limpios y formales con
+                      un solo clic.
+                    </span>
                   </li>
                 </ul>
               </div>
@@ -419,7 +438,10 @@ function LandingPage() {
         </section>
 
         {/* SECTION: LOS 4 PILARES DE VALOR (BENTO GRID) */}
-        <section id="herramientas" className="bg-[#faf8f4] py-20 sm:py-28 border-b border-[#1c2822]/8">
+        <section
+          id="herramientas"
+          className="bg-[#faf8f4] py-20 sm:py-28 border-b border-[#1c2822]/8"
+        >
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-3xl text-center">
               <span className="text-xs font-bold uppercase tracking-wider text-[#23684a]">
@@ -429,7 +451,8 @@ function LandingPage() {
                 Todo lo que necesitas para operar tu marca en un solo lugar.
               </h2>
               <p className="mt-4 text-base text-[#4a5850] sm:text-lg">
-                Diseñado específicamente para artesanos y creadores que fabrican, distribuyen y cobran en distintos momentos.
+                Diseñado específicamente para artesanos y creadores que fabrican, distribuyen y
+                cobran en distintos momentos.
               </p>
             </div>
 
@@ -448,9 +471,7 @@ function LandingPage() {
                         {pillar.badge}
                       </span>
                     </div>
-                    <h3 className="mt-6 text-xl font-black text-[#141f1a]">
-                      {pillar.title}
-                    </h3>
+                    <h3 className="mt-6 text-xl font-black text-[#141f1a]">{pillar.title}</h3>
                     <p className="mt-3 text-sm leading-relaxed text-[#4a5850]">
                       {pillar.description}
                     </p>
@@ -476,7 +497,8 @@ function LandingPage() {
                 Creado para artesanos de diversos oficios.
               </h2>
               <p className="mt-4 text-base text-[#b9cdc3] sm:text-lg">
-                Ya sea que fundas cera, trabajes metales, hornees o coseches miel, Artisan se adapta a la estructura de tu producto y a tu esquema de venta.
+                Ya sea que fundas cera, trabajes metales, hornees o coseches miel, Artisan se adapta
+                a la estructura de tu producto y a tu esquema de venta.
               </p>
             </div>
 
@@ -505,9 +527,12 @@ function LandingPage() {
                   <div className="grid h-11 w-11 place-items-center rounded-xl bg-white/10 text-[#a7d9c1]">
                     <Plus className="h-5 w-5" />
                   </div>
-                  <h3 className="mt-5 text-lg font-black text-white">¿Tu marca tiene otro producto?</h3>
+                  <h3 className="mt-5 text-lg font-black text-white">
+                    ¿Tu marca tiene otro producto?
+                  </h3>
                   <p className="mt-2 text-sm leading-relaxed text-[#c2d5cb]">
-                    Si tienes costos de insumos, inventario y vendes a público o tiendas, Artisan encaja al 100% con tu negocio.
+                    Si tienes costos de insumos, inventario y vendes a público o tiendas, Artisan
+                    encaja al 100% con tu negocio.
                   </p>
                 </div>
                 <div className="mt-6">
@@ -592,8 +617,9 @@ function LandingPage() {
                     >
                       <span>{faq.q}</span>
                       <ChevronDown
-                        className={`h-5 w-5 shrink-0 text-[#23684a] transition-transform duration-200 ${isOpen ? "rotate-180" : ""
-                          }`}
+                        className={`h-5 w-5 shrink-0 text-[#23684a] transition-transform duration-200 ${
+                          isOpen ? "rotate-180" : ""
+                        }`}
                       />
                     </button>
                     {isOpen && (
@@ -620,7 +646,8 @@ function LandingPage() {
                 Empieza hoy a tener el control total de tu marca artesanal.
               </h2>
               <p className="mt-4 max-w-2xl text-base text-[#c2e4d4] sm:text-lg">
-                Deja atrás los cuadernos y las dudas sobre tu ganancia real. Abre tu panel y registra tu siguiente venta en cuestión de segundos.
+                Deja atrás los cuadernos y las dudas sobre tu ganancia real. Abre tu panel y
+                registra tu siguiente venta en cuestión de segundos.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
@@ -769,7 +796,9 @@ function HeroMobilePhonePreview() {
                 </div>
               </div>
               <p className="mt-1 text-[20px] font-black text-[#1e242b]">$4,184</p>
-              <p className="text-[10px] font-medium text-[#8c95a1] truncate">entregados y cortesi...</p>
+              <p className="text-[10px] font-medium text-[#8c95a1] truncate">
+                entregados y cortesi...
+              </p>
             </div>
 
             {/* KPI 3: Ganancia neta */}
