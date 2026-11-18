@@ -1,18 +1,19 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
-  Home,
-  Plus,
-  Settings,
-  Users,
-  Package,
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  Receipt,
-  Menu,
-  X,
-  LogOut,
-} from "lucide-react";
+  CaretLeftIcon,
+  CaretRightIcon,
+  GearSixIcon,
+  HouseIcon,
+  ListIcon,
+  MagnifyingGlassIcon,
+  PackageIcon,
+  PlusIcon,
+  ReceiptIcon,
+  SignOutIcon,
+  UsersIcon,
+  XIcon,
+  type Icon,
+} from "@phosphor-icons/react";
 import { useState, useEffect, type FormEvent, type ReactNode } from "react";
 import { Logo } from "@/components/ui/logo";
 import { USER_NAME } from "@/lib/artisan-data";
@@ -76,31 +77,31 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <aside className="fixed inset-y-0 left-0 z-50 flex w-[312px] max-w-[86vw] flex-col border-r border-border bg-white shadow-[0_24px_64px_-36px_rgba(15,23,42,0.55)] animate-drawer-in md:hidden">
+        <aside className="fixed inset-y-0 left-0 z-50 flex w-[312px] max-w-[86vw] flex-col border-r border-border bg-surface shadow-[0_24px_64px_-36px_rgba(17,17,17,0.55)] animate-drawer-in md:hidden">
           {/* Drawer Header */}
-          <div className="flex items-center justify-between border-b border-border bg-white p-4">
+          <div className="flex items-center justify-between border-b border-border bg-surface p-4">
             <div className="flex items-center gap-2">
               <Logo variant="full" className="h-7 w-auto" />
             </div>
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-white text-text-secondary transition hover:bg-muted active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="grid h-10 w-10 place-items-center rounded-md border border-border bg-surface text-text-secondary transition hover:bg-muted active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               aria-label="Cerrar menú"
             >
-              <X className="h-4.5 w-4.5" />
+              <XIcon className="h-4.5 w-4.5" />
             </button>
           </div>
 
           {/* User Profile Info Card inside Drawer */}
           <div className="border-b border-border bg-background/55 p-4">
             <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-[13px] font-bold text-white">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-primary text-[13px] font-bold text-primary-foreground">
                 {initials}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold text-text-primary">{displayName}</p>
                 <p className="text-[11px] text-text-muted flex items-center gap-1.5 font-semibold mt-0.5">
-                  <span className="h-2 w-2 rounded-full bg-success" /> Sesion activa
+                  <span className="h-2 w-2 rounded-full bg-success" /> Sesión activa
                 </p>
               </div>
             </div>
@@ -108,56 +109,58 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link
               to="/nueva-venta"
               onClick={() => setMobileMenuOpen(false)}
-              className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-[13px] font-bold text-white transition hover:bg-[#1d573e] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-md bg-cta text-[14px] font-bold text-cta-foreground transition hover:bg-cta-hover active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
-              <Plus className="h-4 w-4" />
+              <PlusIcon className="h-4 w-4" weight="bold" />
               <span>Nueva venta</span>
             </Link>
           </div>
 
           {/* Drawer Navigation items */}
           <div className="flex-1 overflow-y-auto px-3 py-4">
-            <p className="px-3 pb-2 text-[11px] font-bold text-text-muted">Navegacion</p>
+            <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">
+              Navegación
+            </p>
 
             <DrawerItem
               to="/app"
               active={isActive("/app")}
-              icon={<Home className="h-4.5 w-4.5" />}
+              icon={HouseIcon}
               label="Inicio"
               onClick={() => setMobileMenuOpen(false)}
             />
             <DrawerItem
               to="/ventas"
               active={isActive("/ventas")}
-              icon={<Receipt className="h-4.5 w-4.5" />}
+              icon={ReceiptIcon}
               label="Ventas"
               onClick={() => setMobileMenuOpen(false)}
             />
             <DrawerItem
               to="/clientes"
               active={isActive("/clientes")}
-              icon={<Users className="h-4.5 w-4.5" />}
+              icon={UsersIcon}
               label="Clientes"
               onClick={() => setMobileMenuOpen(false)}
             />
             <DrawerItem
               to="/productos"
               active={isActive("/productos")}
-              icon={<Package className="h-4.5 w-4.5" />}
+              icon={PackageIcon}
               label="Productos"
               onClick={() => setMobileMenuOpen(false)}
             />
             <DrawerItem
               to="/ajustes"
               active={isActive("/ajustes")}
-              icon={<Settings className="h-4.5 w-4.5" />}
+              icon={GearSixIcon}
               label="Ajustes"
               onClick={() => setMobileMenuOpen(false)}
             />
           </div>
 
           {/* Drawer Footer */}
-          <div className="border-t border-border bg-white p-4">
+          <div className="border-t border-border bg-surface p-4">
             <div className="flex items-center justify-between text-xs text-text-muted">
               <Link
                 to="/ajustes"
@@ -174,7 +177,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   }}
                   className="flex items-center gap-1.5 font-semibold text-danger transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
                 >
-                  <LogOut className="h-3.5 w-3.5" />
+                  <SignOutIcon className="h-3.5 w-3.5" />
                   <span>Salir</span>
                 </button>
               )}
@@ -185,21 +188,21 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Floating Collapsible Sidebar for Desktop */}
       <aside
-        className={`relative hidden md:sticky md:top-3 md:m-3 md:flex md:h-[calc(100vh-1.5rem)] md:shrink-0 md:flex-col md:rounded-2xl md:border md:border-border md:bg-white md:py-5 md:shadow-card transition-all duration-300 ease-in-out ${
+        className={`relative hidden md:sticky md:top-0 md:flex md:h-screen md:shrink-0 md:flex-col md:border-r md:border-border md:bg-surface md:py-5 transition-all duration-300 ease-in-out ${
           collapsed ? "md:w-[72px] md:items-center md:px-0" : "md:w-[244px] md:px-3"
         }`}
       >
         {/* Toggle Button */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-6 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-white text-text-secondary shadow-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="absolute -right-3 top-6 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-surface text-text-secondary transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           aria-label={collapsed ? "Expandir menu lateral" : "Contraer menu lateral"}
           aria-expanded={!collapsed}
         >
           {collapsed ? (
-            <ChevronRight className="h-3.5 w-3.5" />
+            <CaretRightIcon className="h-3.5 w-3.5" />
           ) : (
-            <ChevronLeft className="h-3.5 w-3.5" />
+            <CaretLeftIcon className="h-3.5 w-3.5" />
           )}
         </button>
 
@@ -216,12 +219,12 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <Link
           to="/nueva-venta"
-          className={`mt-6 flex h-11 items-center justify-center gap-2 overflow-hidden rounded-xl bg-primary text-[13px] font-bold text-white transition-all duration-200 hover:bg-[#1d573e] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+          className={`mt-6 flex h-11 items-center justify-center gap-2 overflow-hidden rounded-md bg-cta text-[14px] font-bold text-cta-foreground transition-all duration-200 hover:bg-cta-hover active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
             collapsed ? "w-11 px-0" : "w-full px-4"
           }`}
           title={collapsed ? "Nueva venta" : undefined}
         >
-          <Plus className="h-4.5 w-4.5 shrink-0" />
+          <PlusIcon className="h-4.5 w-4.5 shrink-0" weight="bold" />
           {!collapsed && <span className="truncate">Nueva venta</span>}
         </Link>
 
@@ -232,35 +235,35 @@ export function AppShell({ children }: { children: ReactNode }) {
           <SideItem
             to="/app"
             active={isActive("/app")}
-            icon={<Home className="h-4.5 w-4.5" />}
+            icon={HouseIcon}
             label="Inicio"
             collapsed={collapsed}
           />
           <SideItem
             to="/ventas"
             active={isActive("/ventas")}
-            icon={<Receipt className="h-4.5 w-4.5" />}
+            icon={ReceiptIcon}
             label="Ventas"
             collapsed={collapsed}
           />
           <SideItem
             to="/clientes"
             active={isActive("/clientes")}
-            icon={<Users className="h-4.5 w-4.5" />}
+            icon={UsersIcon}
             label="Clientes"
             collapsed={collapsed}
           />
           <SideItem
             to="/productos"
             active={isActive("/productos")}
-            icon={<Package className="h-4.5 w-4.5" />}
+            icon={PackageIcon}
             label="Productos"
             collapsed={collapsed}
           />
           <SideItem
             to="/ajustes"
             active={isActive("/ajustes")}
-            icon={<Settings className="h-4.5 w-4.5" />}
+            icon={GearSixIcon}
             label="Ajustes"
             collapsed={collapsed}
           />
@@ -269,14 +272,14 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="relative flex min-h-screen w-full max-w-full flex-col bg-background md:mx-0 md:max-w-none md:flex-1 overflow-x-hidden">
         {/* Mobile Header */}
-        <header className="sticky top-0 z-30 flex h-14 w-full items-center justify-between border-b border-black/[0.05] bg-white/90 px-4 backdrop-blur-md md:hidden">
+        <header className="sticky top-0 z-30 flex h-14 w-full items-center justify-between border-b border-border bg-surface px-4 md:hidden">
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="grid h-9 w-9 place-items-center rounded-xl border border-border bg-white text-text-primary shadow-2xs transition hover:bg-muted active:scale-95 cursor-pointer"
+              className="grid h-9 w-9 place-items-center rounded-md border border-border bg-surface text-text-primary transition hover:bg-muted active:scale-95 cursor-pointer"
               aria-label="Abrir menú de navegación"
             >
-              <Menu className="h-5 w-5 text-primary" />
+              <ListIcon className="h-5 w-5 text-text-primary" />
             </button>
             <Link to="/app" className="flex items-center">
               <Logo variant="full" className="h-7 w-auto" />
@@ -286,7 +289,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-2">
             <Link
               to="/ajustes"
-              className="grid h-9 w-9 place-items-center rounded-xl bg-primary-light text-[12px] font-bold text-primary border border-primary/20"
+              className="grid h-9 w-9 place-items-center rounded-md bg-surface-2 text-[12px] font-bold text-text-primary border border-border"
               aria-label="Ajustes"
             >
               {initials}
@@ -297,14 +300,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Desktop Header */}
         <header className="sticky top-0 z-30 hidden h-15 items-center justify-between border-b border-border bg-background px-6 md:flex lg:px-10">
           <form onSubmit={handleSearch} className="relative w-full max-w-[420px]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+            <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
             <input
               id="header-global-search"
               aria-label="Buscar ventas, clientes o productos"
               placeholder="Buscar venta, cliente o producto"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="h-10 w-full rounded-xl border border-border bg-white pl-9 pr-14 text-[13px] font-semibold text-text-primary outline-none transition placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/10"
+              className="h-10 w-full rounded-md border border-border bg-surface pl-9 pr-14 text-[13px] font-semibold text-text-primary outline-none transition placeholder:text-text-muted focus:border-text-primary focus:ring-3 focus:ring-cta/25"
             />
             {searchInput ? (
               <button
@@ -313,7 +316,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 className="absolute right-2.5 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-lg text-text-muted transition hover:bg-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 aria-label="Limpiar búsqueda"
               >
-                <X className="h-3.5 w-3.5" />
+                <XIcon className="h-3.5 w-3.5" />
               </button>
             ) : (
               <div className="pointer-events-none absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-0.5 rounded-md border border-border bg-background px-1.5 py-0.5 text-[10px] font-bold text-text-muted">
@@ -326,10 +329,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-2">
             <Link
               to="/ajustes"
-              className="flex h-10 items-center gap-2 rounded-xl border border-border bg-white px-2 pr-3 text-text-primary transition hover:border-primary/30 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex h-10 items-center gap-2 rounded-md border border-border bg-surface px-2 pr-3 text-text-primary transition hover:border-text-primary hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               aria-label="Perfil de usuario"
             >
-              <div className="grid h-7 w-7 place-items-center rounded-lg bg-primary-light text-[12px] font-bold text-primary">
+              <div className="grid h-7 w-7 place-items-center rounded-md bg-surface-2 text-[12px] font-bold text-text-primary">
                 {initials}
               </div>
               <span className="hidden max-w-[180px] truncate text-[13px] font-bold sm:inline">
@@ -343,31 +346,21 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="w-full max-w-full">{children}</div>
         </main>
 
-        <nav className="fixed bottom-0 left-0 w-full border-t border-black/[0.06] bg-white/92 backdrop-blur-md md:hidden z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
+        <nav className="fixed bottom-0 left-0 w-full border-t border-border bg-surface md:hidden z-30">
           <div className="grid grid-cols-5 items-end px-2 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-            <NavItem
-              to="/app"
-              active={isActive("/app")}
-              icon={<Home className="h-5 w-5" />}
-              label="Inicio"
-            />
-            <NavItem
-              to="/ventas"
-              active={isActive("/ventas")}
-              icon={<Receipt className="h-5 w-5" />}
-              label="Ventas"
-            />
+            <NavItem to="/app" active={isActive("/app")} icon={HouseIcon} label="Inicio" />
+            <NavItem to="/ventas" active={isActive("/ventas")} icon={ReceiptIcon} label="Ventas" />
             <CenterNav />
             <NavItem
               to="/productos"
               active={isActive("/productos")}
-              icon={<Package className="h-5 w-5" />}
+              icon={PackageIcon}
               label="Productos"
             />
             <NavItem
               to="/ajustes"
               active={isActive("/ajustes")}
-              icon={<Settings className="h-5 w-5" />}
+              icon={GearSixIcon}
               label="Ajustes"
             />
           </div>
@@ -380,13 +373,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 function SideItem({
   to,
   active,
-  icon,
+  icon: ItemIcon,
   label,
   collapsed,
 }: {
   to: string;
   active: boolean;
-  icon: ReactNode;
+  icon: Icon;
   label: string;
   collapsed: boolean;
 }) {
@@ -394,24 +387,15 @@ function SideItem({
     <Link
       to={to}
       aria-current={active ? "page" : undefined}
-      className={`group relative flex items-center gap-3 rounded-xl py-2.5 text-[13.5px] font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+      className={`group relative flex items-center gap-3 rounded-md py-2.5 text-[14px] font-medium transition-colors duration-150 ${
         active
-          ? "bg-primary-light text-primary font-bold"
-          : "text-text-secondary hover:bg-muted hover:text-text-primary"
+          ? "bg-surface-2 font-bold text-text-primary shadow-[inset_3px_0_0_var(--text-primary)]"
+          : "text-text-muted hover:bg-surface-2 hover:text-text-primary"
       } ${collapsed ? "h-11 w-11 justify-center px-0" : "px-3.5"}`}
       title={collapsed ? label : undefined}
     >
-      {active && !collapsed && (
-        <span
-          className="absolute left-3 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-primary"
-          aria-hidden
-        />
-      )}
-      <span
-        className={`grid shrink-0 place-items-center ${!collapsed && active ? "ml-2" : ""}`}
-        aria-hidden
-      >
-        {icon}
+      <span className="grid shrink-0 place-items-center" aria-hidden>
+        <ItemIcon className="h-5 w-5" weight={active ? "bold" : "regular"} />
       </span>
       {!collapsed && <span className="truncate">{label}</span>}
     </Link>
@@ -421,13 +405,13 @@ function SideItem({
 function DrawerItem({
   to,
   active,
-  icon,
+  icon: ItemIcon,
   label,
   onClick,
 }: {
   to: string;
   active: boolean;
-  icon: ReactNode;
+  icon: Icon;
   label: string;
   onClick: () => void;
 }) {
@@ -436,20 +420,14 @@ function DrawerItem({
       to={to}
       onClick={onClick}
       aria-current={active ? "page" : undefined}
-      className={`relative flex items-center gap-3.5 rounded-xl px-3.5 py-3 text-[14px] font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+      className={`relative flex items-center gap-3.5 rounded-md px-3.5 py-3 text-[15px] font-medium transition-colors duration-150 ${
         active
-          ? "bg-primary-light text-primary font-bold"
-          : "text-text-secondary hover:bg-muted hover:text-text-primary"
+          ? "bg-surface-2 font-bold text-text-primary shadow-[inset_3px_0_0_var(--text-primary)]"
+          : "text-text-muted hover:bg-surface-2 hover:text-text-primary"
       }`}
     >
-      {active && (
-        <span
-          className="absolute left-3 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-primary"
-          aria-hidden
-        />
-      )}
-      <span className={`shrink-0 ${active ? "ml-2" : ""}`} aria-hidden>
-        {icon}
+      <span className="shrink-0" aria-hidden>
+        <ItemIcon className="h-5 w-5" weight={active ? "bold" : "regular"} />
       </span>
       <span className="truncate">{label}</span>
     </Link>
@@ -459,28 +437,26 @@ function DrawerItem({
 function NavItem({
   to,
   active,
-  icon,
+  icon: ItemIcon,
   label,
 }: {
   to: string;
   active: boolean;
-  icon: ReactNode;
+  icon: Icon;
   label: string;
 }) {
   return (
     <Link
       to={to}
       aria-current={active ? "page" : undefined}
-      className={`flex flex-col items-center gap-1 rounded-xl py-1 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-        active ? "text-primary font-bold" : "text-text-muted hover:text-text-primary"
+      className={`flex flex-col items-center gap-1 py-1.5 text-[11px] transition-colors ${
+        active
+          ? "font-bold text-text-primary shadow-[inset_0_2px_0_var(--text-primary)]"
+          : "font-medium text-text-muted hover:text-text-primary"
       }`}
     >
-      {icon}
+      <ItemIcon className="h-6 w-6" weight={active ? "bold" : "regular"} />
       <span>{label}</span>
-      <span
-        className={`h-1 w-1 rounded-full transition-all ${active ? "bg-primary scale-100" : "bg-transparent scale-0"}`}
-        aria-hidden
-      />
     </Link>
   );
 }
@@ -491,9 +467,9 @@ function CenterNav() {
       <Link
         to="/nueva-venta"
         aria-label="Nueva venta"
-        className="flex h-13 w-13 items-center justify-center rounded-full border-4 border-background bg-primary text-white shadow-[0_8px_20px_rgba(35,104,74,0.35)] active:scale-95 transition"
+        className="flex h-13 w-13 items-center justify-center rounded-full border-4 border-background bg-cta text-cta-foreground shadow-fab active:scale-95 transition"
       >
-        <Plus className="h-6 w-6" />
+        <PlusIcon className="h-6 w-6" weight="bold" />
       </Link>
     </div>
   );
