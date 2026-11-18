@@ -1,26 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef, useState, useMemo, useEffect } from "react";
 import {
-  Store,
-  User,
-  CheckCircle2,
-  Clock,
-  Receipt,
-  Plus,
-  Database,
-  Calendar,
-  Package,
-  Info,
-  TrendingUp,
-  ChevronDown,
-  RefreshCw,
-  Search,
-  X,
-  Download,
-  Upload,
-  Loader2,
-  SlidersHorizontal,
-} from "lucide-react";
+  CalendarBlankIcon,
+  CaretDownIcon,
+  CheckCircleIcon,
+  CircleNotchIcon,
+  ClockIcon,
+  DatabaseIcon,
+  DownloadSimpleIcon,
+  InfoIcon,
+  MagnifyingGlassIcon,
+  PackageIcon,
+  PlusIcon,
+  ReceiptIcon,
+  SlidersHorizontalIcon,
+  StorefrontIcon,
+  TrendUpIcon,
+  UploadSimpleIcon,
+  UserIcon,
+  XIcon,
+} from "@phosphor-icons/react";
 import { useArtisan } from "@/lib/artisan-store";
 import {
   USER_NAME,
@@ -601,14 +600,14 @@ function Home() {
               onClick={() => setIsAddStockModalOpen(true)}
               className="inline-flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-md border border-border bg-white px-3 text-[14px] font-semibold text-text-primary transition hover:border-text-primary hover:bg-surface-2 sm:w-auto sm:px-4"
             >
-              <Package className="h-4 w-4 shrink-0" />
+              <PackageIcon className="h-4 w-4 shrink-0" />
               <span className="truncate">Agregar inventario</span>
             </button>
             <Link
               to="/nueva-venta"
               className="hidden h-11 items-center justify-center gap-2 rounded-md bg-cta px-5 text-[14px] font-bold text-cta-foreground transition hover:bg-cta-hover md:inline-flex"
             >
-              <Plus className="h-4 w-4" />
+              <PlusIcon className="h-4 w-4" />
               Nueva venta
             </Link>
           </div>
@@ -646,7 +645,7 @@ function Home() {
               to="/productos"
               className="mt-1 flex max-w-[420px] items-start gap-2.5 rounded-md bg-info-bg px-3.5 py-3 text-[13px] leading-snug text-info"
             >
-              <Info className="mt-0.5 h-4 w-4 shrink-0" />
+              <InfoIcon className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
                 <strong className="font-bold">
                   {productsMissingCost === 1
@@ -887,7 +886,7 @@ function Home() {
           {/* Filters for Sales History */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative flex-1 sm:flex-initial min-w-[155px]">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted" />
+              <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted" />
               <input
                 type="text"
                 value={historySearch}
@@ -910,7 +909,7 @@ function Home() {
 
         {historyFilteredSales.length === 0 ? (
           <div className="mt-8 flex flex-col items-center gap-3 text-text-muted py-8 bg-white rounded-2xl border border-border">
-            <Receipt className="h-10 w-10 opacity-30" />
+            <ReceiptIcon className="h-10 w-10 opacity-30" />
             <p className="text-[14px]">Sin ventas registradas</p>
           </div>
         ) : (
@@ -1009,11 +1008,11 @@ function Home() {
                         <td className="py-3 px-4">
                           {s.status === "Entregado" ? (
                             <span className="inline-flex items-center gap-1 rounded-sm bg-success-bg text-success text-[10px] font-bold px-2.5 py-1">
-                              <CheckCircle2 className="h-3.5 w-3.5" /> Cobrada
+                              <CheckCircleIcon className="h-3.5 w-3.5" /> Cobrada
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 rounded-sm bg-warning-bg text-warning text-[10px] font-bold px-2.5 py-1">
-                              <Clock className="h-3.5 w-3.5" /> Por cobrar
+                              <ClockIcon className="h-3.5 w-3.5" /> Por cobrar
                             </span>
                           )}
                         </td>
@@ -1035,7 +1034,7 @@ function Home() {
                               params={{ saleId: s.id }}
                               className="border border-border bg-white hover:bg-muted text-text-secondary text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition inline-flex items-center gap-1"
                             >
-                              <Receipt className="h-3 w-3" /> Ticket
+                              <ReceiptIcon className="h-3 w-3" /> Ticket
                             </Link>
                           </div>
                         </td>
@@ -1060,7 +1059,7 @@ function Home() {
         <DialogContent className="max-w-md rounded-2xl p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-text-primary flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-success" />
+              <CheckCircleIcon className="h-5 w-5 text-success" />
               Confirmar Cobro de Venta
             </DialogTitle>
             <DialogDescription className="text-xs text-text-muted mt-1">
@@ -1149,12 +1148,12 @@ function Home() {
                 >
                   {isCobrando ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <CircleNotchIcon className="h-4 w-4 animate-spin" />
                       Procesando...
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 className="h-4 w-4" />
+                      <CheckCircleIcon className="h-4 w-4" />
                       Confirmar Cobro
                     </>
                   )}
@@ -1172,7 +1171,7 @@ function Home() {
             <div className="flex justify-between items-center pr-6">
               <div>
                 <DialogTitle className="text-lg font-bold text-text-primary flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-warning" />
+                  <ClockIcon className="h-5 w-5 text-warning" />
                   Ventas Por Cobrar (Todas)
                 </DialogTitle>
                 <DialogDescription className="text-xs text-text-muted mt-0.5">
@@ -1191,7 +1190,7 @@ function Home() {
           <div className="flex-1 overflow-y-auto py-3 pr-1 space-y-3">
             {allPendingSales.length === 0 ? (
               <div className="py-12 text-center text-text-muted">
-                <CheckCircle2 className="h-10 w-10 mx-auto text-success mb-2 opacity-80" />
+                <CheckCircleIcon className="h-10 w-10 mx-auto text-success mb-2 opacity-80" />
                 <p className="font-semibold text-sm">¡No hay ventas pendientes por cobrar!</p>
                 <p className="text-xs mt-1">
                   Todas las ventas registradas han sido entregadas y cobradas.
@@ -1261,7 +1260,7 @@ function Home() {
             <>
               <DialogHeader className="pb-3 border-b border-border">
                 <DialogTitle className="text-xl font-bold text-text-primary flex items-center gap-2">
-                  <Package className="h-5 w-5 text-primary" />
+                  <PackageIcon className="h-5 w-5 text-primary" />
                   ¿Cuántas piezas deseas agregar a tu inventario?
                 </DialogTitle>
                 <DialogDescription className="text-xs text-text-muted mt-1">
@@ -1325,12 +1324,12 @@ function Home() {
                 >
                   {isSavingAddStock ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <CircleNotchIcon className="h-4 w-4 animate-spin" />
                       <span>Guardando...</span>
                     </>
                   ) : (
                     <>
-                      <Package className="h-4 w-4" />
+                      <PackageIcon className="h-4 w-4" />
                       <span>Guardar Inventario</span>
                     </>
                   )}
@@ -1523,7 +1522,7 @@ function FilterDropdown({
         aria-controls="dashboard-filters-menu"
         className="inline-flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 text-[14px] font-bold text-text-primary transition hover:bg-muted active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:w-auto"
       >
-        <SlidersHorizontal className="h-4 w-4 text-primary" />
+        <SlidersHorizontalIcon className="h-4 w-4 text-primary" />
         <span>Filtros</span>
         {activeCount > 0 && (
           <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1.5 text-[11px] font-bold leading-none text-white">
@@ -1533,7 +1532,9 @@ function FilterDropdown({
         <span className="hidden max-w-[150px] truncate text-[12px] font-semibold text-text-muted xl:inline">
           {summary}
         </span>
-        <ChevronDown className={`h-4 w-4 text-text-muted transition ${open ? "rotate-180" : ""}`} />
+        <CaretDownIcon
+          className={`h-4 w-4 text-text-muted transition ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       {open && (
@@ -1560,7 +1561,7 @@ function FilterDropdown({
 
           <div className="mt-3 grid gap-3">
             <FilterSelect
-              icon={<Calendar className="h-3.5 w-3.5 text-primary" />}
+              icon={<CalendarBlankIcon className="h-3.5 w-3.5 text-primary" />}
               label="Periodo"
               value={timeFilter}
               onChange={onTimeChange}
@@ -1573,7 +1574,7 @@ function FilterDropdown({
               ]}
             />
             <FilterSelect
-              icon={<Package className="h-3.5 w-3.5 text-primary" />}
+              icon={<PackageIcon className="h-3.5 w-3.5 text-primary" />}
               label="Producto"
               value={productFilter}
               onChange={onProductChange}
@@ -1583,7 +1584,7 @@ function FilterDropdown({
               ]}
             />
             <FilterSelect
-              icon={<Store className="h-3.5 w-3.5 text-primary" />}
+              icon={<StorefrontIcon className="h-3.5 w-3.5 text-primary" />}
               label="Cliente"
               value={clientFilter}
               onChange={onClientChange}
@@ -1630,7 +1631,7 @@ function FilterSelect({
             </option>
           ))}
         </select>
-        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+        <CaretDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
       </span>
     </label>
   );
@@ -1671,7 +1672,11 @@ function SaleCardItem({
             s.channel === "PDV" ? "bg-primary-light text-primary" : "bg-info-bg text-info"
           }`}
         >
-          {s.channel === "PDV" ? <Store className="h-5 w-5" /> : <User className="h-5 w-5" />}
+          {s.channel === "PDV" ? (
+            <StorefrontIcon className="h-5 w-5" />
+          ) : (
+            <UserIcon className="h-5 w-5" />
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <p className="truncate text-[14px] font-bold text-text-primary">{s.clientName}</p>
@@ -1705,15 +1710,15 @@ function SaleCardItem({
           <p className="text-[14px] font-bold">{formatMXN(s.total)}</p>
           {s.status === "Entregado" ? (
             <span className="inline-flex items-center gap-1 rounded-sm bg-success-bg text-success text-[10px] font-semibold px-2 py-0.5">
-              <CheckCircle2 className="h-3 w-3" /> Cobrada
+              <CheckCircleIcon className="h-3 w-3" /> Cobrada
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 rounded-sm bg-warning-bg text-warning text-[10px] font-semibold px-2 py-0.5">
-              <Clock className="h-3 w-3" /> Por cobrar
+              <ClockIcon className="h-3 w-3" /> Por cobrar
             </span>
           )}
         </div>
-        <ChevronDown
+        <CaretDownIcon
           className={`h-4 w-4 text-text-muted transition ml-1 ${open ? "rotate-180" : ""}`}
         />
       </button>
@@ -1762,7 +1767,7 @@ function SaleCardItem({
                 onClick={() => onCobrar(s)}
                 className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-primary text-white text-[13px] font-semibold py-2 transition hover:bg-primary/85 cursor-pointer"
               >
-                <CheckCircle2 className="h-4 w-4" />
+                <CheckCircleIcon className="h-4 w-4" />
                 Cobrar
               </button>
             )}
@@ -1771,7 +1776,7 @@ function SaleCardItem({
               params={{ saleId: s.id }}
               className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-muted text-text-secondary text-[13px] font-semibold px-4 py-2 transition hover:bg-border"
             >
-              <Receipt className="h-4 w-4" />
+              <ReceiptIcon className="h-4 w-4" />
               Ticket
             </Link>
           </div>
@@ -1837,14 +1842,14 @@ function CSVSheet({ onClose }: { onClose: () => void }) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-border">
           <div className="flex items-center gap-2">
-            <Database className="h-4 w-4 text-primary" />
+            <DatabaseIcon className="h-4 w-4 text-primary" />
             <h2 className="text-[15px] font-bold text-text-primary">Importar / Exportar CSV</h2>
           </div>
           <button
             onClick={onClose}
             className="h-8 w-8 grid place-items-center rounded-full hover:bg-muted text-text-muted"
           >
-            <X className="h-4 w-4" />
+            <XIcon className="h-4 w-4" />
           </button>
         </div>
 
@@ -1874,7 +1879,7 @@ function CSVSheet({ onClose }: { onClose: () => void }) {
                 cliente, productos, totales, costos y estado de cobro.
               </InfoBox>
               <ActionRow
-                icon={<Download className="h-4 w-4" />}
+                icon={<DownloadSimpleIcon className="h-4 w-4" />}
                 label="Exportar ventas"
                 sublabel={`${sales.length} registros`}
                 onClick={() => exportSalesCSV(sales)}
@@ -1896,14 +1901,14 @@ function CSVSheet({ onClose }: { onClose: () => void }) {
                 </code>
               </InfoBox>
               <ActionRow
-                icon={<Download className="h-4 w-4" />}
+                icon={<DownloadSimpleIcon className="h-4 w-4" />}
                 label="Exportar clientes"
                 sublabel={`${clients.length} clientes`}
                 onClick={() => exportClientsCSV(clients)}
                 variant="primary"
               />
               <ActionRow
-                icon={<Upload className="h-4 w-4" />}
+                icon={<UploadSimpleIcon className="h-4 w-4" />}
                 label="Importar clientes"
                 sublabel="Selecciona un archivo .csv"
                 onClick={() => clientFileRef.current?.click()}
@@ -1935,14 +1940,14 @@ function CSVSheet({ onClose }: { onClose: () => void }) {
                 </code>
               </InfoBox>
               <ActionRow
-                icon={<Download className="h-4 w-4" />}
+                icon={<DownloadSimpleIcon className="h-4 w-4" />}
                 label="Exportar productos"
                 sublabel={`${products.length} productos`}
                 onClick={() => exportProductsCSV(products)}
                 variant="primary"
               />
               <ActionRow
-                icon={<Upload className="h-4 w-4" />}
+                icon={<UploadSimpleIcon className="h-4 w-4" />}
                 label="Importar productos"
                 sublabel="Selecciona un archivo .csv"
                 onClick={() => productFileRef.current?.click()}
@@ -1969,7 +1974,7 @@ function CSVSheet({ onClose }: { onClose: () => void }) {
         {/* Toast */}
         {toast && (
           <div className="mx-5 mb-5 rounded-xl bg-primary text-white text-[13px] font-medium px-4 py-3 flex items-center gap-2 shadow-lg">
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <CheckCircleIcon className="h-4 w-4 shrink-0" />
             {toast}
           </div>
         )}
@@ -2031,7 +2036,7 @@ function ActionRow({
           {sublabel}
         </p>
       </div>
-      <Download
+      <DownloadSimpleIcon
         className={`h-4 w-4 shrink-0 ${variant === "primary" ? "text-white/60" : "text-text-muted"}`}
       />
     </button>
@@ -2050,17 +2055,17 @@ function OnboardingModal({ onClose, onRemindLater }: OnboardingModalProps) {
     {
       title: "Registra ventas al instante",
       desc: "Presiona el botón '+ Nueva venta' para iniciar. Registra compras, selecciona clientes y documenta cambios (mermas) en segundos.",
-      icon: <Receipt className="h-10 w-10 text-text-primary" />,
+      icon: <ReceiptIcon className="h-10 w-10 text-text-primary" />,
     },
     {
       title: "Tu negocio de un vistazo",
       desc: "Monitorea tus ventas totales, ganancias estimadas y productos entregados en el Dashboard. Aplica filtros de tiempo para analizar tu rendimiento.",
-      icon: <TrendingUp className="h-10 w-10 text-text-primary" />,
+      icon: <TrendUpIcon className="h-10 w-10 text-text-primary" />,
     },
     {
       title: "Controla tu inventario",
       desc: "Mantén al día tus existencias de producto. Cada venta o cambio realizado descuenta de forma automática tu stock físico.",
-      icon: <Package className="h-10 w-10 text-text-primary" />,
+      icon: <PackageIcon className="h-10 w-10 text-text-primary" />,
     },
   ];
 
