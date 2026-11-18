@@ -10,8 +10,8 @@ import {
   Database,
   Calendar,
   Package,
+  Info,
   TrendingUp,
-  DollarSign,
   ChevronDown,
   RefreshCw,
   Search,
@@ -45,8 +45,6 @@ import { ModalSuccessState } from "@/components/ui/ModalSuccessState";
 import { toast } from "sonner";
 import {
   ResponsiveContainer,
-  AreaChart,
-  Area,
   BarChart,
   Bar,
   XAxis,
@@ -546,6 +544,18 @@ function Home() {
     }));
   }, [clientMovement]);
 
+  const periodTitle = {
+    Hoy: "Tu negocio, hoy",
+    Semana: "Tu negocio, esta semana",
+    Mes: "Tu negocio, este mes",
+    Año: "Tu negocio, este año",
+    Todo: "Tu negocio, en total",
+  }[timeFilter];
+
+  const productsMissingCost = productPerformance.filter(
+    (product) => product.qtySold > 0 && !(product.cost > 0),
+  ).length;
+
   if (loadError) {
     return <DataLoadError message={loadError} />;
   }
@@ -562,16 +572,15 @@ function Home() {
       <section className="space-y-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
-            <p className="text-[13px] font-semibold capitalize text-text-muted">{dateLabel}</p>
-            <h1 className="mt-1 font-display text-[28px] font-bold leading-tight text-text-primary md:text-[34px]">
-              {greeting}, {displayName}
-            </h1>
-            <p className="mt-1 max-w-2xl text-[14px] leading-relaxed text-text-secondary md:text-[15px]">
-              Ventas, pendientes, inventario y margen del día.
+            <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-text-muted">
+              {dateLabel} · {greeting}, {displayName}
             </p>
+            <h1 className="mt-1.5 font-display text-[30px] font-black leading-none tracking-[-0.02em] text-text-primary md:text-[40px]">
+              {periodTitle}
+            </h1>
           </div>
 
-          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center sm:gap-2.5">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center">
             <FilterDropdown
               open={filtersOpen}
               onOpenChange={setFiltersOpen}
@@ -590,14 +599,14 @@ function Home() {
             <button
               type="button"
               onClick={() => setIsAddStockModalOpen(true)}
-              className="inline-flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-border bg-white px-3 text-[13px] font-bold text-text-primary transition hover:bg-muted active:scale-[0.99] sm:w-auto sm:px-4 sm:text-[14px]"
+              className="inline-flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-md border border-border bg-white px-3 text-[14px] font-semibold text-text-primary transition hover:border-text-primary hover:bg-surface-2 sm:w-auto sm:px-4"
             >
               <Package className="h-4 w-4 shrink-0" />
               <span className="truncate">Agregar inventario</span>
             </button>
             <Link
               to="/nueva-venta"
-              className="hidden h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-[14px] font-bold text-white transition hover:bg-[#1f523b] active:scale-[0.99] md:inline-flex"
+              className="hidden h-11 items-center justify-center gap-2 rounded-md bg-cta px-5 text-[14px] font-bold text-cta-foreground transition hover:bg-cta-hover md:inline-flex"
             >
               <Plus className="h-4 w-4" />
               Nueva venta
@@ -606,110 +615,186 @@ function Home() {
         </div>
       </section>
 
-      {/* Dashboard Overview */}
-      <section className="space-y-3">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Kpi
-            label="Ventas cobradas"
-            value={formatMXN(kpiData.salesTotal)}
-            sub={`${fullyFilteredPaidSales.length} cobradas`}
-            icon={<DollarSign className="h-4 w-4" />}
-            accent="green"
-          />
-          <Kpi
-            label="Costos de venta"
-            value={formatMXN(kpiData.costTotal)}
-            sub={
-              kpiData.mermaCostTotal > 0
-                ? `Merma aparte: ${formatMXN(kpiData.mermaCostTotal)}`
-                : "solo piezas vendidas"
-            }
-            icon={<DollarSign className="h-4 w-4" />}
-            accent="red"
-          />
-          <Kpi
-            label="Ganancia de ventas"
-            value={formatMXN(kpiData.profitTotal)}
-            sub={`${kpiData.margin}% margen útil`}
-            icon={<TrendingUp className="h-4 w-4" />}
-            accent="green"
-          />
-          <Kpi
-            label="Por cobrar"
-            value={formatMXN(kpiData.pendingSalesTotal)}
-            sub={`${fullyFilteredSales.filter((s) => s.status === "Pendiente").length} pendientes`}
-            icon={<DollarSign className="h-4 w-4" />}
-            accent="amber"
-            onClick={() => setIsPendingSalesModalOpen(true)}
-          />
+      {/* Resultado: ganancia bruta y cómo se forma */}
+      <section
+        aria-label="Resultado del periodo"
+        className="flex flex-col border-t-2 border-text-primary lg:flex-row"
+      >
+        <div className="flex flex-col gap-2.5 py-5 lg:flex-[5] lg:py-6 lg:pr-10">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-text-primary">
+            Ganancia bruta
+          </p>
+          <div className="flex flex-wrap items-baseline gap-3">
+            <span className="font-display text-[56px] font-black leading-[0.95] tracking-[-0.03em] tabular-nums text-text-primary md:text-[72px]">
+              {formatMXN(kpiData.profitTotal)}
+            </span>
+            {kpiData.salesTotal > 0 && (
+              <span className="rounded-sm bg-cta px-2 py-0.5 font-display text-[18px] font-bold tabular-nums text-cta-foreground md:text-[22px]">
+                {kpiData.margin}%
+              </span>
+            )}
+          </div>
+          <p className="max-w-[400px] text-[14px] leading-relaxed text-text-muted md:text-[15px]">
+            Ingresos cobrados menos el costo de lo vendido.{" "}
+            <strong className="font-semibold text-text-primary">
+              No incluye gastos del negocio
+            </strong>{" "}
+            como renta, gasolina o sueldos.
+          </p>
+          {productsMissingCost > 0 && (
+            <Link
+              to="/productos"
+              className="mt-1 flex max-w-[420px] items-start gap-2.5 rounded-md bg-info-bg px-3.5 py-3 text-[13px] leading-snug text-info"
+            >
+              <Info className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                <strong className="font-bold">
+                  {productsMissingCost === 1
+                    ? "1 producto vendido no tiene costo."
+                    : `${productsMissingCost} productos vendidos no tienen costo.`}
+                </strong>{" "}
+                Agrégalo para que tu ganancia sea real →
+              </span>
+            </Link>
+          )}
         </div>
 
-        <div className="grid gap-3 md:grid-cols-3">
-          <Kpi
-            label="Top producto"
-            value={kpiData.topProduct}
-            sub={kpiData.maxQty > 0 ? `${kpiData.maxQty} paquetes` : "Sin ventas"}
-            icon={<Package className="h-4 w-4" />}
-            accent="blue"
-          />
-          <Kpi
-            label="Paquetes entregados"
-            value={String(kpiData.packagesTotal)}
-            sub="en el periodo"
-            icon={<CheckCircle2 className="h-4 w-4" />}
-            accent="green"
-          />
-          <Kpi
-            label="Productos cambiados"
-            value={String(kpiData.returnsTotal)}
-            sub="cambios / devoluciones"
-            icon={<RefreshCw className="h-4 w-4" />}
-            accent="amber"
-          />
+        <div className="border-t border-border py-3 lg:flex-[7] lg:border-l lg:border-t-0 lg:py-5 lg:pl-10">
+          <table
+            aria-label="Cómo se forma la ganancia"
+            className="w-full border-collapse tabular-nums"
+          >
+            <tbody>
+              <LedgerRow
+                label="Ingresos cobrados"
+                note={`${fullyFilteredPaidSales.length} ${fullyFilteredPaidSales.length === 1 ? "venta" : "ventas"}`}
+                value={formatMXNc(kpiData.salesTotal)}
+                barPct={kpiData.salesTotal > 0 ? 100 : 0}
+                barClass="bg-text-primary"
+              />
+              <LedgerRow
+                label="Costo de venta"
+                value={`−${formatMXNc(kpiData.costTotal)}`}
+                barPct={
+                  kpiData.salesTotal > 0
+                    ? Math.min(100, (kpiData.costTotal / kpiData.salesTotal) * 100)
+                    : 0
+                }
+                barClass="bg-border"
+              />
+              <LedgerRow
+                label="Ganancia bruta"
+                value={formatMXNc(kpiData.profitTotal)}
+                barPct={kpiData.salesTotal > 0 ? Math.max(0, kpiData.margin) : 0}
+                barClass="bg-cta"
+                strong
+              />
+              {kpiData.mermaCostTotal > 0 && (
+                <>
+                  <tr>
+                    <td
+                      colSpan={3}
+                      className="border-b border-border pb-1.5 pt-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted"
+                    >
+                      Contabilizado por separado
+                    </td>
+                  </tr>
+                  <LedgerRow
+                    label="Merma por cambios"
+                    note="costo de lo cambiado"
+                    value={formatMXNc(kpiData.mermaCostTotal)}
+                    barPct={
+                      kpiData.salesTotal > 0
+                        ? Math.min(100, (kpiData.mermaCostTotal / kpiData.salesTotal) * 100)
+                        : 0
+                    }
+                    barClass="bg-[repeating-linear-gradient(135deg,#646b76_0_2px,transparent_2px_6px)]"
+                  />
+                  <LedgerRow
+                    label="Ganancia bruta menos merma"
+                    value={formatMXNc(kpiData.profitTotal - kpiData.mermaCostTotal)}
+                    muted
+                  />
+                </>
+              )}
+            </tbody>
+          </table>
         </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-3">
-        <div className="flex h-[300px] flex-col rounded-2xl border border-border bg-white p-4">
-          <div className="mb-4">
-            <h3 className="font-display text-base font-bold text-text-primary">Ritmo de ventas</h3>
-            <p className="text-[13px] text-text-muted">Cómo se movió el dinero cobrado</p>
-          </div>
-          <div className="min-h-0 flex-1 text-xs">
-            {trendChartData.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-text-muted">
-                Sin datos en el periodo
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trendChartData}>
-                  <defs>
-                    <linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#23684a" stopOpacity={0.18} />
-                      <stop offset="95%" stopColor="#23684a" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ECEFF2" />
-                  <XAxis dataKey="fecha" tickLine={false} axisLine={false} />
-                  <YAxis tickLine={false} axisLine={false} width={44} />
-                  <RechartsTooltip formatter={(value) => formatMXN(Number(value))} />
-                  <Area
-                    type="monotone"
-                    dataKey="Ventas"
-                    stroke="#23684a"
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#colorVentas)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
+      {/* Indicadores */}
+      <section
+        aria-label="Indicadores"
+        className="grid grid-cols-2 border-y border-border lg:grid-cols-4"
+      >
+        <Metric
+          label="Por cobrar"
+          value={formatMXN(allPendingSalesTotal)}
+          sub={
+            allPendingSales.length === 0
+              ? "Todo cobrado"
+              : `${allPendingSales.length} ${allPendingSales.length === 1 ? "nota abierta" : "notas abiertas"} · Ver`
+          }
+          tone={allPendingSales.length === 0 ? "success" : "warning"}
+          onClick={allPendingSales.length > 0 ? () => setIsPendingSalesModalOpen(true) : undefined}
+        />
+        <Metric
+          label="Ventas cobradas"
+          value={String(fullyFilteredPaidSales.length)}
+          sub={
+            kpiData.returnsTotal > 0 ? `${kpiData.returnsTotal} piezas cambiadas` : "en el periodo"
+          }
+        />
+        <Metric
+          label="Ticket promedio"
+          value={
+            fullyFilteredPaidSales.length > 0
+              ? formatMXNc(kpiData.salesTotal / fullyFilteredPaidSales.length)
+              : "—"
+          }
+          sub="por venta cobrada"
+        />
+        <Metric
+          label="Entregado"
+          value={`${kpiData.packagesTotal}`}
+          unit={kpiData.packagesTotal === 1 ? "paquete" : "paquetes"}
+          sub={kpiData.maxQty > 0 ? `Más vendido: ${kpiData.topProduct}` : "Sin entregas"}
+        />
+      </section>
+
+      <section className="grid gap-x-8 gap-y-6 pt-2 xl:grid-cols-3">
+        <ChartPanel
+          title="Cobrado por día"
+          subtitle="Dinero que entró en el periodo"
+          empty={trendChartData.length === 0}
+        >
+          <BarChart data={trendChartData} margin={{ left: 0, right: 4, top: 4, bottom: 0 }}>
+            <CartesianGrid vertical={false} stroke="#EDEFF2" />
+            <XAxis
+              dataKey="fecha"
+              tickLine={false}
+              axisLine={{ stroke: "#111111" }}
+              tick={CHART_TICK}
+            />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              width={48}
+              tick={CHART_TICK}
+              tickFormatter={(value) => formatMXN(Number(value))}
+            />
+            <RechartsTooltip
+              cursor={{ fill: "#F5F6F8" }}
+              contentStyle={CHART_TOOLTIP}
+              formatter={(value) => [formatMXNc(Number(value)), "Cobrado"]}
+            />
+            <Bar dataKey="Ventas" fill="#111111" radius={[2, 2, 0, 0]} maxBarSize={36} />
+          </BarChart>
+        </ChartPanel>
 
         <ChartPanel
-          title="Ventas por producto"
-          subtitle="Paquetes vendidos por producto"
+          title="Paquetes por producto"
+          subtitle="El más vendido, en naranja"
           empty={productChartData.length === 0}
         >
           <BarChart
@@ -717,32 +802,41 @@ function Home() {
             data={productChartData}
             margin={{ left: 4, right: 8, top: 0, bottom: 0 }}
           >
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#ECEFF2" />
-            <XAxis type="number" tickLine={false} axisLine={false} />
+            <CartesianGrid horizontal={false} stroke="#EDEFF2" />
+            <XAxis
+              type="number"
+              tickLine={false}
+              axisLine={false}
+              tick={CHART_TICK}
+              allowDecimals={false}
+            />
             <YAxis
               dataKey="name"
               type="category"
               tickLine={false}
               axisLine={false}
               width={108}
-              tickFormatter={(value) => (value.length > 16 ? `${value.slice(0, 14)}...` : value)}
+              tick={CHART_TICK}
+              tickFormatter={(value) => (value.length > 16 ? `${value.slice(0, 14)}…` : value)}
             />
             <RechartsTooltip
+              cursor={{ fill: "#F5F6F8" }}
+              contentStyle={CHART_TOOLTIP}
               formatter={(value, name) =>
-                name === "venta" ? formatMXN(Number(value)) : `${value} paquetes`
+                name === "venta" ? formatMXNc(Number(value)) : `${value} paquetes`
               }
             />
-            <Bar dataKey="paquetes" radius={[0, 5, 5, 0]}>
+            <Bar dataKey="paquetes" radius={[0, 2, 2, 0]} maxBarSize={22}>
               {productChartData.map((_entry, index) => (
-                <Cell key={`product-cell-${index}`} fill={index === 0 ? "#23684a" : "#9CA3AF"} />
+                <Cell key={`product-cell-${index}`} fill={index === 0 ? "#FF4F00" : "#111111"} />
               ))}
             </Bar>
           </BarChart>
         </ChartPanel>
 
         <ChartPanel
-          title="Top clientes / PDV"
-          subtitle="Dónde se concentró el movimiento"
+          title="Clientes con más movimiento"
+          subtitle="Paquetes entregados · top 5"
           empty={clientChartData.length === 0}
         >
           <BarChart
@@ -750,22 +844,31 @@ function Home() {
             data={clientChartData}
             margin={{ left: 4, right: 8, top: 0, bottom: 0 }}
           >
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#ECEFF2" />
-            <XAxis type="number" tickLine={false} axisLine={false} />
+            <CartesianGrid horizontal={false} stroke="#EDEFF2" />
+            <XAxis
+              type="number"
+              tickLine={false}
+              axisLine={false}
+              tick={CHART_TICK}
+              allowDecimals={false}
+            />
             <YAxis
               dataKey="name"
               type="category"
               tickLine={false}
               axisLine={false}
               width={108}
-              tickFormatter={(value) => (value.length > 16 ? `${value.slice(0, 14)}...` : value)}
+              tick={CHART_TICK}
+              tickFormatter={(value) => (value.length > 16 ? `${value.slice(0, 14)}…` : value)}
             />
             <RechartsTooltip
+              cursor={{ fill: "#F5F6F8" }}
+              contentStyle={CHART_TOOLTIP}
               formatter={(value, name) =>
-                name === "venta" ? formatMXN(Number(value)) : `${value} paquetes`
+                name === "venta" ? formatMXNc(Number(value)) : `${value} paquetes`
               }
             />
-            <Bar dataKey="paquetes" fill="#23684a" radius={[0, 5, 5, 0]} />
+            <Bar dataKey="paquetes" fill="#111111" radius={[0, 2, 2, 0]} maxBarSize={22} />
           </BarChart>
         </ChartPanel>
       </section>
@@ -774,9 +877,9 @@ function Home() {
       <div className="mt-7 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h3 className="font-display text-base font-bold text-text-primary">
-              Historial de Ventas
-            </h3>
+            <h2 className="font-display text-[17px] font-bold text-text-primary">
+              Historial de ventas
+            </h2>
             <p className="text-[13px] text-text-muted">
               Transacciones que coinciden con los filtros
             </p>
@@ -799,8 +902,8 @@ function Home() {
               className="h-9 px-2 rounded-lg border border-border text-[12px] font-semibold bg-white outline-none focus:border-primary"
             >
               <option value="Todos">Todos los estados</option>
-              <option value="Entregado">Entregado</option>
-              <option value="Pendiente">Pendiente</option>
+              <option value="Entregado">Cobradas</option>
+              <option value="Pendiente">Por cobrar</option>
             </select>
           </div>
         </div>
@@ -829,7 +932,7 @@ function Home() {
             <div className="hidden md:block overflow-hidden rounded-2xl border border-border bg-white">
               <table className="w-full text-left border-collapse text-[13px]">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-border text-[12px] font-bold text-text-muted">
+                  <tr className="border-b border-text-primary text-[12px] font-semibold text-text-muted">
                     <th className="py-3 px-4">Fecha</th>
                     <th className="py-3 px-4">Cliente / PDV</th>
                     <th className="py-3 px-4">Canal</th>
@@ -855,7 +958,7 @@ function Home() {
                     });
 
                     return (
-                      <tr key={s.id} className="hover:bg-gray-50/50 transition">
+                      <tr key={s.id} className="hover:bg-surface-2 transition">
                         <td className="py-3 px-4 text-text-muted">
                           <div>{dateStr}</div>
                           <div className="text-[11px] opacity-75">{timeStr}</div>
@@ -875,7 +978,7 @@ function Home() {
                             className={`rounded-full text-[10px] font-bold px-2 py-0.5 ${
                               s.channel === "PDV"
                                 ? "bg-primary-light text-primary"
-                                : "bg-[#F5F3FF] text-[#6D28D9]"
+                                : "bg-info-bg text-info"
                             }`}
                           >
                             {s.channel}
@@ -887,13 +990,13 @@ function Home() {
                               <div key={i.productId} className="text-[12px] leading-tight">
                                 {i.qty > 0 && (
                                   <div>
-                                    <span className="font-medium text-emerald-800">Entregado:</span>{" "}
+                                    <span className="font-medium text-text-muted">Entregado:</span>{" "}
                                     {i.productName}{" "}
                                     <span className="text-text-muted">x{i.qty}</span>
                                   </div>
                                 )}
                                 {(i.returnQty ?? 0) > 0 && (
-                                  <div className="text-warning-dark font-medium">
+                                  <div className="text-warning font-medium">
                                     <span>Cambio:</span> {i.productName}{" "}
                                     <span className="opacity-80">x{i.returnQty}</span>
                                   </div>
@@ -905,12 +1008,12 @@ function Home() {
                         <td className="py-3 px-4 text-text-secondary font-medium">{s.payment}</td>
                         <td className="py-3 px-4">
                           {s.status === "Entregado" ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold px-2.5 py-1">
-                              <CheckCircle2 className="h-3.5 w-3.5" /> Entregado
+                            <span className="inline-flex items-center gap-1 rounded-sm bg-success-bg text-success text-[10px] font-bold px-2.5 py-1">
+                              <CheckCircle2 className="h-3.5 w-3.5" /> Cobrada
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 text-warning text-[10px] font-bold px-2.5 py-1">
-                              <Clock className="h-3.5 w-3.5" /> Pendiente
+                            <span className="inline-flex items-center gap-1 rounded-sm bg-warning-bg text-warning text-[10px] font-bold px-2.5 py-1">
+                              <Clock className="h-3.5 w-3.5" /> Por cobrar
                             </span>
                           )}
                         </td>
@@ -922,7 +1025,7 @@ function Home() {
                             {s.status === "Pendiente" && (
                               <button
                                 onClick={() => handleOpenCobrarModal(s)}
-                                className="bg-primary hover:bg-[#1f523b] text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition cursor-pointer"
+                                className="bg-primary hover:bg-primary/85 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition cursor-pointer"
                               >
                                 Cobrar
                               </button>
@@ -957,7 +1060,7 @@ function Home() {
         <DialogContent className="max-w-md rounded-2xl p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-text-primary flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              <CheckCircle2 className="h-5 w-5 text-success" />
               Confirmar Cobro de Venta
             </DialogTitle>
             <DialogDescription className="text-xs text-text-muted mt-1">
@@ -967,7 +1070,7 @@ function Home() {
 
           {saleToCobrar && (
             <div className="space-y-4 py-2">
-              <div className="bg-gray-50 p-4 rounded-xl border border-border/80 space-y-2 text-xs">
+              <div className="bg-surface-2 p-4 rounded-xl border border-border/80 space-y-2 text-xs">
                 <div className="flex justify-between">
                   <span className="text-text-muted">Cliente:</span>
                   <span className="font-bold text-text-primary">{saleToCobrar.clientName}</span>
@@ -991,7 +1094,7 @@ function Home() {
                 </div>
                 <div className="border-t border-border pt-2 flex justify-between items-center text-sm">
                   <span className="text-text-muted font-medium">Monto Total:</span>
-                  <span className="text-base font-bold text-emerald-700">
+                  <span className="text-base font-bold text-success">
                     {formatMXN(saleToCobrar.total)}
                   </span>
                 </div>
@@ -1011,7 +1114,7 @@ function Home() {
                       className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition text-center cursor-pointer ${
                         selectedPayment === method
                           ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-white text-text-secondary hover:bg-gray-50"
+                          : "border-border bg-white text-text-secondary hover:bg-surface-2"
                       } disabled:opacity-60`}
                     >
                       {method}
@@ -1023,7 +1126,7 @@ function Home() {
               {cobroError && (
                 <div
                   role="alert"
-                  className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-xs font-medium text-red-700"
+                  className="rounded-xl border border-danger/30 bg-danger-bg px-3 py-2.5 text-xs font-medium text-danger"
                 >
                   {cobroError}
                 </div>
@@ -1034,7 +1137,7 @@ function Home() {
                   type="button"
                   disabled={isCobrando}
                   onClick={handleCloseCobrarModal}
-                  className="flex-1 py-2.5 rounded-xl border border-border text-xs font-semibold text-text-secondary hover:bg-gray-100 transition cursor-pointer disabled:opacity-60"
+                  className="flex-1 py-2.5 rounded-xl border border-border text-xs font-semibold text-text-secondary hover:bg-surface-2 transition cursor-pointer disabled:opacity-60"
                 >
                   Cancelar
                 </button>
@@ -1042,7 +1145,7 @@ function Home() {
                   type="button"
                   disabled={isCobrando}
                   onClick={handleConfirmCobro}
-                  className="flex-1 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-[#1f523b] transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-80"
+                  className="flex-1 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/85 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-80"
                 >
                   {isCobrando ? (
                     <>
@@ -1069,7 +1172,7 @@ function Home() {
             <div className="flex justify-between items-center pr-6">
               <div>
                 <DialogTitle className="text-lg font-bold text-text-primary flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-amber-600" />
+                  <Clock className="h-5 w-5 text-warning" />
                   Ventas Por Cobrar (Todas)
                 </DialogTitle>
                 <DialogDescription className="text-xs text-text-muted mt-0.5">
@@ -1078,7 +1181,7 @@ function Home() {
               </div>
               <div className="text-right">
                 <p className="text-[12px] font-semibold text-text-muted">Total por cobrar</p>
-                <p className="text-lg font-bold tabular-nums text-amber-700">
+                <p className="text-lg font-bold tabular-nums text-warning">
                   {formatMXN(allPendingSalesTotal)}
                 </p>
               </div>
@@ -1088,7 +1191,7 @@ function Home() {
           <div className="flex-1 overflow-y-auto py-3 pr-1 space-y-3">
             {allPendingSales.length === 0 ? (
               <div className="py-12 text-center text-text-muted">
-                <CheckCircle2 className="h-10 w-10 mx-auto text-emerald-500 mb-2 opacity-80" />
+                <CheckCircle2 className="h-10 w-10 mx-auto text-success mb-2 opacity-80" />
                 <p className="font-semibold text-sm">¡No hay ventas pendientes por cobrar!</p>
                 <p className="text-xs mt-1">
                   Todas las ventas registradas han sido entregadas y cobradas.
@@ -1197,7 +1300,7 @@ function Home() {
                             const val = e.target.value;
                             setAddStockValues((prev) => ({ ...prev, [p.id]: val }));
                           }}
-                          className="w-24 h-10 px-3 text-right rounded-xl border border-border outline-none transition focus:border-primary focus:ring-1 focus:ring-primary font-bold text-sm bg-gray-50/50 disabled:opacity-60"
+                          className="w-24 h-10 px-3 text-right rounded-xl border border-border outline-none transition focus:border-primary focus:ring-1 focus:ring-primary font-bold text-sm bg-surface-2 disabled:opacity-60"
                         />
                       </div>
                     </div>
@@ -1210,7 +1313,7 @@ function Home() {
                   type="button"
                   disabled={isSavingAddStock}
                   onClick={handleCloseAddStockModal}
-                  className="flex-1 py-2.5 rounded-xl border border-border text-xs font-semibold text-text-secondary hover:bg-gray-100 transition cursor-pointer disabled:opacity-60"
+                  className="flex-1 py-2.5 rounded-xl border border-border text-xs font-semibold text-text-secondary hover:bg-surface-2 transition cursor-pointer disabled:opacity-60"
                 >
                   Cancelar
                 </button>
@@ -1218,7 +1321,7 @@ function Home() {
                   type="button"
                   disabled={isSavingAddStock}
                   onClick={handleSaveAddStock}
-                  className="flex-1 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-[#1f523b] transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-80"
+                  className="flex-1 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/85 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-80"
                 >
                   {isSavingAddStock ? (
                     <>
@@ -1241,68 +1344,105 @@ function Home() {
   );
 }
 
-function Kpi({
+const CHART_TICK = { fill: "#646B76", fontSize: 11, fontFamily: "Satoshi, sans-serif" };
+const CHART_TOOLTIP = {
+  border: "1px solid #111111",
+  borderRadius: 6,
+  boxShadow: "none",
+  fontFamily: "Satoshi, sans-serif",
+  fontSize: 12,
+};
+
+function LedgerRow({
+  label,
+  note,
+  value,
+  barPct,
+  barClass,
+  strong = false,
+  muted = false,
+}: {
+  label: string;
+  note?: string;
+  value: string;
+  barPct?: number;
+  barClass?: string;
+  strong?: boolean;
+  muted?: boolean;
+}) {
+  return (
+    <tr className={strong ? "border-t-2 border-text-primary" : undefined}>
+      <th
+        scope="row"
+        className={`py-2.5 pr-3 text-left text-[14px] md:text-[15px] ${
+          strong ? "font-bold" : "font-medium"
+        } ${muted ? "text-text-muted" : "text-text-primary"}`}
+      >
+        {label}
+        {note && <span className="font-normal text-text-muted text-[13px]"> · {note}</span>}
+      </th>
+      <td className="hidden w-[42%] px-3 py-2.5 sm:table-cell" aria-hidden="true">
+        {barPct !== undefined && barPct > 0 && (
+          <div className={`h-2.5 ${barClass ?? ""}`} style={{ width: `${barPct}%` }} />
+        )}
+      </td>
+      <td
+        className={`py-2.5 text-right tabular-nums ${
+          strong
+            ? "text-[17px] font-black md:text-[19px]"
+            : "text-[15px] font-semibold md:text-[17px]"
+        } ${muted ? "text-text-muted" : "text-text-primary"}`}
+      >
+        {value}
+      </td>
+    </tr>
+  );
+}
+
+function Metric({
   label,
   value,
+  unit,
   sub,
-  icon,
-  accent = "neutral",
+  tone = "neutral",
   onClick,
 }: {
   label: string;
   value: string;
+  unit?: string;
   sub: string;
-  icon: React.ReactNode;
-  accent?: "green" | "red" | "amber" | "blue" | "neutral";
+  tone?: "neutral" | "success" | "warning";
   onClick?: () => void;
 }) {
-  const accents = {
-    green: {
-      icon: "border-emerald-100 bg-emerald-100/70 text-emerald-700",
-    },
-    red: {
-      icon: "border-rose-100 bg-rose-100/70 text-rose-700",
-    },
-    amber: {
-      icon: "border-amber-100 bg-amber-100/70 text-amber-700",
-    },
-    blue: {
-      icon: "border-sky-100 bg-sky-100/70 text-sky-700",
-    },
-    neutral: {
-      icon: "border-black/[0.04] bg-background text-text-muted",
-    },
-  }[accent];
-
-  const className = `relative flex min-h-[108px] flex-col justify-between rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)] transition-all duration-200 ${
-    onClick
-      ? "cursor-pointer select-none hover:-translate-y-0.5 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-      : ""
-  }`;
-
+  const subColor =
+    tone === "success" ? "text-success" : tone === "warning" ? "text-warning" : "text-text-muted";
   const content = (
     <>
-      <div className="flex justify-between items-center">
-        <p className="text-[12px] font-semibold text-text-muted">{label}</p>
-        <span className={`rounded-xl border p-1.5 shadow-2xs ${accents.icon}`}>{icon}</span>
-      </div>
-      <div className="mt-2">
-        <p className="truncate font-display text-2xl font-bold leading-none tabular-nums text-text-primary">
+      <span className="text-[13px] text-text-muted">{label}</span>
+      <span className="flex items-baseline gap-1.5">
+        <span className="truncate font-display text-[24px] font-bold leading-tight tracking-[-0.01em] tabular-nums text-text-primary md:text-[28px]">
           {value}
-        </p>
-        <p className="mt-1 truncate text-[12px] font-medium text-text-muted">{sub}</p>
-      </div>
+        </span>
+        {unit && <span className="text-[14px] font-semibold text-text-primary">{unit}</span>}
+      </span>
+      <span className={`truncate text-[13px] ${subColor} ${onClick ? "font-semibold" : ""}`}>
+        {sub}
+      </span>
     </>
   );
-
+  const className =
+    "flex min-w-0 flex-col gap-0.5 border-border py-4 pr-4 text-left [&:nth-child(even)]:border-l [&:nth-child(even)]:pl-4 lg:border-l lg:pl-5 lg:first:border-l-0 lg:first:pl-0 [&:nth-child(-n+2)]:border-b lg:[&:nth-child(-n+2)]:border-b-0";
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className={`${className} text-left`}>
+      <button
+        type="button"
+        onClick={onClick}
+        className={`${className} transition hover:bg-surface-2`}
+      >
         {content}
       </button>
     );
   }
-
   return <div className={className}>{content}</div>;
 }
 
@@ -1318,14 +1458,14 @@ function ChartPanel({
   children: React.ReactElement;
 }) {
   return (
-    <div className="flex h-[300px] flex-col rounded-2xl border border-border bg-white p-4">
+    <div className="flex h-[240px] flex-col border-t border-text-primary pt-3 md:h-[300px]">
       <div className="mb-4">
-        <h3 className="font-display text-base font-bold text-text-primary">{title}</h3>
+        <h2 className="font-display text-[17px] font-bold text-text-primary">{title}</h2>
         <p className="text-[13px] text-text-muted">{subtitle}</p>
       </div>
       <div className="min-h-0 flex-1 text-xs">
         {empty ? (
-          <div className="flex h-full items-center justify-center text-text-muted">
+          <div className="flex h-full items-center justify-center rounded-lg bg-surface-2 text-[13px] text-text-muted">
             Sin datos en el periodo
           </div>
         ) : (
@@ -1401,7 +1541,7 @@ function FilterDropdown({
           id="dashboard-filters-menu"
           role="dialog"
           aria-label="Filtros del dashboard"
-          className="fixed inset-x-3 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-40 max-h-[min(560px,calc(100dvh-8rem))] overflow-y-auto rounded-2xl border border-border bg-white p-3 shadow-[0_16px_40px_rgba(15,23,42,0.12)] sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:mt-2 sm:w-[420px] sm:max-h-none sm:overflow-visible"
+          className="fixed inset-x-3 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-40 max-h-[min(560px,calc(100dvh-8rem))] overflow-y-auto rounded-2xl border border-border bg-white p-3 shadow-[0_12px_32px_-8px_rgba(17,17,17,0.25)] sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:mt-2 sm:w-[420px] sm:max-h-none sm:overflow-visible"
         >
           <div className="flex items-start justify-between gap-4 border-b border-border pb-3">
             <div className="min-w-0">
@@ -1520,7 +1660,7 @@ function SaleCardItem({
   });
 
   return (
-    <li className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition list-none">
+    <li className="overflow-hidden rounded-2xl border border-border bg-white  transition list-none">
       <button
         type="button"
         className="flex w-full items-center gap-3 px-4 py-3.5 text-left cursor-pointer"
@@ -1528,7 +1668,7 @@ function SaleCardItem({
       >
         <div
           className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
-            s.channel === "PDV" ? "bg-primary-light text-primary" : "bg-[#F5F3FF] text-[#6D28D9]"
+            s.channel === "PDV" ? "bg-primary-light text-primary" : "bg-info-bg text-info"
           }`}
         >
           {s.channel === "PDV" ? <Store className="h-5 w-5" /> : <User className="h-5 w-5" />}
@@ -1564,12 +1704,12 @@ function SaleCardItem({
         <div className="shrink-0 text-right flex flex-col items-end gap-1">
           <p className="text-[14px] font-bold">{formatMXN(s.total)}</p>
           {s.status === "Entregado" ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[10px] font-semibold px-2 py-0.5">
-              <CheckCircle2 className="h-3 w-3" /> Entregado
+            <span className="inline-flex items-center gap-1 rounded-sm bg-success-bg text-success text-[10px] font-semibold px-2 py-0.5">
+              <CheckCircle2 className="h-3 w-3" /> Cobrada
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 text-warning text-[10px] font-semibold px-2 py-0.5">
-              <Clock className="h-3 w-3" /> Pendiente
+            <span className="inline-flex items-center gap-1 rounded-sm bg-warning-bg text-warning text-[10px] font-semibold px-2 py-0.5">
+              <Clock className="h-3 w-3" /> Por cobrar
             </span>
           )}
         </div>
@@ -1620,7 +1760,7 @@ function SaleCardItem({
               <button
                 type="button"
                 onClick={() => onCobrar(s)}
-                className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-primary text-white text-[13px] font-semibold py-2 transition hover:bg-[#1f523b] cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-primary text-white text-[13px] font-semibold py-2 transition hover:bg-primary/85 cursor-pointer"
               >
                 <CheckCircle2 className="h-4 w-4" />
                 Cobrar
@@ -1874,7 +2014,7 @@ function ActionRow({
       onClick={onClick}
       className={`w-full flex items-center gap-3 rounded-xl px-4 py-3.5 border transition ${
         variant === "primary"
-          ? "bg-primary text-white border-primary hover:bg-emerald-700"
+          ? "bg-primary text-white border-primary hover:bg-primary/85"
           : "bg-background text-text-primary border-border hover:bg-muted"
       }`}
     >
@@ -1910,17 +2050,17 @@ function OnboardingModal({ onClose, onRemindLater }: OnboardingModalProps) {
     {
       title: "Registra ventas al instante",
       desc: "Presiona el botón '+ Nueva venta' para iniciar. Registra compras, selecciona clientes y documenta cambios (mermas) en segundos.",
-      icon: <Receipt className="h-10 w-10 text-emerald-600" />,
+      icon: <Receipt className="h-10 w-10 text-text-primary" />,
     },
     {
       title: "Tu negocio de un vistazo",
       desc: "Monitorea tus ventas totales, ganancias estimadas y productos entregados en el Dashboard. Aplica filtros de tiempo para analizar tu rendimiento.",
-      icon: <TrendingUp className="h-10 w-10 text-sky-600" />,
+      icon: <TrendingUp className="h-10 w-10 text-text-primary" />,
     },
     {
       title: "Controla tu inventario",
       desc: "Mantén al día tus existencias de producto. Cada venta o cambio realizado descuenta de forma automática tu stock físico.",
-      icon: <Package className="h-10 w-10 text-violet-600" />,
+      icon: <Package className="h-10 w-10 text-text-primary" />,
     },
   ];
 
@@ -1930,7 +2070,7 @@ function OnboardingModal({ onClose, onRemindLater }: OnboardingModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="w-full max-w-md bg-white rounded-3xl border border-border p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
         <div className="flex flex-col items-center text-center">
-          <div className="grid h-16 w-16 place-items-center rounded-2xl bg-gray-50 mb-4 border border-border/40">
+          <div className="grid h-16 w-16 place-items-center rounded-2xl bg-surface-2 mb-4 border border-border/40">
             {current.icon}
           </div>
           <div className="flex gap-1.5 mb-2">
@@ -1954,14 +2094,14 @@ function OnboardingModal({ onClose, onRemindLater }: OnboardingModalProps) {
           {step < 3 ? (
             <button
               onClick={() => setStep(step + 1)}
-              className="w-full rounded-xl bg-primary py-3 text-[14px] font-bold text-white transition hover:bg-[#246448]"
+              className="w-full rounded-xl bg-primary py-3 text-[14px] font-bold text-white transition hover:bg-primary/85"
             >
               Siguiente
             </button>
           ) : (
             <button
               onClick={onClose}
-              className="w-full rounded-xl bg-primary py-3 text-[14px] font-bold text-white transition hover:bg-[#246448]"
+              className="w-full rounded-xl bg-primary py-3 text-[14px] font-bold text-white transition hover:bg-primary/85"
             >
               Comenzar ahora
             </button>
