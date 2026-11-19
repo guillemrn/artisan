@@ -41,7 +41,10 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { ModalSuccessState } from "@/components/ui/ModalSuccessState";
-import { LedgerRow, Metric } from "@/components/ui/metric";
+import { Metric } from "@/components/ui/metric";
+import { ResultBar } from "@/components/dashboard/ResultBar";
+import { ReturnsByClient, type ClientReturns } from "@/components/dashboard/ReturnsByClient";
+import { WeekCollected } from "@/components/dashboard/WeekCollected";
 import { toast } from "sonner";
 import {
   ResponsiveContainer,
@@ -544,6 +547,70 @@ function Home() {
     }));
   }, [clientMovement]);
 
+  // Widget: cobrado esta semana (lunes a domingo), contra los mismos días de la semana pasada.
+  const weekCollected = useMemo(() => {
+    const now = new Date();
+    const weekStart = startOfWeek(now);
+    const dayMs = 24 * 60 * 60 * 1000;
+    const todayIdx = Math.floor((startOfDay(now) - weekStart) / dayMs);
+    const labels = ["L", "M", "X", "J", "V", "S", "D"];
+    const amounts = new Array(7).fill(0) as number[];
+    let lastWeekSameDays = 0;
+    const lastWeekStart = weekStart - 7 * dayMs;
+    const lastWeekCutoff = lastWeekStart + (todayIdx + 1) * dayMs;
+
+    sales.forEach((sale) => {
+      const paidAt = getSalePaymentDate(sale);
+      if (!paidAt) return;
+      const t = new Date(paidAt).getTime();
+      const revenue = sale.items.reduce(
+        (sum, item) => sum + getSaleItemRevenue(item, sale.payment),
+        0,
+      );
+      if (t >= weekStart && t < weekStart + 7 * dayMs) {
+        amounts[Math.floor((t - weekStart) / dayMs)] += revenue;
+      } else if (t >= lastWeekStart && t < lastWeekCutoff) {
+        lastWeekSameDays += revenue;
+      }
+    });
+
+    return {
+      days: labels.map((label, i) => ({
+        label,
+        amount: amounts[i],
+        isToday: i === todayIdx,
+        isFuture: i > todayIdx,
+      })),
+      total: amounts.reduce((a, b) => a + b, 0),
+      lastWeekSameDays,
+      todayLabel: now.toLocaleDateString("es-MX", { weekday: "long" }),
+    };
+  }, [sales]);
+
+  // Widget: merma por cliente en dinero (respeta periodo, cliente y producto).
+  const returnsByClient = useMemo(() => {
+    const map: Record<string, ClientReturns> = {};
+    fullyFilteredSales.forEach((sale) => {
+      sale.items.forEach((item) => {
+        if (productFilter !== "Todos" && item.productId !== productFilter) return;
+        const row = (map[sale.clientId] ??= {
+          id: sale.clientId,
+          name: sale.clientName,
+          returnedUnits: 0,
+          mermaCost: 0,
+          soldAmount: 0,
+        });
+        row.returnedUnits += item.returnQty ?? 0;
+        row.mermaCost += getSaleItemMermaCost(item);
+        row.soldAmount += getSaleItemRevenue(item, sale.payment);
+      });
+    });
+    return Object.values(map)
+      .filter((row) => row.mermaCost > 0)
+      .sort((a, b) => b.mermaCost / (b.soldAmount || 1) - a.mermaCost / (a.soldAmount || 1))
+      .slice(0, 4);
+  }, [fullyFilteredSales, productFilter]);
+
   const periodTitle = {
     Hoy: "Tu negocio, hoy",
     Semana: "Tu negocio, esta semana",
@@ -599,18 +666,11 @@ function Home() {
             <button
               type="button"
               onClick={() => setIsAddStockModalOpen(true)}
-              className="inline-flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-md border border-border bg-white px-3 text-[14px] font-semibold text-text-primary transition hover:border-text-primary hover:bg-surface-2 sm:w-auto sm:px-4"
+              className="inline-flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 text-[14px] font-semibold text-text-primary transition hover:border-text-primary hover:bg-surface-2 sm:w-auto sm:px-4"
             >
               <PackageIcon className="h-4 w-4 shrink-0" />
               <span className="truncate">Agregar inventario</span>
             </button>
-            <Link
-              to="/nueva-venta"
-              className="hidden h-11 items-center justify-center gap-2 rounded-md bg-cta px-5 text-[14px] font-bold text-cta-foreground transition hover:bg-cta-hover md:inline-flex"
-            >
-              <PlusIcon className="h-4 w-4" />
-              Nueva venta
-            </Link>
           </div>
         </div>
       </section>
@@ -659,66 +719,13 @@ function Home() {
           )}
         </div>
 
-        <div className="border-t border-border py-3 lg:flex-[7] lg:border-l lg:border-t-0 lg:py-5 lg:pl-10">
-          <table
-            aria-label="Cómo se forma la ganancia"
-            className="w-full border-collapse tabular-nums"
-          >
-            <tbody>
-              <LedgerRow
-                label="Ingresos cobrados"
-                note={`${fullyFilteredPaidSales.length} ${fullyFilteredPaidSales.length === 1 ? "venta" : "ventas"}`}
-                value={formatMXNc(kpiData.salesTotal)}
-                barPct={kpiData.salesTotal > 0 ? 100 : 0}
-                barClass="bg-text-primary"
-              />
-              <LedgerRow
-                label="Costo de venta"
-                value={`−${formatMXNc(kpiData.costTotal)}`}
-                barPct={
-                  kpiData.salesTotal > 0
-                    ? Math.min(100, (kpiData.costTotal / kpiData.salesTotal) * 100)
-                    : 0
-                }
-                barClass="bg-border"
-              />
-              <LedgerRow
-                label="Ganancia bruta"
-                value={formatMXNc(kpiData.profitTotal)}
-                barPct={kpiData.salesTotal > 0 ? Math.max(0, kpiData.margin) : 0}
-                barClass="bg-cta"
-                strong
-              />
-              {kpiData.mermaCostTotal > 0 && (
-                <>
-                  <tr>
-                    <td
-                      colSpan={3}
-                      className="border-b border-border pb-1.5 pt-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted"
-                    >
-                      Contabilizado por separado
-                    </td>
-                  </tr>
-                  <LedgerRow
-                    label="Merma por cambios"
-                    note="costo de lo cambiado"
-                    value={formatMXNc(kpiData.mermaCostTotal)}
-                    barPct={
-                      kpiData.salesTotal > 0
-                        ? Math.min(100, (kpiData.mermaCostTotal / kpiData.salesTotal) * 100)
-                        : 0
-                    }
-                    barClass="bg-[repeating-linear-gradient(135deg,#646b76_0_2px,transparent_2px_6px)]"
-                  />
-                  <LedgerRow
-                    label="Ganancia bruta menos merma"
-                    value={formatMXNc(kpiData.profitTotal - kpiData.mermaCostTotal)}
-                    muted
-                  />
-                </>
-              )}
-            </tbody>
-          </table>
+        <div className="border-t border-border py-5 lg:flex-[7] lg:border-l lg:border-t-0 lg:py-6 lg:pl-10">
+          <ResultBar
+            collected={kpiData.salesTotal}
+            cost={kpiData.costTotal}
+            merma={kpiData.mermaCostTotal}
+            salesCount={fullyFilteredPaidSales.length}
+          />
         </div>
       </section>
 
@@ -760,6 +767,17 @@ function Home() {
           unit={kpiData.packagesTotal === 1 ? "paquete" : "paquetes"}
           sub={kpiData.maxQty > 0 ? `Más vendido: ${kpiData.topProduct}` : "Sin entregas"}
         />
+      </section>
+
+      {/* Widgets */}
+      <section aria-label="Widgets" className="grid gap-x-10 gap-y-8 pt-2 lg:grid-cols-2">
+        <WeekCollected
+          days={weekCollected.days}
+          total={weekCollected.total}
+          lastWeekSameDays={weekCollected.lastWeekSameDays}
+          todayLabel={weekCollected.todayLabel}
+        />
+        <ReturnsByClient rows={returnsByClient} />
       </section>
 
       <section className="grid gap-x-8 gap-y-6 pt-2 xl:grid-cols-3">
