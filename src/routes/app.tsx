@@ -45,6 +45,8 @@ import { Metric } from "@/components/ui/metric";
 import { ResultBar } from "@/components/dashboard/ResultBar";
 import { ReturnsByClient, type ClientReturns } from "@/components/dashboard/ReturnsByClient";
 import { WeekCollected } from "@/components/dashboard/WeekCollected";
+import { PeriodPicker, type PeriodKey } from "@/components/dashboard/PeriodPicker";
+import { formatRange, isInRange, type DateRange } from "@/lib/date-range";
 import { toast } from "sonner";
 import {
   ResponsiveContainer,
@@ -76,7 +78,7 @@ export const Route = createFileRoute("/app")({
   component: Home,
 });
 
-type TimeFilter = "Hoy" | "Semana" | "Mes" | "Año" | "Todo";
+type TimeFilter = PeriodKey;
 
 function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -97,9 +99,14 @@ function startOfYear(d: Date) {
   return new Date(d.getFullYear(), 0, 1).getTime();
 }
 
-function isDateInPeriod(date: string | undefined, timeFilter: TimeFilter): boolean {
+function isDateInPeriod(
+  date: string | undefined,
+  timeFilter: TimeFilter,
+  range: DateRange | null = null,
+): boolean {
   if (!date) return false;
   const timestamp = new Date(date).getTime();
+  if (timeFilter === "Rango") return range ? isInRange(timestamp, range) : true;
   if (timeFilter === "Hoy") return timestamp >= startOfDay(new Date());
   if (timeFilter === "Semana") return timestamp >= startOfWeek(new Date());
   if (timeFilter === "Mes") return timestamp >= startOfMonth(new Date());
@@ -115,6 +122,7 @@ function Home() {
 
   // State for filters
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("Hoy");
+  const [dateRange, setDateRange] = useState<DateRange | null>(null);
   const [productFilter, setProductFilter] = useState<string>("Todos");
   const [clientFilter, setClientFilter] = useState<string>("Todos");
 
@@ -273,21 +281,17 @@ function Home() {
 
   const selectedProductLabel = products.find((product) => product.id === productFilter)?.name;
   const selectedClientLabel = clients.find((client) => client.id === clientFilter)?.name;
-  const activeFilterCount = [
-    timeFilter !== "Hoy",
-    productFilter !== "Todos",
-    clientFilter !== "Todos",
-  ].filter(Boolean).length;
+  // El periodo vive en su propio selector; "Filtros" queda para producto y cliente.
+  const activeFilterCount = [productFilter !== "Todos", clientFilter !== "Todos"].filter(
+    Boolean,
+  ).length;
   const filterSummary =
-    activeFilterCount === 0
-      ? "Hoy"
-      : [
-          timeFilter,
-          productFilter !== "Todos" ? selectedProductLabel : null,
-          clientFilter !== "Todos" ? selectedClientLabel : null,
-        ]
-          .filter(Boolean)
-          .join(" · ");
+    [
+      productFilter !== "Todos" ? selectedProductLabel : null,
+      clientFilter !== "Todos" ? selectedClientLabel : null,
+    ]
+      .filter(Boolean)
+      .join(" · ") || "Todos";
 
   useEffect(() => {
     if (!filtersOpen) return;
@@ -315,12 +319,12 @@ function Home() {
 
   // 1. Filter Sales by Time
   const deliveryTimeFilteredSales = useMemo(() => {
-    return sales.filter((sale) => isDateInPeriod(sale.createdAt, timeFilter));
-  }, [sales, timeFilter]);
+    return sales.filter((sale) => isDateInPeriod(sale.createdAt, timeFilter, dateRange));
+  }, [sales, timeFilter, dateRange]);
 
   const paymentTimeFilteredSales = useMemo(() => {
-    return sales.filter((sale) => isDateInPeriod(getSalePaymentDate(sale), timeFilter));
-  }, [sales, timeFilter]);
+    return sales.filter((sale) => isDateInPeriod(getSalePaymentDate(sale), timeFilter, dateRange));
+  }, [sales, timeFilter, dateRange]);
 
   // 2. Filter Sales by Client
   const clientFilteredSales = useMemo(() => {
@@ -349,7 +353,7 @@ function Home() {
   // 4. History follows the collection date while preserving delivery reporting above.
   const historyFilteredSales = useMemo(() => {
     return sales
-      .filter((sale) => isDateInPeriod(getSaleDashboardDate(sale), timeFilter))
+      .filter((sale) => isDateInPeriod(getSaleDashboardDate(sale), timeFilter, dateRange))
       .filter((sale) => clientFilter === "Todos" || sale.clientId === clientFilter)
       .filter(
         (sale) =>
@@ -366,7 +370,7 @@ function Home() {
         (a, b) =>
           new Date(getSaleDashboardDate(b)).getTime() - new Date(getSaleDashboardDate(a)).getTime(),
       );
-  }, [sales, timeFilter, clientFilter, productFilter, historySearch, historyStatus]);
+  }, [sales, timeFilter, dateRange, clientFilter, productFilter, historySearch, historyStatus]);
 
   // --- KPIs Calculations ---
   const kpiData = useMemo(() => {
@@ -617,6 +621,7 @@ function Home() {
     Mes: "Tu negocio, este mes",
     Año: "Tu negocio, este año",
     Todo: "Tu negocio, en total",
+    Rango: dateRange ? `Tu negocio, ${formatRange(dateRange)}` : "Tu negocio",
   }[timeFilter];
 
   const productsMissingCost = productPerformance.filter(
@@ -637,29 +642,35 @@ function Home() {
 
       {/* Dashboard Header */}
       <section className="space-y-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-text-muted">
-              {dateLabel} · {greeting}, {displayName}
-            </p>
-            <h1 className="mt-1.5 font-display text-[30px] font-black leading-none tracking-[-0.02em] text-text-primary md:text-[40px]">
-              {periodTitle}
-            </h1>
-          </div>
+        <div className="min-w-0">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-text-muted">
+            {dateLabel} · {greeting}, {displayName}
+          </p>
+          <h1 className="mt-1.5 font-display text-[30px] font-black leading-none tracking-[-0.02em] text-text-primary md:text-[40px]">
+            {periodTitle}
+          </h1>
+        </div>
 
-          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <PeriodPicker
+            value={timeFilter}
+            range={dateRange}
+            onChange={(value, range) => {
+              setTimeFilter(value);
+              if (range) setDateRange(range);
+            }}
+          />
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
             <FilterDropdown
               open={filtersOpen}
               onOpenChange={setFiltersOpen}
               refEl={filtersRef}
               activeCount={activeFilterCount}
               summary={filterSummary}
-              timeFilter={timeFilter}
               productFilter={productFilter}
               clientFilter={clientFilter}
               products={products}
               clients={clients}
-              onTimeChange={(value) => setTimeFilter(value as TimeFilter)}
               onProductChange={setProductFilter}
               onClientChange={setClientFilter}
             />
@@ -1409,12 +1420,10 @@ function FilterDropdown({
   refEl,
   activeCount,
   summary,
-  timeFilter,
   productFilter,
   clientFilter,
   products,
   clients,
-  onTimeChange,
   onProductChange,
   onClientChange,
 }: {
@@ -1423,17 +1432,14 @@ function FilterDropdown({
   refEl: React.RefObject<HTMLDivElement | null>;
   activeCount: number;
   summary: string;
-  timeFilter: TimeFilter;
   productFilter: string;
   clientFilter: string;
   products: Product[];
   clients: Client[];
-  onTimeChange: (value: string) => void;
   onProductChange: (value: string) => void;
   onClientChange: (value: string) => void;
 }) {
   const resetFilters = () => {
-    onTimeChange("Hoy");
     onProductChange("Todos");
     onClientChange("Todos");
   };
@@ -1446,12 +1452,12 @@ function FilterDropdown({
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls="dashboard-filters-menu"
-        className="inline-flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 text-[14px] font-bold text-text-primary transition hover:bg-muted active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:w-auto"
+        className="inline-flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-md border border-border bg-surface px-4 text-[14px] font-semibold text-text-primary transition hover:border-text-primary active:scale-[0.98] sm:w-auto"
       >
-        <SlidersHorizontalIcon className="h-4 w-4 text-primary" />
+        <SlidersHorizontalIcon className="h-4 w-4" />
         <span>Filtros</span>
         {activeCount > 0 && (
-          <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1.5 text-[11px] font-bold leading-none text-white">
+          <span className="grid h-5 min-w-5 place-items-center rounded-sm bg-cta px-1.5 text-[11px] font-bold leading-none text-cta-foreground">
             {activeCount}
           </span>
         )}
@@ -1468,11 +1474,13 @@ function FilterDropdown({
           id="dashboard-filters-menu"
           role="dialog"
           aria-label="Filtros del dashboard"
-          className="fixed inset-x-3 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-40 max-h-[min(560px,calc(100dvh-8rem))] overflow-y-auto rounded-2xl border border-border bg-white p-3 shadow-[0_12px_32px_-8px_rgba(17,17,17,0.25)] sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:mt-2 sm:w-[420px] sm:max-h-none sm:overflow-visible"
+          className="fixed inset-x-3 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-40 max-h-[min(560px,calc(100dvh-8rem))] overflow-y-auto rounded-lg border border-text-primary bg-surface p-4 shadow-[0_12px_32px_-8px_rgba(17,17,17,0.25)] sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:mt-2 sm:w-[360px] sm:max-h-none sm:overflow-visible"
         >
           <div className="flex items-start justify-between gap-4 border-b border-border pb-3">
             <div className="min-w-0">
-              <p className="text-[13px] font-bold text-text-primary">Filtros</p>
+              <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-text-muted">
+                Filtrar por
+              </p>
               <p className="mt-0.5 truncate text-[12px] font-medium text-text-muted">{summary}</p>
             </div>
             <button
@@ -1486,19 +1494,6 @@ function FilterDropdown({
           </div>
 
           <div className="mt-3 grid gap-3">
-            <FilterSelect
-              icon={<CalendarBlankIcon className="h-3.5 w-3.5 text-primary" />}
-              label="Periodo"
-              value={timeFilter}
-              onChange={onTimeChange}
-              options={[
-                ["Hoy", "Hoy"],
-                ["Semana", "Esta semana"],
-                ["Mes", "Este mes"],
-                ["Año", "Este año"],
-                ["Todo", "Histórico"],
-              ]}
-            />
             <FilterSelect
               icon={<PackageIcon className="h-3.5 w-3.5 text-primary" />}
               label="Producto"

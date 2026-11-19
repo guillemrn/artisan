@@ -82,7 +82,7 @@ const FAQS = [
   },
   {
     q: "¿Tengo que capturar todo mi inventario?",
-    a: "No. Vende primero; tus productos y clientes se guardan mientras registras.",
+    a: "No. Empieza con tus productos más vendidos y agrega el resto cuando quieras.",
   },
   {
     q: "¿Hay que descargar algo?",
