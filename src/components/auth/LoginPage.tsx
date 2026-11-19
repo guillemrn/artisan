@@ -22,7 +22,12 @@ type AuthMode = "login" | "signup" | "reset";
 
 export function LoginPage() {
   const { signInWithEmail, signUpWithEmail, requestPasswordReset, loading, isDemo } = useAuth();
-  const [mode, setMode] = useState<AuthMode>("login");
+  const [mode, setMode] = useState<AuthMode>(() =>
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("modo") === "registro"
+      ? "signup"
+      : "login",
+  );
   const [signUpStep, setSignUpStep] = useState(1);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [resetSent, setResetSent] = useState(false);

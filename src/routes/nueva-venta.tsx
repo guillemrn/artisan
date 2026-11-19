@@ -909,7 +909,7 @@ function MobileActionBar({
   onConfirm: () => void;
 }) {
   return (
-    <div className="fixed bottom-20 left-1/2 z-30 w-full max-w-[460px] -translate-x-1/2 px-4 md:bottom-5 xl:hidden">
+    <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-30 w-full max-w-[460px] -translate-x-1/2 px-4 md:bottom-5 xl:hidden">
       <div className="flex items-center gap-3 rounded-lg border border-border bg-white p-3 shadow-[0_12px_36px_rgba(15,23,42,0.14)]">
         {step > 1 && (
           <div className="min-w-0 flex-1">

@@ -43,6 +43,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (p === "/app") return pathname === "/app";
     return pathname === p || pathname.startsWith(`${p}/`) || pathname.startsWith(`${p}_`);
   };
+  // En el flujo de venta la barra estorba a los botones de abajo: se oculta.
+  const hideMobileBar = pathname.startsWith("/nueva-venta");
   const displayName = user?.user_metadata?.full_name ?? USER_NAME;
   const businessName = user?.user_metadata?.business_name ?? "Mi negocio";
   const initials = displayName.slice(0, 2).toUpperCase();
@@ -176,24 +178,26 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
 
         {/* Barra móvil flotante */}
-        <nav
-          aria-label="Navegación principal"
-          className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-30 flex h-16 items-center rounded-lg bg-rail px-1.5 md:hidden"
-        >
-          {MOBILE_LEFT.map((item) => (
-            <BarItem key={item.to} item={item} active={isActive(item.to)} />
-          ))}
-          <Link
-            to="/nueva-venta"
-            aria-label="Nueva venta"
-            className="mx-1 grid h-12 w-14 shrink-0 place-items-center rounded-md bg-cta text-cta-foreground transition-transform duration-150 active:scale-90"
+        {!hideMobileBar && (
+          <nav
+            aria-label="Navegación principal"
+            className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-30 flex h-16 items-center rounded-lg bg-rail px-1.5 md:hidden"
           >
-            <PlusIcon className="h-6 w-6" weight="bold" />
-          </Link>
-          {MOBILE_RIGHT.map((item) => (
-            <BarItem key={item.to} item={item} active={isActive(item.to)} />
-          ))}
-        </nav>
+            {MOBILE_LEFT.map((item) => (
+              <BarItem key={item.to} item={item} active={isActive(item.to)} />
+            ))}
+            <Link
+              to="/nueva-venta"
+              aria-label="Nueva venta"
+              className="mx-1 grid h-12 w-14 shrink-0 place-items-center rounded-md bg-cta text-cta-foreground transition-transform duration-150 active:scale-90"
+            >
+              <PlusIcon className="h-6 w-6" weight="bold" />
+            </Link>
+            {MOBILE_RIGHT.map((item) => (
+              <BarItem key={item.to} item={item} active={isActive(item.to)} />
+            ))}
+          </nav>
+        )}
       </div>
     </div>
   );
