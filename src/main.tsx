@@ -4,6 +4,9 @@ import { RouterProvider } from "@tanstack/react-router";
 import { getRouter } from "./router";
 import "./styles.css";
 import { ConsentAnalytics } from "@/components/legal/ConsentAnalytics";
+import { captureSignupSource } from "@/lib/signup-source";
+
+captureSignupSource();
 
 const router = getRouter();
 

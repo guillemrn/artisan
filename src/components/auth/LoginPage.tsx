@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { signupSourceMetadata } from "@/lib/signup-source";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRightIcon,
@@ -78,6 +79,7 @@ export function LoginPage() {
           phone: phone.trim() || undefined,
           business_name: businessName.trim(),
           business_type: businessType,
+          ...signupSourceMetadata(),
         },
       );
 

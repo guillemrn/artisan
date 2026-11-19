@@ -23,6 +23,7 @@ type AuthCtx = {
       phone?: string;
       business_name: string;
       business_type: string;
+      [key: string]: string | undefined;
     },
   ) => Promise<{ error: Error | null; requiresEmailConfirmation: boolean }>;
   requestPasswordReset: (email: string) => Promise<{ error: Error | null }>;
@@ -155,6 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       phone?: string;
       business_name: string;
       business_type: string;
+      [key: string]: string | undefined;
     },
   ) => {
     if (!HAS_SUPABASE) {
