@@ -43,6 +43,30 @@ export default tseslint.config(
         },
       ],
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      // Guardián del sistema de diseño (ver DESIGN.md): usa tokens y componentes de src/components/ui.
+      "no-restricted-syntax": [
+        "warn",
+        ...[
+          [
+            /#[0-9a-fA-F]{3,8}\b/,
+            "Color hex en className: usa tokens (bg-cta, text-info, border-border…).",
+          ],
+          [/\bbg-white\b/, "bg-white no sirve para modo oscuro: usa bg-surface."],
+          [
+            /\brounded-(?:xl|2xl|3xl)\b/,
+            "Radios del sistema: rounded-sm (4), rounded-md (6), rounded-lg (8).",
+          ],
+        ].flatMap(([pattern, message]) => [
+          {
+            selector: `JSXAttribute[name.name='className'] Literal[value=${pattern}]`,
+            message,
+          },
+          {
+            selector: `JSXAttribute[name.name='className'] TemplateElement[value.raw=${pattern}]`,
+            message,
+          },
+        ]),
+      ],
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": "off",
     },

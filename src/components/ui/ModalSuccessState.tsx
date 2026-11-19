@@ -40,14 +40,10 @@ export function ModalSuccessState({
       )}
 
       {/* Main Title */}
-      <h3 className="text-xl font-bold font-display text-text-primary tracking-tight">
-        {title}
-      </h3>
+      <h3 className="text-xl font-bold font-display text-text-primary tracking-tight">{title}</h3>
 
       {/* Detailed Description Copy */}
-      <div className="mt-2 text-sm text-text-secondary max-w-sm leading-relaxed">
-        {description}
-      </div>
+      <div className="mt-2 text-sm text-text-secondary max-w-sm leading-relaxed">{description}</div>
 
       {/* Optional Metadata Details Card */}
       {details && details.length > 0 && (

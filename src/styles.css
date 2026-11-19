@@ -44,6 +44,12 @@
   --color-surface-2: var(--surface-2);
   --color-border-soft: var(--border-soft);
 
+  /* Navegación (riel y barra móvil) */
+  --color-rail: var(--rail);
+  --color-rail-active: var(--rail-active);
+  --color-rail-foreground: var(--rail-foreground);
+  --color-rail-muted: var(--rail-muted);
+
   --color-muted: var(--muted);
   --color-muted-foreground: var(--text-muted);
   --color-accent: var(--primary-light);
@@ -106,6 +112,11 @@
   --info-bg: #eaf1fd;
 
   --muted: #f5f6f8;
+
+  --rail: #111111;
+  --rail-active: #2a2c31;
+  --rail-foreground: #ffffff;
+  --rail-muted: #9aa1ac;
 }
 
 @layer base {
@@ -185,6 +196,33 @@
   45% {
     transform: translateY(-3px);
     opacity: 1;
+  }
+}
+
+/* Microinteracciones: cortas (< 300 ms), con propósito */
+@keyframes navPop {
+  0% {
+    transform: scale(0.82);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-nav-pop {
+  animation: navPop 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
