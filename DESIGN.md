@@ -28,6 +28,7 @@ Artisan should feel like a calm operating table for a local business: warm enoug
 ## Components (src/components/ui) — use before writing new markup
 
 - `Button` / `buttonClass()` (cta, primary, secondary, ghost, danger), `IconButton` (44 px), `Badge` (success, warning, danger, info, neutral), `Metric`, `LedgerRow`, `SectionHeader`, `Logo`.
+- `SalesTable` (src/components/sales): any list of sales. Desktop table / mobile rows, `columns`, `layout="list"` for modals, `onCobrar`. States come from `saleStatus()` in `src/lib/sale-display.ts` (Cobrada, Por cobrar, En consignación, Cortesía, Solo cambio).
 - If a pattern repeats twice, it becomes a component here.
 
 ## Guardrail

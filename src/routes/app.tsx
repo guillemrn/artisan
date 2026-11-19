@@ -48,6 +48,7 @@ import { ResultBar } from "@/components/dashboard/ResultBar";
 import { ReturnsByClient, type ClientReturns } from "@/components/dashboard/ReturnsByClient";
 import { WeekCollected } from "@/components/dashboard/WeekCollected";
 import { FirstRun } from "@/components/dashboard/FirstRun";
+import { SalesTable } from "@/components/sales/SalesTable";
 import { PeriodPicker, type PeriodKey } from "@/components/dashboard/PeriodPicker";
 import { formatRange, isInRange, type DateRange } from "@/lib/date-range";
 import { toast } from "sonner";
@@ -848,172 +849,38 @@ function Home() {
                   type="text"
                   value={historySearch}
                   onChange={(e) => setHistorySearch(e.target.value)}
-                  placeholder="Buscar cliente..."
-                  className="w-full h-9 pl-8 pr-2.5 rounded-lg border border-border text-[12px] outline-none bg-white focus:border-primary"
+                  placeholder="Buscar cliente…"
+                  className="h-10 w-full rounded-md border border-border bg-surface pl-8 pr-2.5 text-[14px] outline-none focus:border-text-primary"
                 />
               </div>
               <select
                 value={historyStatus}
                 onChange={(e) => setHistoryStatus(e.target.value as any)}
-                className="h-9 px-2 rounded-lg border border-border text-[12px] font-semibold bg-white outline-none focus:border-primary"
+                className="h-10 rounded-md border border-border bg-surface px-2 text-[14px] font-semibold outline-none focus:border-text-primary"
               >
                 <option value="Todos">Todos los estados</option>
                 <option value="Entregado">Cobradas</option>
-                <option value="Pendiente">Por cobrar</option>
+                <option value="Pendiente">Pendientes de cobro</option>
               </select>
             </div>
           </div>
 
-          {historyFilteredSales.length === 0 ? (
-            <div className="mt-8 flex flex-col items-center gap-3 text-text-muted py-8 bg-white rounded-2xl border border-border">
-              <ReceiptIcon className="h-10 w-10 opacity-30" />
-              <p className="text-[14px]">Sin ventas registradas</p>
-            </div>
-          ) : (
-            <>
-              {/* Mobile View: Cards */}
-              <ul className="grid gap-2 md:hidden">
-                {historyFilteredSales.slice(0, 5).map((s) => (
-                  <SaleCardItem
-                    key={s.id}
-                    sale={s}
-                    open={openId === s.id}
-                    onToggle={() => setOpenId(openId === s.id ? null : s.id)}
-                    onCobrar={handleOpenCobrarModal}
-                  />
-                ))}
-              </ul>
-
-              {/* Desktop View: Table */}
-              <div className="hidden md:block overflow-hidden rounded-2xl border border-border bg-white">
-                <table className="w-full text-left border-collapse text-[13px]">
-                  <thead>
-                    <tr className="border-b border-text-primary text-[12px] font-semibold text-text-muted">
-                      <th className="py-3 px-4">Fecha</th>
-                      <th className="py-3 px-4">Cliente / PDV</th>
-                      <th className="py-3 px-4">Canal</th>
-                      <th className="py-3 px-4">Productos / Movimientos</th>
-                      <th className="py-3 px-4">Pago</th>
-                      <th className="py-3 px-4">Estado</th>
-                      <th className="py-3 px-4 text-right">Total</th>
-                      <th className="py-3 px-4 text-right">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/60">
-                    {historyFilteredSales.slice(0, 5).map((s) => {
-                      const dashboardDate = getSaleDashboardDate(s);
-                      const d = new Date(dashboardDate);
-                      const wasPaidLater = Boolean(s.paidAt && s.paidAt !== s.createdAt);
-                      const dateStr = d.toLocaleDateString("es-MX", {
-                        day: "2-digit",
-                        month: "2-digit",
-                      });
-                      const timeStr = d.toLocaleTimeString("es-MX", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      });
-
-                      return (
-                        <tr key={s.id} className="hover:bg-surface-2 transition">
-                          <td className="py-3 px-4 text-text-muted">
-                            <div>{dateStr}</div>
-                            <div className="text-[11px] opacity-75">{timeStr}</div>
-                            {wasPaidLater && (
-                              <div className="mt-1 text-[10px] font-medium text-text-muted">
-                                Entrega{" "}
-                                {new Date(s.createdAt).toLocaleDateString("es-MX", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                })}
-                              </div>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 font-bold text-text-primary">{s.clientName}</td>
-                          <td className="py-3 px-4">
-                            <span
-                              className={`rounded-full text-[10px] font-bold px-2 py-0.5 ${
-                                s.channel === "PDV"
-                                  ? "bg-primary-light text-primary"
-                                  : "bg-info-bg text-info"
-                              }`}
-                            >
-                              {s.channel}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="space-y-1">
-                              {s.items.map((i) => (
-                                <div key={i.productId} className="text-[12px] leading-tight">
-                                  {i.qty > 0 && (
-                                    <div>
-                                      <span className="font-medium text-text-muted">
-                                        Entregado:
-                                      </span>{" "}
-                                      {i.productName}{" "}
-                                      <span className="text-text-muted">x{i.qty}</span>
-                                    </div>
-                                  )}
-                                  {(i.returnQty ?? 0) > 0 && (
-                                    <div className="text-warning font-medium">
-                                      <span>Cambio:</span> {i.productName}{" "}
-                                      <span className="opacity-80">x{i.returnQty}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-text-secondary font-medium">{s.payment}</td>
-                          <td className="py-3 px-4">
-                            {s.status === "Entregado" ? (
-                              <span className="inline-flex items-center gap-1 rounded-sm bg-success-bg text-success text-[10px] font-bold px-2.5 py-1">
-                                <CheckCircleIcon className="h-3.5 w-3.5" /> Cobrada
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 rounded-sm bg-warning-bg text-warning text-[10px] font-bold px-2.5 py-1">
-                                <ClockIcon className="h-3.5 w-3.5" /> Por cobrar
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4 text-right font-bold tabular-nums text-text-primary">
-                            {formatMXN(s.total)}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex justify-end gap-1.5">
-                              {s.status === "Pendiente" && (
-                                <button
-                                  onClick={() => handleOpenCobrarModal(s)}
-                                  className="bg-primary hover:bg-primary/85 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition cursor-pointer"
-                                >
-                                  Cobrar
-                                </button>
-                              )}
-                              <Link
-                                to="/ticket/$saleId"
-                                params={{ saleId: s.id }}
-                                className="border border-border bg-white hover:bg-muted text-text-secondary text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition inline-flex items-center gap-1"
-                              >
-                                <ReceiptIcon className="h-3 w-3" /> Ticket
-                              </Link>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              {historyFilteredSales.length > 5 && (
-                <Link
-                  to="/ventas"
-                  className="mt-1 inline-flex items-center gap-1.5 text-[14px] font-semibold text-accent-text hover:underline"
-                >
-                  Ver todas las ventas ({historyFilteredSales.length})
-                  <ArrowRightIcon className="h-4 w-4" />
-                </Link>
-              )}
-            </>
-          )}
+          <>
+            <SalesTable
+              sales={historyFilteredSales.slice(0, 5)}
+              onCobrar={handleOpenCobrarModal}
+              caption="Ventas recientes"
+            />
+            {historyFilteredSales.length > 5 && (
+              <Link
+                to="/ventas"
+                className="mt-1 inline-flex items-center gap-1.5 text-[14px] font-semibold text-accent-text hover:underline"
+              >
+                Ver todas las ventas ({historyFilteredSales.length})
+                <ArrowRightIcon className="h-4 w-4" />
+              </Link>
+            )}
+          </>
         </div>
 
         <section
@@ -1252,17 +1119,12 @@ function Home() {
                 </p>
               </div>
             ) : (
-              <ul className="grid gap-2.5">
-                {allPendingSales.map((s) => (
-                  <SaleCardItem
-                    key={s.id}
-                    sale={s}
-                    open={modalOpenId === s.id}
-                    onToggle={() => setModalOpenId(modalOpenId === s.id ? null : s.id)}
-                    onCobrar={handleOpenCobrarModal}
-                  />
-                ))}
-              </ul>
+              <SalesTable
+                sales={allPendingSales}
+                onCobrar={handleOpenCobrarModal}
+                caption="Ventas por cobrar"
+                layout="list"
+              />
             )}
           </div>
         </DialogContent>
@@ -1580,155 +1442,6 @@ function FilterSelect({
         <CaretDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
       </span>
     </label>
-  );
-}
-
-function SaleCardItem({
-  sale: s,
-  open,
-  onToggle,
-  onCobrar,
-}: {
-  sale: Sale;
-  open: boolean;
-  onToggle: () => void;
-  onCobrar: (sale: Sale) => void;
-}) {
-  const dashboardDate = getSaleDashboardDate(s);
-  const d = new Date(dashboardDate);
-  const wasPaidLater = Boolean(s.paidAt && s.paidAt !== s.createdAt);
-  const t = d.toLocaleTimeString("es-MX", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const dateStr = d.toLocaleDateString("es-MX", {
-    day: "2-digit",
-    month: "2-digit",
-  });
-
-  return (
-    <li className="overflow-hidden rounded-2xl border border-border bg-white  transition list-none">
-      <button
-        type="button"
-        className="flex w-full items-center gap-3 px-4 py-3.5 text-left cursor-pointer"
-        onClick={onToggle}
-      >
-        <div
-          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
-            s.channel === "PDV" ? "bg-primary-light text-primary" : "bg-info-bg text-info"
-          }`}
-        >
-          {s.channel === "PDV" ? (
-            <StorefrontIcon className="h-5 w-5" />
-          ) : (
-            <UserIcon className="h-5 w-5" />
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="truncate text-[14px] font-bold text-text-primary">{s.clientName}</p>
-          <p className="text-[12px] text-text-muted truncate">
-            {s.items
-              .map((i) => {
-                const list = [];
-                if (i.qty > 0) list.push(`${i.productName} ×${i.qty}`);
-                if (i.returnQty && i.returnQty > 0)
-                  list.push(`[Cambio: ${i.productName} ×${i.returnQty}]`);
-                return list.join(" ");
-              })
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-          <p className="mt-0.5 text-[11px] text-text-muted">
-            {dateStr} · {t}
-            {wasPaidLater ? " · Cobro" : ""}
-          </p>
-          {wasPaidLater && (
-            <p className="text-[10px] text-text-muted">
-              Entrega{" "}
-              {new Date(s.createdAt).toLocaleDateString("es-MX", {
-                day: "2-digit",
-                month: "2-digit",
-              })}
-            </p>
-          )}
-        </div>
-        <div className="shrink-0 text-right flex flex-col items-end gap-1">
-          <p className="text-[14px] font-bold">{formatMXN(s.total)}</p>
-          {s.status === "Entregado" ? (
-            <span className="inline-flex items-center gap-1 rounded-sm bg-success-bg text-success text-[10px] font-semibold px-2 py-0.5">
-              <CheckCircleIcon className="h-3 w-3" /> Cobrada
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 rounded-sm bg-warning-bg text-warning text-[10px] font-semibold px-2 py-0.5">
-              <ClockIcon className="h-3 w-3" /> Por cobrar
-            </span>
-          )}
-        </div>
-        <CaretDownIcon
-          className={`h-4 w-4 text-text-muted transition ml-1 ${open ? "rotate-180" : ""}`}
-        />
-      </button>
-
-      {open && (
-        <div className="border-t border-border px-4 py-3 space-y-2">
-          <div className="space-y-1.5">
-            {s.items.map((i) => (
-              <div key={i.productId} className="space-y-0.5">
-                {i.qty > 0 && (
-                  <div className="flex justify-between text-[13px]">
-                    <span>
-                      {i.productName} <span className="text-text-muted">×{i.qty}</span>
-                    </span>
-                    <span className="font-semibold">{formatMXNc(i.unitPrice * i.qty)}</span>
-                  </div>
-                )}
-                {(i.returnQty ?? 0) > 0 && (
-                  <div className="flex justify-between text-[12px] text-warning font-medium">
-                    <span>
-                      Cambio (Merma): {i.productName}{" "}
-                      <span className="opacity-70">×{i.returnQty}</span>
-                    </span>
-                    <span>(Sin costo)</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="pt-2 border-t border-border space-y-1 text-[13px]">
-            <div className="flex justify-between">
-              <span className="text-text-secondary">Pago</span>
-              <span className="font-semibold">{s.payment}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-text-secondary">Ganancia</span>
-              <span className="font-semibold text-success">{formatMXN(s.profit)}</span>
-            </div>
-          </div>
-
-          <div className="pt-2 border-t border-border flex gap-2">
-            {s.status === "Pendiente" && (
-              <button
-                type="button"
-                onClick={() => onCobrar(s)}
-                className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-primary text-white text-[13px] font-semibold py-2 transition hover:bg-primary/85 cursor-pointer"
-              >
-                <CheckCircleIcon className="h-4 w-4" />
-                Cobrar
-              </button>
-            )}
-            <Link
-              to="/ticket/$saleId"
-              params={{ saleId: s.id }}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-muted text-text-secondary text-[13px] font-semibold px-4 py-2 transition hover:bg-border"
-            >
-              <ReceiptIcon className="h-4 w-4" />
-              Ticket
-            </Link>
-          </div>
-        </div>
-      )}
-    </li>
   );
 }
 
