@@ -275,8 +275,8 @@ function LandingPage() {
             <span className="h-8 w-8 bg-cta" aria-hidden />
             <div>
               <p className="font-display text-[26px] font-bold leading-tight tracking-[-0.01em] sm:text-[34px]">
-                “Gaby repartía el pan y me mandaba cada venta por WhatsApp para pasarla a una hoja
-                de cálculo. Muchas se nos olvidaban. Por eso hice Artisan.”
+                “Anotábamos cada venta en WhatsApp para luego pasarla a una hoja de cálculo. Muchas
+                se nos olvidaban. Por eso hice Artisan.”
               </p>
               <p className="mt-4 text-[15px] text-text-muted">
                 Guillermo · cofundador de Almara Cocina Artesanal
