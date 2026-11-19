@@ -275,11 +275,11 @@ function LandingPage() {
             <span className="h-8 w-8 bg-cta" aria-hidden />
             <div>
               <p className="font-display text-[26px] font-bold leading-tight tracking-[-0.01em] sm:text-[34px]">
-                “Lo hicimos para nuestro propio negocio de pan: queríamos dejar la libreta y saber
-                cuánto nos quedaba de verdad.”
+                “Gaby repartía el pan y me mandaba cada venta por WhatsApp para pasarla a una hoja
+                de cálculo. Muchas se nos olvidaban. Por eso hice Artisan.”
               </p>
               <p className="mt-4 text-[15px] text-text-muted">
-                Guillermo y Gaby · Almara Cocina Artesanal
+                Guillermo · cofundador de Almara Cocina Artesanal
               </p>
             </div>
           </div>
