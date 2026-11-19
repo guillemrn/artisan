@@ -25,7 +25,9 @@ const RAIL_ITEMS: NavEntry[] = [
   { to: "/ajustes", label: "Ajustes", icon: GearSixIcon },
 ];
 
-// Móvil: Ajustes vive en el avatar del encabezado para dejar el "+" al centro.
+// Ajustes vive en el avatar (escritorio y móvil); las pestañas son las 4 áreas de trabajo.
+const TAB_ITEMS = RAIL_ITEMS.slice(0, 4);
+// Móvil: el "+" queda al centro de la barra.
 const MOBILE_LEFT = RAIL_ITEMS.slice(0, 2);
 const MOBILE_RIGHT = RAIL_ITEMS.slice(2, 4);
 
@@ -69,45 +71,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-clip bg-background text-text-primary md:flex">
-      {/* Riel oscuro (escritorio) */}
-      <aside className="hidden md:sticky md:top-0 md:flex md:h-screen md:w-[88px] md:shrink-0 md:flex-col md:items-center md:gap-1.5 md:bg-rail md:py-4">
-        <Link
-          to="/app"
-          aria-label="Artisan · Inicio"
-          className="mb-3 grid h-10 w-10 place-items-center"
-        >
-          <Logo variant="icon" className="h-9 w-9" />
-        </Link>
-
-        <Link
-          to="/nueva-venta"
-          aria-label="Nueva venta"
-          title="Nueva venta"
-          className="group mb-3 grid h-13 w-13 place-items-center rounded-md bg-cta text-cta-foreground transition-[background-color,transform] duration-150 hover:bg-cta-hover active:scale-95"
-        >
-          <PlusIcon
-            className="h-6 w-6 transition-transform duration-200 group-hover:rotate-90"
-            weight="bold"
-          />
-        </Link>
-
-        <nav aria-label="Navegación principal" className="flex flex-col items-center gap-1">
-          {RAIL_ITEMS.map((item) => (
-            <RailItem key={item.to} item={item} active={isActive(item.to)} />
-          ))}
-        </nav>
-
-        <Link
-          to="/ajustes"
-          aria-label={`Cuenta de ${displayName}`}
-          title={displayName}
-          className="mt-auto grid h-10 w-10 place-items-center rounded-sm bg-rail-active text-[12px] font-bold text-rail-foreground transition hover:bg-rail-foreground hover:text-rail"
-        >
-          {initials}
-        </Link>
-      </aside>
-
+    <div className="min-h-screen w-full max-w-full overflow-x-clip bg-background text-text-primary">
       <div className="relative flex min-h-screen w-full max-w-full flex-col overflow-x-hidden bg-background md:flex-1">
         {/* Encabezado móvil */}
         <header className="sticky top-0 z-30 flex h-14 w-full items-center gap-2 border-b border-border bg-surface pl-4 pr-2 md:hidden">
@@ -136,17 +100,22 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         </header>
 
-        {/* Barra superior (escritorio) */}
-        <header className="sticky top-0 z-30 hidden h-14 items-center gap-3 border-b border-border bg-surface px-6 md:flex lg:px-10">
-          <span className="font-display text-[18px] font-black tracking-[-0.01em]">Artisan</span>
-          <span className="text-border" aria-hidden>
-            /
-          </span>
-          <span className="truncate text-[14px] font-semibold text-text-secondary">
-            {businessName}
-          </span>
+        {/* Barra superior (escritorio y tablet): pestañas arriba, sin barra lateral */}
+        <header className="sticky top-0 z-30 hidden h-16 items-center gap-2 border-b border-text-primary bg-surface px-6 md:flex lg:gap-4 lg:px-10">
+          <Link to="/app" aria-label="Artisan · Inicio" className="mr-2 shrink-0 lg:mr-4">
+            <Logo className="h-7 w-auto" />
+          </Link>
 
-          <form onSubmit={handleSearch} className="relative ml-auto w-full max-w-[380px]">
+          <nav aria-label="Navegación principal" className="flex h-full items-stretch">
+            {TAB_ITEMS.map((item) => (
+              <TopTab key={item.to} item={item} active={isActive(item.to)} />
+            ))}
+          </nav>
+
+          <form
+            onSubmit={handleSearch}
+            className="relative ml-auto hidden w-full max-w-[300px] lg:block"
+          >
             <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
             <input
               id="header-global-search"
@@ -154,7 +123,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               placeholder="Buscar venta, cliente o producto"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="h-10 w-full rounded-md border border-border bg-surface pl-9 pr-14 text-[14px] text-text-primary outline-none transition placeholder:text-text-muted focus:border-text-primary focus:ring-3 focus:ring-cta/25"
+              className="h-10 w-full rounded-md border border-transparent bg-surface-2 pl-9 pr-12 text-[14px] text-text-primary outline-none transition placeholder:text-text-muted focus:border-text-primary focus:bg-surface focus:ring-3 focus:ring-cta/25"
             />
             {searchInput ? (
               <button
@@ -166,11 +135,47 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <XIcon className="h-3.5 w-3.5" />
               </button>
             ) : (
-              <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-sm border border-border px-1.5 font-sans text-[11px] font-bold text-text-muted">
+              <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-sm border border-border bg-surface px-1.5 font-sans text-[11px] font-bold text-text-muted">
                 ⌘K
               </kbd>
             )}
           </form>
+          <Link
+            to="/buscar"
+            search={{ q: "" }}
+            aria-label="Buscar"
+            className="ml-auto grid h-10 w-10 place-items-center rounded-md transition hover:bg-surface-2 lg:hidden"
+          >
+            <MagnifyingGlassIcon className="h-5 w-5" />
+          </Link>
+
+          <Link
+            to="/nueva-venta"
+            aria-label="Nueva venta"
+            className="group inline-flex h-10 shrink-0 items-center gap-2 rounded-md bg-cta px-3 text-[14px] font-bold text-cta-foreground transition-[background-color,transform] duration-150 hover:bg-cta-hover active:scale-[0.97] lg:px-4"
+          >
+            <PlusIcon
+              className="h-4.5 w-4.5 transition-transform duration-200 group-hover:rotate-90"
+              weight="bold"
+            />
+            <span className="hidden lg:inline">Nueva venta</span>
+          </Link>
+
+          <Link
+            to="/ajustes"
+            aria-label={`Ajustes y cuenta de ${displayName}`}
+            title={`${displayName} · ${businessName}`}
+            className={`flex h-10 shrink-0 items-center gap-2 rounded-md border px-1 transition hover:border-text-primary lg:pr-3 ${
+              isActive("/ajustes") ? "border-text-primary" : "border-border"
+            }`}
+          >
+            <span className="grid h-8 w-8 place-items-center rounded-sm bg-primary text-[12px] font-bold text-primary-foreground">
+              {initials}
+            </span>
+            <span className="hidden max-w-[140px] truncate text-[13px] font-semibold xl:inline">
+              {businessName}
+            </span>
+          </Link>
         </header>
 
         <main className="w-full max-w-full flex-1 overflow-x-hidden pb-[calc(7rem+env(safe-area-inset-bottom))] md:px-6 md:pb-12 lg:px-10">
@@ -203,20 +208,23 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
-function RailItem({ item, active }: { item: NavEntry; active: boolean }) {
+function TopTab({ item, active }: { item: NavEntry; active: boolean }) {
   const ItemIcon = item.icon;
   return (
     <Link
       to={item.to}
       aria-current={active ? "page" : undefined}
-      className={`flex h-[60px] w-16 flex-col items-center justify-center gap-1 rounded-md text-[11px] transition-colors duration-150 ${
+      className={`flex items-center gap-2 px-3 text-[14px] transition-colors duration-150 lg:px-3.5 ${
         active
-          ? "bg-rail-active font-bold text-rail-foreground"
-          : "font-medium text-rail-muted hover:bg-rail-active/60 hover:text-rail-foreground"
+          ? "font-bold text-text-primary shadow-[inset_0_-3px_0_var(--text-primary)]"
+          : "font-medium text-text-muted hover:text-text-primary hover:shadow-[inset_0_-3px_0_var(--border)]"
       }`}
     >
-      <span key={active ? "on" : "off"} className={active ? "animate-nav-pop" : undefined}>
-        <ItemIcon className="h-[22px] w-[22px]" weight={active ? "fill" : "regular"} />
+      <span
+        key={active ? "on" : "off"}
+        className={`hidden lg:inline ${active ? "animate-nav-pop" : ""}`}
+      >
+        <ItemIcon className="h-[18px] w-[18px]" weight={active ? "bold" : "regular"} />
       </span>
       {item.label}
     </Link>
