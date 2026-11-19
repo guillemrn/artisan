@@ -18,14 +18,14 @@ const sections: LegalSection[] = [
   {
     title: "Uso esencial",
     body: [
-      "Artisan usa almacenamiento local y tecnologias necesarias para mantener la experiencia funcionando: sesion, datos de demo, preferencias de interfaz y decisiones como el consentimiento de cookies.",
+      "Grofit usa almacenamiento local y tecnologias necesarias para mantener la experiencia funcionando: sesion, datos de demo, preferencias de interfaz y decisiones como el consentimiento de cookies.",
       "Estas tecnologias son necesarias para operar el producto y no dependen de aceptar medicion.",
     ],
   },
   {
     title: "Medicion opcional",
     body: [
-      "Si el usuario acepta, Artisan puede activar herramientas de medicion como Vercel Analytics y Microsoft Clarity para entender navegacion, errores, rendimiento y uso agregado.",
+      "Si el usuario acepta, Grofit puede activar herramientas de medicion como Vercel Analytics y Microsoft Clarity para entender navegacion, errores, rendimiento y uso agregado.",
       "La medicion ayuda a mejorar el producto, pero no es necesaria para registrar ventas, gestionar inventario o usar el panel.",
     ],
   },
@@ -39,14 +39,14 @@ const sections: LegalSection[] = [
   {
     title: "Cambios",
     body: [
-      "Si Artisan agrega nuevas herramientas de medicion, publicidad o integraciones, esta politica debera actualizarse antes de activarlas.",
+      "Si Grofit agrega nuevas herramientas de medicion, publicidad o integraciones, esta politica debera actualizarse antes de activarlas.",
       "Para dudas sobre esta politica, el usuario puede escribir a hola@guillermoml.com.",
     ],
   },
 ];
 
 export const Route = createFileRoute("/cookies")({
-  head: () => ({ meta: [{ title: "Politica de cookies - Artisan" }] }),
+  head: () => ({ meta: [{ title: "Politica de cookies - Grofit" }] }),
   component: CookiesRoute,
 });
 
@@ -54,7 +54,7 @@ function CookiesRoute() {
   return (
     <LegalPage
       title="Politica de cookies"
-      description="Describe que tecnologias usa Artisan, cuales son necesarias y cuales dependen del consentimiento."
+      description="Describe que tecnologias usa Grofit, cuales son necesarias y cuales dependen del consentimiento."
       updatedAt="23 de agosto de 2026"
       sections={sections}
     >

@@ -28,7 +28,7 @@ export function AuthShell({
     <main className="min-h-dvh bg-surface text-text-primary lg:grid lg:grid-cols-[minmax(420px,1.1fr)_minmax(480px,1fr)]">
       {/* Panel de producto (escritorio) */}
       <aside className="relative hidden min-h-dvh overflow-hidden bg-rail px-12 py-10 text-rail-foreground lg:flex lg:flex-col xl:px-16">
-        <Link to="/" aria-label="Ir al inicio de Artisan" className="relative z-10 w-fit">
+        <Link to="/" aria-label="Ir al inicio de Grofit" className="relative z-10 w-fit">
           <Logo className="h-8 w-auto" />
         </Link>
         <div className="relative z-10 mt-16 max-w-[460px]">
@@ -67,7 +67,7 @@ export function AuthShell({
       <section className="flex min-h-dvh min-w-0 flex-col">
         {/* Banda negra (móvil) */}
         <div className="relative overflow-hidden bg-rail px-5 pb-10 pt-5 text-rail-foreground lg:hidden">
-          <Link to="/" aria-label="Ir al inicio de Artisan" className="relative z-10 block w-fit">
+          <Link to="/" aria-label="Ir al inicio de Grofit" className="relative z-10 block w-fit">
             <Logo className="h-7 w-auto" />
           </Link>
           <div
@@ -114,7 +114,7 @@ export function AuthShell({
           <Link to="/cookies" className="transition-colors hover:text-text-primary">
             Cookies
           </Link>
-          <span className="font-normal">© {new Date().getFullYear()} Artisan</span>
+          <span className="font-normal">© {new Date().getFullYear()} Grofit</span>
         </footer>
       </section>
     </main>

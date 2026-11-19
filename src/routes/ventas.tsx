@@ -31,7 +31,7 @@ import { toast } from "sonner";
 import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
 
 export const Route = createFileRoute("/ventas")({
-  head: () => ({ meta: [{ title: "Histórico de Ventas — Artisan" }] }),
+  head: () => ({ meta: [{ title: "Histórico de Ventas — Grofit" }] }),
   component: VentasPage,
 });
 

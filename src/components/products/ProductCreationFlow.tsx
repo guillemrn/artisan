@@ -205,7 +205,7 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
           description={
             createdProduct.costing ? (
               <span>
-                Artisan calculó el costo de la presentación a partir de un lote de{" "}
+                Grofit calculó el costo de la presentación a partir de un lote de{" "}
                 <strong className="font-bold text-text-primary">
                   {createdProduct.costing.yieldQuantity} unidades
                 </strong>
@@ -458,7 +458,7 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
               {costMethod === "calculate" && (
                 <div className="flex items-center gap-2 text-right text-[12px] font-semibold text-primary">
                   <Sparkles className="h-4 w-4" />
-                  Calculado por Artisan
+                  Calculado por Grofit
                 </div>
               )}
             </div>

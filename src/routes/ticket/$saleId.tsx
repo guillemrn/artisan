@@ -23,7 +23,7 @@ import { TicketCard } from "@/components/sales/TicketCard";
 import { savedMoment, shortFolio, ticketMessage, type SavedMoment } from "@/lib/ticket-format";
 
 export const Route = createFileRoute("/ticket/$saleId")({
-  head: () => ({ meta: [{ title: "Ticket — Artisan" }] }),
+  head: () => ({ meta: [{ title: "Ticket — Grofit" }] }),
   component: Ticket,
 });
 

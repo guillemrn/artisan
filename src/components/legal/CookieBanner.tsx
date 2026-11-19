@@ -52,7 +52,7 @@ export function CookieBanner() {
             <p className="mt-1 max-w-2xl text-[13px] leading-5 text-text-secondary sm:text-sm sm:leading-6">
               <span className="sm:hidden">Usamos cookies esenciales. La medición es opcional.</span>
               <span className="hidden sm:inline">
-                Usamos lo esencial para que Artisan funcione. La medición de uso solo se activa si
+                Usamos lo esencial para que Grofit funcione. La medición de uso solo se activa si
                 la aceptas.
               </span>
             </p>

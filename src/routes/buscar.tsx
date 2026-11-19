@@ -12,7 +12,7 @@ export const Route = createFileRoute("/buscar")({
     q: typeof search.q === "string" ? search.q : "",
   }),
   head: () => ({
-    meta: [{ title: "Buscar — Artisan" }],
+    meta: [{ title: "Buscar — Grofit" }],
   }),
   component: Buscar,
 });

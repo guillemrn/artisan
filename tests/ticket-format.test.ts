@@ -45,7 +45,7 @@ test("momento ajá: primera venta, acumulado del día y mejor de la semana", asy
   const { savedMoment } = await import("../src/lib/ticket-format.ts");
   const now = new Date("2026-11-19T20:00:00.000Z");
   const s1 = { ...base, id: "TAL-0001", createdAt: "2026-11-19T16:00:00.000Z", profit: 50, total: 100 };
-  assert.equal(savedMoment(s1, [s1], now).eyebrow, "Tu primera venta en Artisan");
+  assert.equal(savedMoment(s1, [s1], now).eyebrow, "Tu primera venta en Grofit");
 
   const s2 = { ...base, id: "TAL-0002", createdAt: "2026-11-19T17:00:00.000Z", profit: 40, total: 200 };
   const m2 = savedMoment(s2, [s2, s1], now);

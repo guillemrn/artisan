@@ -14,7 +14,7 @@ import { useMemo, useState } from "react";
 import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
 
 export const Route = createFileRoute("/clientes_/$clientId")({
-  head: () => ({ meta: [{ title: "Detalle Cliente — Artisan" }] }),
+  head: () => ({ meta: [{ title: "Detalle Cliente — Grofit" }] }),
   component: ClientDetail,
 });
 

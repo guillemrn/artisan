@@ -23,7 +23,7 @@ import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadSt
 import { getSaleItemCost, getSaleItemRevenue } from "@/lib/artisan-sale-calculations";
 
 export const Route = createFileRoute("/productos_/$productId")({
-  head: () => ({ meta: [{ title: "Detalle Producto — Artisan" }] }),
+  head: () => ({ meta: [{ title: "Detalle Producto — Grofit" }] }),
   component: ProductDetail,
 });
 

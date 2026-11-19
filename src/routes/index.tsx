@@ -16,7 +16,7 @@ import { useReveal } from "@/lib/use-reveal";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Artisan — Tus ventas, sin libreta" },
+      { title: "Grofit — Tus ventas, sin libreta" },
       {
         name: "description",
         content:
@@ -48,7 +48,7 @@ const FEATURES = [
     title: "Cuánto te queda, sin hacer cuentas.",
     copy: "Lo cobrado, lo que te costó y tu ganancia del día, en una sola vista.",
     img: "/landing/dash-desktop.webp",
-    alt: "Inicio de Artisan: ganancia bruta del día, cuánto te queda de lo cobrado y lo que falta por cobrar",
+    alt: "Inicio de Grofit: ganancia bruta del día, cuánto te queda de lo cobrado y lo que falta por cobrar",
     w: 2880,
     h: 1022,
     wide: true,
@@ -58,7 +58,7 @@ const FEATURES = [
     title: "Cobra lo que te deben.",
     copy: "Consignaciones y fiados en una lista, con un botón para cobrar.",
     img: "/landing/por-cobrar.webp",
-    alt: "Lista de ventas por cobrar en Artisan con el total pendiente",
+    alt: "Lista de ventas por cobrar en Grofit con el total pendiente",
     w: 780,
     h: 924,
   },
@@ -67,7 +67,7 @@ const FEATURES = [
     title: "Ticket por WhatsApp.",
     copy: "Claro, con folio y forma de pago. Tu cliente lo recibe al instante.",
     img: "/landing/ticket-whatsapp.webp",
-    alt: "Ticket de venta en Artisan con el botón para mandarlo por WhatsApp",
+    alt: "Ticket de venta en Grofit con el botón para mandarlo por WhatsApp",
     w: 780,
     h: 1688,
   },
@@ -124,7 +124,7 @@ function LandingPage() {
     <div className="min-h-screen overflow-x-clip bg-background text-text-primary selection:bg-cta selection:text-cta-foreground">
       <header className="sticky top-0 z-40 border-b border-border bg-surface">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
-          <Link to="/" aria-label="Artisan, inicio" className="mr-auto">
+          <Link to="/" aria-label="Grofit, inicio" className="mr-auto">
             <Logo className="h-8 w-auto" />
           </Link>
           {!user && (
@@ -193,7 +193,7 @@ function LandingPage() {
               <div className="landing-phone relative mx-auto w-[78%] max-w-[330px] overflow-hidden rounded-t-[34px] border-[9px] border-b-0 border-text-primary bg-surface">
                 <img
                   src="/landing/dash-mobile.webp"
-                  alt="Inicio de Artisan en el celular: ganancia bruta del día y lo que falta por cobrar"
+                  alt="Inicio de Grofit en el celular: ganancia bruta del día y lo que falta por cobrar"
                   width={780}
                   height={1688}
                   className="block h-auto w-full"
@@ -214,7 +214,7 @@ function LandingPage() {
 
         {/* Para quién: marquesina */}
         <section
-          aria-label="Para quién es Artisan"
+          aria-label="Para quién es Grofit"
           className="overflow-hidden bg-text-primary py-4"
         >
           <div className="landing-marquee flex w-max gap-10 whitespace-nowrap font-display text-[22px] font-bold text-primary-foreground sm:text-[26px]">
@@ -277,7 +277,7 @@ function LandingPage() {
               <p className="font-display text-[26px] font-bold leading-tight tracking-[-0.01em] sm:text-[34px]">
                 “Vendíamos todos los días, pero no sabíamos si ganábamos. Las ventas iban de
                 WhatsApp a una hoja de cálculo y muchas se perdían en el camino. Por eso hice
-                Artisan.”
+                Grofit.”
               </p>
               <p className="mt-4 text-[15px] text-text-muted">
                 Guillermo · cofundador de Almara Cocina Artesanal
@@ -351,7 +351,7 @@ function LandingPage() {
 
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-6 pb-28 text-[13px] text-text-muted sm:px-6 sm:pb-6">
-          <span>© {new Date().getFullYear()} Artisan</span>
+          <span>© {new Date().getFullYear()} Grofit</span>
           <Link to="/privacidad" className="hover:text-text-primary sm:ml-auto">
             Privacidad
           </Link>

@@ -39,7 +39,7 @@ import { buttonClass } from "@/components/ui/button-styles";
 import { useMediaQuery } from "@/lib/use-media-query";
 
 export const Route = createFileRoute("/nueva-venta")({
-  head: () => ({ meta: [{ title: "Nueva venta — Artisan" }] }),
+  head: () => ({ meta: [{ title: "Nueva venta — Grofit" }] }),
   component: NuevaVenta,
 });
 
@@ -105,7 +105,7 @@ function NuevaVenta() {
     setSubmitError(null);
 
     try {
-      const bizName = user?.user_metadata?.business_name || "Artisan";
+      const bizName = user?.user_metadata?.business_name || "Grofit";
       const prefix = bizName
         .slice(0, 3)
         .toUpperCase()

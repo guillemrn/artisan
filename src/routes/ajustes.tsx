@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/ajustes")({
-  head: () => ({ meta: [{ title: "Ajustes — Artisan" }] }),
+  head: () => ({ meta: [{ title: "Ajustes — Grofit" }] }),
   component: Ajustes,
 });
 
@@ -178,7 +178,7 @@ function Ajustes() {
       setBugDesc("");
     } catch {
       setBugError(
-        "No pudimos enviar el reporte desde Artisan. Puedes copiarlo o abrir tu correo para enviarlo sin perder el texto.",
+        "No pudimos enviar el reporte desde Grofit. Puedes copiarlo o abrir tu correo para enviarlo sin perder el texto.",
       );
     } finally {
       setSendingBug(false);
@@ -286,7 +286,7 @@ function Ajustes() {
   };
 
   const supportMailto = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(
-    "Reporte de problema en Artisan",
+    "Reporte de problema en Grofit",
   )}&body=${encodeURIComponent(bugDesc.trim())}`;
 
   return (
@@ -345,7 +345,7 @@ function Ajustes() {
           <SettingsRow
             icon={<Bug />}
             title="Reportar un problema"
-            description="Cuéntanos qué falló sin salir de Artisan"
+            description="Cuéntanos qué falló sin salir de Grofit"
             actionLabel="Abrir"
             onClick={() => {
               setBugError(null);
@@ -422,7 +422,7 @@ function Ajustes() {
       <footer className="mt-10 flex flex-col gap-4 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2 text-[12px] text-text-muted">
           <Info className="h-4 w-4" aria-hidden="true" />
-          <span>Artisan Beta</span>
+          <span>Grofit Beta</span>
         </div>
         <button
           type="button"
@@ -467,7 +467,7 @@ function Ajustes() {
                   Editar perfil del negocio
                 </DialogTitle>
                 <DialogDescription className="text-[13px] leading-5 text-text-muted">
-                  Esta información identifica tu cuenta y tu negocio dentro de Artisan.
+                  Esta información identifica tu cuenta y tu negocio dentro de Grofit.
                 </DialogDescription>
               </DialogHeader>
 
@@ -613,7 +613,7 @@ function Ajustes() {
           {bugSuccess ? (
             <div className="p-5 sm:p-6">
               <ModalSuccessState
-                badgeText="Soporte Artisan"
+                badgeText="Soporte Grofit"
                 title="Reporte recibido"
                 description="Gracias. Revisaremos la información para entender qué ocurrió."
                 onDone={() => {
@@ -718,7 +718,7 @@ function Ajustes() {
           <DialogHeader className="text-left">
             <DialogTitle>¿Cerrar sesión?</DialogTitle>
             <DialogDescription>
-              Tendrás que volver a ingresar con tu correo y contraseña para usar Artisan.
+              Tendrás que volver a ingresar con tu correo y contraseña para usar Grofit.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-2 gap-2">

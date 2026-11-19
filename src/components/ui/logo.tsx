@@ -5,23 +5,35 @@ interface LogoProps extends SVGProps<SVGSVGElement> {
 }
 
 /**
- * Marca Artisan 2.0 (Editorial Tech): cuadro naranja + wordmark en Satoshi Black.
- * Es un SVG para que escale con clases de altura (h-7 w-auto) como el logo anterior.
+ * Marca Grofit: el escalón (cuadro naranja + cuadro de tinta más chico arriba a la derecha)
+ * y el wordmark en Satoshi Black. El cuadro chico y el texto usan currentColor,
+ * así funciona igual sobre claro y sobre la barra oscura.
  */
+function Mark({ x = 0, y = 0, size = 24 }: { x?: number; y?: number; size?: number }) {
+  const big = size * 0.72;
+  const small = size * 0.36;
+  return (
+    <>
+      <rect x={x} y={y + size - big} width={big} height={big} fill="#FF4F00" />
+      <rect x={x + size - small} y={y} width={small} height={small} fill="currentColor" />
+    </>
+  );
+}
+
 export function Logo({ variant = "full", className = "", ...props }: LogoProps) {
   if (variant === "icon") {
     return (
-      <svg viewBox="0 0 40 40" role="img" aria-label="Artisan" className={className} {...props}>
-        <rect x="8" y="8" width="24" height="24" fill="#FF4F00" />
+      <svg viewBox="0 0 40 40" role="img" aria-label="Grofit" className={className} {...props}>
+        <Mark x={8} y={8} size={24} />
       </svg>
     );
   }
 
   return (
-    <svg viewBox="0 0 156 40" role="img" aria-label="Artisan" className={className} {...props}>
-      <rect x="2" y="11" width="18" height="18" fill="#FF4F00" />
+    <svg viewBox="0 0 142 40" role="img" aria-label="Grofit" className={className} {...props}>
+      <Mark x={1} y={9} size={22} />
       <text
-        x="28"
+        x="31"
         y="30"
         fill="currentColor"
         fontFamily="Satoshi, ui-sans-serif, system-ui, sans-serif"
@@ -29,7 +41,7 @@ export function Logo({ variant = "full", className = "", ...props }: LogoProps) 
         fontSize="29"
         letterSpacing="-0.6"
       >
-        Artisan
+        Grofit
       </text>
     </svg>
   );

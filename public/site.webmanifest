@@ -1,6 +1,6 @@
 {
-  "name": "Artisan — Tus ventas, sin libreta",
-  "short_name": "Artisan",
+  "name": "Grofit — Tus ventas, sin libreta",
+  "short_name": "Grofit",
   "description": "Registra ventas, cobra lo pendiente y manda tickets por WhatsApp.",
   "lang": "es-MX",
   "start_url": "/app",

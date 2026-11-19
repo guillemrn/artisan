@@ -17,7 +17,7 @@ const STAMP: Record<TicketState, { label: string; className: string }> = {
 
 /**
  * El ticket que recibe el cliente (se exporta como imagen).
- * La marca protagonista es el negocio; Artisan solo firma al pie.
+ * La marca protagonista es el negocio; Grofit solo firma al pie.
  */
 export const TicketCard = forwardRef<
   HTMLDivElement,
@@ -117,7 +117,7 @@ export const TicketCard = forwardRef<
       </div>
       <div className="flex items-center justify-center gap-1.5 border-t border-dashed border-border px-3 py-2.5 text-[11px] text-text-muted">
         <span className="h-2 w-2 bg-cta" aria-hidden="true" />
-        Hecho con Artisan · artisan.guillermoml.com
+        Hecho con Grofit · artisan.guillermoml.com
       </div>
     </div>
   );

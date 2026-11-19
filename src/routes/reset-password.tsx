@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { isStrongPassword, PASSWORD_MIN_LENGTH } from "@/lib/password-security";
 
 export const Route = createFileRoute("/reset-password")({
-  head: () => ({ meta: [{ title: "Nueva contraseña — Artisan" }] }),
+  head: () => ({ meta: [{ title: "Nueva contraseña — Grofit" }] }),
   component: ResetPasswordPage,
 });
 
@@ -197,7 +197,7 @@ function ResetPasswordPage() {
 
         <div className="flex items-center gap-2 border-t border-border pt-6 text-[12px] text-text-muted">
           <ShieldCheck className="h-4 w-4 text-primary" aria-hidden="true" />
-          Artisan nunca enviará tu contraseña por correo.
+          Grofit nunca enviará tu contraseña por correo.
         </div>
       </div>
     </AuthShell>

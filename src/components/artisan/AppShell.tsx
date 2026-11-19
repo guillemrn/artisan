@@ -102,7 +102,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* Barra superior (escritorio y tablet): pestañas arriba, sin barra lateral */}
         <header className="sticky top-0 z-30 hidden h-16 items-center gap-2 border-b border-text-primary bg-surface px-6 md:flex lg:gap-4 lg:px-10">
-          <Link to="/app" aria-label="Artisan · Inicio" className="mr-2 shrink-0 lg:mr-4">
+          <Link to="/app" aria-label="Grofit · Inicio" className="mr-2 shrink-0 lg:mr-4">
             <Logo className="h-7 w-auto" />
           </Link>
 

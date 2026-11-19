@@ -2,9 +2,9 @@
 
 <!-- impeccable:design-schema 1 -->
 
-## Direction — Artisan 2.0 · Editorial Tech
+## Direction — Grofit · Editorial Tech
 
-Artisan should feel like a calm operating table for a local business: warm enough for non-technical owners, precise enough for money, stock, orders, pending payments, and daily closing. Editorial Tech means black ink on white paper, rules instead of cards, and one orange action per screen. Avoid generic SaaS hype, fake social proof, decorative emoji, gradients, glassmorphism and dramatic motion.
+Grofit should feel like a calm operating table for a local business: warm enough for non-technical owners, precise enough for money, stock, orders, pending payments, and daily closing. Editorial Tech means black ink on white paper, rules instead of cards, and one orange action per screen. Avoid generic SaaS hype, fake social proof, decorative emoji, gradients, glassmorphism and dramatic motion.
 
 ## Tokens (src/styles.css) — never hardcode colors
 

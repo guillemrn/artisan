@@ -170,7 +170,7 @@ export function FirstRun({
             <ResultBar collected={1000} cost={420} merma={0} salesCount={8} />
           </div>
           <p className="mt-5 border-t border-border-soft pt-4 text-[14px] text-text-secondary">
-            Con cada venta, Artisan suma lo que cobraste, resta lo que te costó y te dice cuánto te
+            Con cada venta, Grofit suma lo que cobraste, resta lo que te costó y te dice cuánto te
             queda. Sin hacer cuentas.
           </p>
         </section>

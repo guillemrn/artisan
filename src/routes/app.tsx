@@ -79,7 +79,7 @@ import {
 } from "@/lib/artisan-sale-calculations";
 
 export const Route = createFileRoute("/app")({
-  head: () => ({ meta: [{ title: "Panel — Artisan" }] }),
+  head: () => ({ meta: [{ title: "Panel — Grofit" }] }),
   component: Home,
 });
 

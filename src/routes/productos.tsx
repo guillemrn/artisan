@@ -17,7 +17,7 @@ import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadSt
 import { ProductCreationFlow } from "@/components/products/ProductCreationFlow";
 
 export const Route = createFileRoute("/productos")({
-  head: () => ({ meta: [{ title: "Productos — Artisan" }] }),
+  head: () => ({ meta: [{ title: "Productos — Grofit" }] }),
   component: Productos,
 });
 

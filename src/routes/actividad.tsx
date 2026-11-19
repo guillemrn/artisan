@@ -6,7 +6,7 @@ import { useArtisan } from "@/lib/artisan-store";
 import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
 
 export const Route = createFileRoute("/actividad")({
-  head: () => ({ meta: [{ title: "Actividad — Artisan" }] }),
+  head: () => ({ meta: [{ title: "Actividad — Grofit" }] }),
   component: Actividad,
 });
 

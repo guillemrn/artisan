@@ -26,7 +26,7 @@ export function LegalPage({
     <main className="min-h-screen bg-[#f5f2ea] text-[#1d2723]">
       <header className="border-b border-[#1d2723]/10 bg-[#f5f2ea]/92 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
-          <Link to="/" className="flex items-center" aria-label="Ir al inicio de Artisan">
+          <Link to="/" className="flex items-center" aria-label="Ir al inicio de Grofit">
             <Logo variant="full" className="h-8 w-auto" />
           </Link>
           <Link

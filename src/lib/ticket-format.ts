@@ -75,7 +75,7 @@ export function savedMoment(sale: Sale, allSales: Sale[], now = new Date()): Sav
     !firstSale && weekOthers.length >= 2 && weekOthers.every((s) => sale.profit > s.profit);
 
   const eyebrow = firstSale
-    ? "Tu primera venta en Artisan"
+    ? "Tu primera venta en Grofit"
     : bestOfWeek
       ? "Tu mejor venta de la semana"
       : `Ticket ${shortFolio(sale.id)}`;

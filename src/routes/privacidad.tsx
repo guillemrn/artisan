@@ -6,7 +6,7 @@ const sections: LegalSection[] = [
   {
     title: "Responsable",
     body: [
-      "Artisan opera actualmente como un proyecto personal de libre uso. La persona responsable del tratamiento de los datos personales asociados al proyecto es Guillermo Moreno.",
+      "Grofit opera actualmente como un proyecto personal de libre uso. La persona responsable del tratamiento de los datos personales asociados al proyecto es Guillermo Moreno.",
       "Contacto para temas de privacidad y derechos sobre datos personales: hola@guillermoml.com.",
     ],
   },
@@ -22,13 +22,13 @@ const sections: LegalSection[] = [
     title: "Finalidades",
     body: [
       "Usamos los datos para crear y proteger la cuenta, operar el punto de venta, guardar inventario, generar tickets, mostrar metricas del negocio, sincronizar informacion y dar soporte.",
-      "Si el usuario acepta medicion, usamos eventos agregados para entender que partes del producto funcionan mejor, detectar friccion y mejorar Artisan. Esta finalidad no es necesaria para usar la plataforma.",
+      "Si el usuario acepta medicion, usamos eventos agregados para entender que partes del producto funcionan mejor, detectar friccion y mejorar Grofit. Esta finalidad no es necesaria para usar la plataforma.",
     ],
   },
   {
     title: "Servicios de apoyo",
     body: [
-      "Artisan puede usar proveedores de infraestructura, autenticacion, base de datos, hosting, analitica y correo para prestar el servicio. Estos proveedores solo deben tratar la informacion necesaria para operar la plataforma.",
+      "Grofit puede usar proveedores de infraestructura, autenticacion, base de datos, hosting, analitica y correo para prestar el servicio. Estos proveedores solo deben tratar la informacion necesaria para operar la plataforma.",
       "No vendemos la informacion del negocio del usuario. Cualquier transferencia distinta a la operacion normal del servicio debera informarse y, cuando aplique, solicitar consentimiento.",
     ],
   },
@@ -48,7 +48,7 @@ const sections: LegalSection[] = [
 ];
 
 export const Route = createFileRoute("/privacidad")({
-  head: () => ({ meta: [{ title: "Aviso de privacidad - Artisan" }] }),
+  head: () => ({ meta: [{ title: "Aviso de privacidad - Grofit" }] }),
   component: PrivacyRoute,
 });
 
@@ -56,7 +56,7 @@ function PrivacyRoute() {
   return (
     <LegalPage
       title="Aviso de privacidad"
-      description="Explica que datos trata Artisan, para que los usa y como puede el usuario ejercer control sobre su informacion."
+      description="Explica que datos trata Grofit, para que los usa y como puede el usuario ejercer control sobre su informacion."
       updatedAt="23 de agosto de 2026"
       sections={sections}
     />

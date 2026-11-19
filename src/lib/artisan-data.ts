@@ -140,7 +140,7 @@ export const CLIENTS: Client[] = [
   },
 ];
 
-export const BUSINESS_NAME = "Artisan - Punto de venta";
+export const BUSINESS_NAME = "Grofit - Punto de venta";
 export const USER_NAME = "María";
 
 // Sample route/history seed

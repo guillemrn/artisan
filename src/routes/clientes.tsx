@@ -7,7 +7,7 @@ import { formatMXN } from "@/lib/artisan-data";
 import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
 
 export const Route = createFileRoute("/clientes")({
-  head: () => ({ meta: [{ title: "Clientes — Artisan" }] }),
+  head: () => ({ meta: [{ title: "Clientes — Grofit" }] }),
   component: Clientes,
 });
 
