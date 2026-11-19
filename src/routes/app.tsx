@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef, useState, useMemo, useEffect } from "react";
 import {
+  ArrowRightIcon,
   CalendarBlankIcon,
   CaretDownIcon,
   CheckCircleIcon,
@@ -277,8 +278,16 @@ function Home() {
     day: "numeric",
     month: "long",
   });
+  // Móvil: "Mié 18 nov"
+  const shortDateLabel = (() => {
+    const now = new Date();
+    const wd = now.toLocaleDateString("es-MX", { weekday: "short" }).replace(".", "");
+    const mo = now.toLocaleDateString("es-MX", { month: "short" }).replace(".", "");
+    return `${wd.charAt(0).toUpperCase()}${wd.slice(1)} ${now.getDate()} ${mo}`;
+  })();
 
   const displayName = user?.user_metadata?.full_name ?? USER_NAME;
+  const firstName = String(displayName).split(" ")[0];
 
   const currentHour = new Date().getHours();
   const greeting =
@@ -645,7 +654,7 @@ function Home() {
   if (sales.length === 0) {
     return (
       <FirstRun
-        firstName={String(displayName).split(" ")[0]}
+        firstName={firstName}
         dateLabel={dateLabel}
         hasProducts={products.length > 0}
         hasClients={clients.length > 0}
@@ -661,7 +670,12 @@ function Home() {
       <section className="space-y-4">
         <div className="min-w-0">
           <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-text-muted">
-            {dateLabel} · {greeting}, {displayName}
+            <span className="sm:hidden">
+              {shortDateLabel} · Hola, {firstName}
+            </span>
+            <span className="hidden sm:inline">
+              {dateLabel} · {greeting}, {displayName}
+            </span>
           </p>
           <h1 className="mt-1.5 font-display text-[30px] font-black leading-none tracking-[-0.02em] text-text-primary md:text-[40px]">
             {periodTitle}
@@ -796,7 +810,7 @@ function Home() {
         <Metric
           label="Entregado"
           value={`${kpiData.packagesTotal}`}
-          unit={kpiData.packagesTotal === 1 ? "paquete" : "paquetes"}
+          unit={kpiData.packagesTotal === 1 ? "unidad" : "unidades"}
           sub={kpiData.maxQty > 0 ? `Más vendido: ${kpiData.topProduct}` : "Sin entregas"}
         />
       </section>
@@ -812,127 +826,14 @@ function Home() {
         <ReturnsByClient rows={returnsByClient} />
       </section>
 
-      <section className="grid gap-x-8 gap-y-6 pt-2 xl:grid-cols-3">
-        <ChartPanel
-          title="Cobrado por día"
-          subtitle="Dinero que entró en el periodo"
-          empty={trendChartData.length === 0}
-        >
-          <BarChart data={trendChartData} margin={{ left: 0, right: 4, top: 4, bottom: 0 }}>
-            <CartesianGrid vertical={false} stroke="#EDEFF2" />
-            <XAxis
-              dataKey="fecha"
-              tickLine={false}
-              axisLine={{ stroke: "#111111" }}
-              tick={CHART_TICK}
-            />
-            <YAxis
-              tickLine={false}
-              axisLine={false}
-              width={48}
-              tick={CHART_TICK}
-              tickFormatter={(value) => formatMXN(Number(value))}
-            />
-            <RechartsTooltip
-              cursor={{ fill: "#F5F6F8" }}
-              contentStyle={CHART_TOOLTIP}
-              formatter={(value) => [formatMXNc(Number(value)), "Cobrado"]}
-            />
-            <Bar dataKey="Ventas" fill="#111111" radius={[2, 2, 0, 0]} maxBarSize={36} />
-          </BarChart>
-        </ChartPanel>
-
-        <ChartPanel
-          title="Paquetes por producto"
-          subtitle="El más vendido, en naranja"
-          empty={productChartData.length === 0}
-        >
-          <BarChart
-            layout="vertical"
-            data={productChartData}
-            margin={{ left: 4, right: 8, top: 0, bottom: 0 }}
-          >
-            <CartesianGrid horizontal={false} stroke="#EDEFF2" />
-            <XAxis
-              type="number"
-              tickLine={false}
-              axisLine={false}
-              tick={CHART_TICK}
-              allowDecimals={false}
-            />
-            <YAxis
-              dataKey="name"
-              type="category"
-              tickLine={false}
-              axisLine={false}
-              width={108}
-              tick={CHART_TICK}
-              tickFormatter={(value) => (value.length > 16 ? `${value.slice(0, 14)}…` : value)}
-            />
-            <RechartsTooltip
-              cursor={{ fill: "#F5F6F8" }}
-              contentStyle={CHART_TOOLTIP}
-              formatter={(value, name) =>
-                name === "venta" ? formatMXNc(Number(value)) : `${value} paquetes`
-              }
-            />
-            <Bar dataKey="paquetes" radius={[0, 2, 2, 0]} maxBarSize={22}>
-              {productChartData.map((_entry, index) => (
-                <Cell key={`product-cell-${index}`} fill={index === 0 ? "#FF4F00" : "#111111"} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ChartPanel>
-
-        <ChartPanel
-          title="Clientes con más movimiento"
-          subtitle="Paquetes entregados · top 5"
-          empty={clientChartData.length === 0}
-        >
-          <BarChart
-            layout="vertical"
-            data={clientChartData}
-            margin={{ left: 4, right: 8, top: 0, bottom: 0 }}
-          >
-            <CartesianGrid horizontal={false} stroke="#EDEFF2" />
-            <XAxis
-              type="number"
-              tickLine={false}
-              axisLine={false}
-              tick={CHART_TICK}
-              allowDecimals={false}
-            />
-            <YAxis
-              dataKey="name"
-              type="category"
-              tickLine={false}
-              axisLine={false}
-              width={108}
-              tick={CHART_TICK}
-              tickFormatter={(value) => (value.length > 16 ? `${value.slice(0, 14)}…` : value)}
-            />
-            <RechartsTooltip
-              cursor={{ fill: "#F5F6F8" }}
-              contentStyle={CHART_TOOLTIP}
-              formatter={(value, name) =>
-                name === "venta" ? formatMXNc(Number(value)) : `${value} paquetes`
-              }
-            />
-            <Bar dataKey="paquetes" fill="#111111" radius={[0, 2, 2, 0]} maxBarSize={22} />
-          </BarChart>
-        </ChartPanel>
-      </section>
-
       {/* Recientes/Historial list */}
       <div className="mt-7 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="font-display text-[17px] font-bold text-text-primary">
-              Historial de ventas
+              Ventas recientes
             </h2>
-            <p className="text-[13px] text-text-muted">
-              Transacciones que coinciden con los filtros
-            </p>
+            <p className="text-[13px] text-text-muted">Las últimas 5 con los filtros actuales</p>
           </div>
           {/* Filters for Sales History */}
           <div className="flex flex-wrap items-center gap-2">
@@ -967,7 +868,7 @@ function Home() {
           <>
             {/* Mobile View: Cards */}
             <ul className="grid gap-2 md:hidden">
-              {historyFilteredSales.slice(0, 15).map((s) => (
+              {historyFilteredSales.slice(0, 5).map((s) => (
                 <SaleCardItem
                   key={s.id}
                   sale={s}
@@ -994,7 +895,7 @@ function Home() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
-                  {historyFilteredSales.slice(0, 20).map((s) => {
+                  {historyFilteredSales.slice(0, 5).map((s) => {
                     const dashboardDate = getSaleDashboardDate(s);
                     const d = new Date(dashboardDate);
                     const wasPaidLater = Boolean(s.paidAt && s.paidAt !== s.createdAt);
@@ -1095,9 +996,101 @@ function Home() {
                 </tbody>
               </table>
             </div>
+            {historyFilteredSales.length > 5 && (
+              <Link
+                to="/ventas"
+                className="mt-1 inline-flex items-center gap-1.5 text-[14px] font-semibold text-accent-text hover:underline"
+              >
+                Ver todas las ventas ({historyFilteredSales.length})
+                <ArrowRightIcon className="h-4 w-4" />
+              </Link>
+            )}
           </>
         )}
       </div>
+
+      <section aria-label="Más detalle" className="grid gap-x-8 gap-y-6 pt-4 md:grid-cols-2">
+        <ChartPanel
+          title="Unidades por producto"
+          subtitle="El más vendido, en naranja"
+          empty={productChartData.length === 0}
+        >
+          <BarChart
+            layout="vertical"
+            data={productChartData}
+            margin={{ left: 4, right: 8, top: 0, bottom: 0 }}
+          >
+            <CartesianGrid horizontal={false} stroke="#EDEFF2" />
+            <XAxis
+              type="number"
+              tickLine={false}
+              axisLine={false}
+              tick={CHART_TICK}
+              allowDecimals={false}
+            />
+            <YAxis
+              dataKey="name"
+              type="category"
+              tickLine={false}
+              axisLine={false}
+              width={108}
+              tick={CHART_TICK}
+              tickFormatter={(value) => (value.length > 16 ? `${value.slice(0, 14)}…` : value)}
+            />
+            <RechartsTooltip
+              cursor={{ fill: "#F5F6F8" }}
+              contentStyle={CHART_TOOLTIP}
+              formatter={(value, name) =>
+                name === "venta" ? formatMXNc(Number(value)) : `${value} unidades`
+              }
+            />
+            <Bar dataKey="paquetes" radius={[0, 2, 2, 0]} maxBarSize={22}>
+              {productChartData.map((_entry, index) => (
+                <Cell key={`product-cell-${index}`} fill={index === 0 ? "#FF4F00" : "#111111"} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ChartPanel>
+
+        <ChartPanel
+          title="Clientes con más movimiento"
+          subtitle="Unidades entregadas · top 5"
+          empty={clientChartData.length === 0}
+        >
+          <BarChart
+            layout="vertical"
+            data={clientChartData}
+            margin={{ left: 4, right: 8, top: 0, bottom: 0 }}
+          >
+            <CartesianGrid horizontal={false} stroke="#EDEFF2" />
+            <XAxis
+              type="number"
+              tickLine={false}
+              axisLine={false}
+              tick={CHART_TICK}
+              allowDecimals={false}
+            />
+            <YAxis
+              dataKey="name"
+              type="category"
+              tickLine={false}
+              axisLine={false}
+              width={108}
+              tick={CHART_TICK}
+              tickFormatter={(value) => (value.length > 16 ? `${value.slice(0, 14)}…` : value)}
+            />
+            <RechartsTooltip
+              cursor={{ fill: "#F5F6F8" }}
+              contentStyle={CHART_TOOLTIP}
+              formatter={(value, name) =>
+                name === "venta" ? formatMXNc(Number(value)) : `${value} unidades`
+              }
+            />
+            <Bar dataKey="paquetes" fill="#111111" radius={[0, 2, 2, 0]} maxBarSize={22} />
+          </BarChart>
+        </ChartPanel>
+      </section>
+
       {showOnboarding && (
         <OnboardingModal
           onClose={handleCloseOnboarding}

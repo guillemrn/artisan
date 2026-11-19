@@ -101,7 +101,9 @@ export function ResultBar({
               <dt className="flex items-center gap-2 text-[13px] text-text-secondary">
                 <span className={clsx("h-3 w-3 shrink-0", s.swatch)} aria-hidden />
                 {s.label}
-                <span className="text-text-muted">· {pctOfCollected(Math.abs(s.value))}</span>
+                {!(isKeep && merma <= 0) && (
+                  <span className="text-text-muted">· {pctOfCollected(Math.abs(s.value))}</span>
+                )}
               </dt>
               <dd
                 className={clsx(
@@ -112,7 +114,12 @@ export function ResultBar({
                   isKeep && s.value < 0 ? "text-danger" : "text-text-primary",
                 )}
               >
-                {s.value < 0 ? `−${formatMXNc(Math.abs(s.value))}` : formatMXNc(s.value)}
+                {isKeep && merma <= 0
+                  ? // Sin merma, el monto ya es el número grande del dashboard: aquí solo el margen.
+                    pctOfCollected(Math.abs(s.value))
+                  : s.value < 0
+                    ? `−${formatMXNc(Math.abs(s.value))}`
+                    : formatMXNc(s.value)}
               </dd>
             </div>
           );
