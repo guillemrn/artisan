@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Disallow: /app
+Disallow: /ventas
+Disallow: /clientes
+Disallow: /productos
+Disallow: /nueva-venta
+Disallow: /ticket
+Disallow: /ajustes
+Disallow: /buscar
+Disallow: /historial
+Disallow: /actividad
+Disallow: /reset-password
+
+Sitemap: https://artisan.guillermoml.com/sitemap.xml

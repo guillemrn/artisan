@@ -5,6 +5,7 @@ import {
   useRouter,
   useRouterState,
   Navigate,
+  HeadContent,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 
@@ -12,6 +13,7 @@ import { ArtisanProvider } from "@/lib/artisan-store";
 import { AppShell } from "@/components/artisan/AppShell";
 import { AuthProvider, useAuth } from "@/core/auth/auth-context";
 import { CookieBanner } from "@/components/legal/CookieBanner";
+import { Logo } from "@/components/ui/logo";
 
 // ─── Error & 404 ──────────────────────────────────────────────────────────────
 
@@ -69,6 +71,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
+      <HeadContent />
       <AuthProvider>
         <AuthGate />
       </AuthProvider>
@@ -146,7 +149,7 @@ function isLegalPath(pathname: string) {
 function SplashScreen() {
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background gap-4">
-      <img src="/isotipo.png" alt="Artisan" className="h-16 w-16 animate-pulse" />
+      <Logo variant="icon" className="h-16 w-16 animate-pulse" />
       <div className="flex gap-1.5">
         {[0, 1, 2].map((i) => (
           <span
