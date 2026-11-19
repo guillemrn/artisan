@@ -40,3 +40,21 @@ test("Público general no admite pagos diferidos", () => {
   assert.ok(!isWalkInClient("almacen-norte"));
   assert.deepEqual(DEFERRED_PAYMENTS, ["Pendiente", "Consignación"]);
 });
+
+test("momento ajá: primera venta, acumulado del día y mejor de la semana", async () => {
+  const { savedMoment } = await import("../src/lib/ticket-format.ts");
+  const now = new Date("2026-11-19T20:00:00.000Z");
+  const s1 = { ...base, id: "TAL-0001", createdAt: "2026-11-19T16:00:00.000Z", profit: 50, total: 100 };
+  assert.equal(savedMoment(s1, [s1], now).eyebrow, "Tu primera venta en Artisan");
+
+  const s2 = { ...base, id: "TAL-0002", createdAt: "2026-11-19T17:00:00.000Z", profit: 40, total: 200 };
+  const m2 = savedMoment(s2, [s2, s1], now);
+  assert.equal(m2.eyebrow, "Ticket 0002");
+  assert.match(m2.detail, /llevas \$300 cobrados hoy/);
+
+  const s3 = { ...base, id: "TAL-0003", createdAt: "2026-11-19T18:00:00.000Z", profit: 90, total: 150 };
+  assert.equal(savedMoment(s3, [s3, s2, s1], now).eyebrow, "Tu mejor venta de la semana");
+
+  const owed = { ...s3, payment: "Pendiente" as const, status: "Pendiente" as const };
+  assert.match(savedMoment(owed, [owed, s2, s1], now).detail, /^Te deben \$150 /);
+});

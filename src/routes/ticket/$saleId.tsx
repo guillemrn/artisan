@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   CaretLeftIcon,
   CheckIcon,
+  CheckFatIcon,
   CopyIcon,
   DotsThreeIcon,
   DownloadSimpleIcon,
@@ -12,14 +13,14 @@ import {
   WhatsappLogoIcon,
 } from "@phosphor-icons/react";
 import { toPng } from "html-to-image";
-import { BUSINESS_NAME, formatMXN, isWalkInClient } from "@/lib/artisan-data";
+import { BUSINESS_NAME, formatMXN } from "@/lib/artisan-data";
 import { useArtisan } from "@/lib/artisan-store";
 import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
 import { useAuth } from "@/core/auth/auth-context";
 import { buttonClass } from "@/components/ui/button-styles";
 import { useCountUp } from "@/lib/use-count-up";
 import { TicketCard } from "@/components/sales/TicketCard";
-import { shortFolio, ticketMessage, ticketState } from "@/lib/ticket-format";
+import { savedMoment, shortFolio, ticketMessage, type SavedMoment } from "@/lib/ticket-format";
 
 export const Route = createFileRoute("/ticket/$saleId")({
   head: () => ({ meta: [{ title: "Ticket — Artisan" }] }),
@@ -30,7 +31,7 @@ type Feedback = "shared" | "downloaded" | "copied" | null;
 
 function Ticket() {
   const { saleId } = Route.useParams();
-  const { getSale, resetDraft, isLoading, loadError, lastSaleId } = useArtisan();
+  const { getSale, resetDraft, isLoading, loadError, lastSaleId, sales } = useArtisan();
   const { user } = useAuth();
   const navigate = useNavigate();
   const sale = getSale(saleId);
@@ -42,6 +43,8 @@ function Ticket() {
   const [busy, setBusy] = useState<"share" | "download" | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  // Celular: al guardar se muestra primero la pantalla "ajá"; "Ver ticket" la cierra.
+  const [momentOpen, setMomentOpen] = useState(true);
 
   useEffect(() => {
     if (!feedback) return;
@@ -67,6 +70,7 @@ function Ticket() {
 
   const fileName = `ticket-${shortFolio(sale.id)}.png`;
   const message = ticketMessage(sale, businessName);
+  const moment = justSaved ? savedMoment(sale, sales) : null;
 
   const renderImage = async () => {
     if (!ticketRef.current) return null;
@@ -195,7 +199,6 @@ function Ticket() {
         </div>
       </header>
 
-      {justSaved && <SavedBanner profit={sale.profit} total={sale.total} state={ticketState(sale)} clientName={isWalkInClient(sale.clientId) ? undefined : sale.clientName} className="mt-4 lg:hidden" />}
 
       <div className="mt-5 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="flex justify-center bg-surface-2 px-3 py-6 sm:py-9">
@@ -209,14 +212,8 @@ function Ticket() {
         </div>
 
         <aside className="hidden lg:block">
-          {justSaved ? (
-            <SavedBanner
-              profit={sale.profit}
-              total={sale.total}
-              state={ticketState(sale)}
-              clientName={isWalkInClient(sale.clientId) ? undefined : sale.clientName}
-              large
-            />
+          {moment ? (
+            <SavedBanner profit={sale.profit} moment={moment!} />
           ) : (
             <div>
               <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-text-muted">
@@ -258,6 +255,17 @@ function Ticket() {
         </aside>
       </div>
 
+      {moment && momentOpen && (
+        <MomentScreen
+          profit={sale.profit}
+          moment={moment}
+          busy={busy === "share"}
+          onWhatsApp={sendWhatsApp}
+          onSeeTicket={() => setMomentOpen(false)}
+          onAnotherSale={anotherSale}
+        />
+      )}
+
       {/* Móvil: acciones fijas abajo */}
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 lg:hidden">
         <div className="mx-auto max-w-[560px] space-y-2">
@@ -289,40 +297,96 @@ function Ticket() {
   );
 }
 
-/** Momento "ajá": cuánto te dejó la venta, contando desde $0. */
-function SavedBanner({
-  profit,
-  total,
-  state,
-  clientName,
-  large,
-  className,
-}: {
-  profit: number;
-  total: number;
-  state: ReturnType<typeof ticketState>;
-  clientName?: string;
-  large?: boolean;
-  className?: string;
-}) {
+/** Momento "ajá" en escritorio: panel junto al ticket. */
+function SavedBanner({ profit, moment }: { profit: number; moment: SavedMoment }) {
   const shown = useCountUp(profit, 900);
-  const owes = state === "pending" || state === "consignment";
-  const detail = owes
-    ? `Te deben ${formatMXN(total)} · lo verás en Por cobrar`
-    : state === "courtesy"
-      ? "Cortesía · no se cobró"
-      : `Cobraste ${formatMXN(total)}${clientName ? ` a ${clientName}` : ""}`;
-
   return (
-    <div className={`relative ${className ?? ""}`}>
+    <div>
       <p className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-text-muted">
         <span className="h-2.5 w-2.5 bg-cta animate-in fade-in slide-in-from-top-4 duration-500" aria-hidden="true" />
-        Venta guardada
+        {moment.eyebrow}
       </p>
-      <p className={`mt-1.5 font-black leading-none tracking-[-0.02em] ${large ? "text-[34px]" : "text-[26px]"}`}>
+      <p className="mt-1.5 text-[34px] font-black leading-none tracking-[-0.02em]">
         Te dejó <span className="text-accent-text tabular-nums">{formatMXN(Math.round(shown))}</span>
       </p>
-      <p className="mt-1.5 text-[14px] text-text-muted">{detail}</p>
+      <p className="mt-1.5 text-[14px] text-text-muted">{moment.detail}</p>
+    </div>
+  );
+}
+
+/** Momento "ajá" en celular: pantalla completa oscura, el cuadro naranja "cae" y el número cuenta. */
+function MomentScreen({
+  profit,
+  moment,
+  busy,
+  onWhatsApp,
+  onSeeTicket,
+  onAnotherSale,
+}: {
+  profit: number;
+  moment: SavedMoment;
+  busy: boolean;
+  onWhatsApp: () => void;
+  onSeeTicket: () => void;
+  onAnotherSale: () => void;
+}) {
+  const shown = useCountUp(profit, 1100);
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="moment-title"
+      className="fixed inset-0 z-50 flex flex-col bg-rail px-6 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-[calc(3rem+env(safe-area-inset-top))] text-rail-foreground animate-in fade-in duration-200 lg:hidden"
+    >
+      <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-rail-muted">
+        {moment.eyebrow}
+      </p>
+      <span
+        className="mt-6 grid h-14 w-14 place-items-center bg-cta text-cta-foreground animate-in fade-in slide-in-from-top-16 duration-500 ease-out"
+        aria-hidden="true"
+      >
+        <CheckFatIcon weight="bold" className="h-7 w-7" />
+      </span>
+      <h2 id="moment-title" className="mt-6 text-[36px] font-black leading-none tracking-[-0.02em]">
+        Venta guardada.
+      </h2>
+      <p className="mt-4 text-[16px] text-rail-muted">Esta venta te dejó</p>
+      <p className="text-[64px] font-black leading-none tracking-[-0.03em] text-cta tabular-nums">
+        {formatMXN(Math.round(shown))}
+      </p>
+      <p className="mt-3 text-[14px] text-rail-muted">{moment.detail}</p>
+
+      <div className="mt-auto space-y-2.5">
+        <button
+          type="button"
+          onClick={onWhatsApp}
+          disabled={busy}
+          className={buttonClass({ variant: "cta", size: "lg", block: true })}
+        >
+          {busy ? (
+            <SpinnerGapIcon weight="bold" className="h-5 w-5 animate-spin" />
+          ) : (
+            <WhatsappLogoIcon weight="fill" className="h-5 w-5" />
+          )}
+          {busy ? "Preparando..." : "Mandar ticket por WhatsApp"}
+        </button>
+        <div className="grid grid-cols-2 gap-2.5">
+          <button
+            type="button"
+            onClick={onSeeTicket}
+            className="h-12 rounded-md border border-rail-active text-[15px] font-bold transition hover:bg-rail-active"
+          >
+            Ver ticket
+          </button>
+          <button
+            type="button"
+            onClick={onAnotherSale}
+            className="h-12 rounded-md border border-rail-active text-[15px] font-bold transition hover:bg-rail-active"
+          >
+            Otra venta
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
