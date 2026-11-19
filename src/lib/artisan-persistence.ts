@@ -180,6 +180,7 @@ export async function fetchArtisanData(expectedUserId?: string): Promise<Artisan
     distributorPrice: Number(p.distributor_price),
     publicPrice: Number(p.public_price),
     stock: p.stock,
+    trackStock: p.track_stock ?? true,
     costing: costingByProduct.get(p.id),
   }));
 

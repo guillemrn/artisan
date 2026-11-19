@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useArtisan } from "@/lib/artisan-store";
-import { formatMXN, formatMXNc, type Product } from "@/lib/artisan-data";
+import { formatMXN, formatMXNc, tracksStock, type Product } from "@/lib/artisan-data";
+import { StockToggle } from "@/components/products/StockToggle";
 import {
   ArrowLeft,
   Pencil,
@@ -41,6 +42,7 @@ function ProductDetail() {
   const [editDistPrice, setEditDistPrice] = useState("");
   const [editPubPrice, setEditPubPrice] = useState("");
   const [editStock, setEditStock] = useState("");
+  const [editTrackStock, setEditTrackStock] = useState(false);
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
   const [editedProductSuccess, setEditedProductSuccess] = useState<Product | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
@@ -190,8 +192,10 @@ function ProductDetail() {
     );
   }
 
-  let stockStatus: "ok" | "low" | "none" = "ok";
-  if (product.stock === 0) stockStatus = "none";
+  const tracked = tracksStock(product);
+  let stockStatus: "ok" | "low" | "none" | "off" = "ok";
+  if (!tracked) stockStatus = "off";
+  else if (product.stock === 0) stockStatus = "none";
   else if (product.stock <= 5) stockStatus = "low";
 
   const markupPDV =
@@ -209,6 +213,7 @@ function ProductDetail() {
     setEditDistPrice(String(product.distributorPrice));
     setEditPubPrice(String(product.publicPrice));
     setEditStock(String(product.stock));
+    setEditTrackStock(tracksStock(product));
     setEditedProductSuccess(null);
     setEditError(null);
     setIsSubmittingEdit(false);
@@ -239,12 +244,16 @@ function ProductDetail() {
 
     try {
       const updated: Product = {
+        ...product,
         id: product.id,
         name: editName.trim(),
         cost: parseNonNegativeNumber(editCost, "El costo"),
         distributorPrice: parseNonNegativeNumber(editDistPrice, "El precio distribuidor"),
         publicPrice: parseNonNegativeNumber(editPubPrice, "El precio público"),
-        stock: Math.floor(parseNonNegativeNumber(editStock, "El stock")),
+        stock: editTrackStock
+          ? Math.floor(parseNonNegativeNumber(editStock, "El stock"))
+          : product.stock,
+        trackStock: editTrackStock,
       };
 
       await updateProduct(updated);
@@ -284,18 +293,22 @@ function ProductDetail() {
               </h1>
               <span
                 className={`rounded-full text-[10px] font-bold px-2.5 py-0.5 whitespace-nowrap ${
-                  stockStatus === "ok"
-                    ? "bg-primary-light text-primary"
-                    : stockStatus === "low"
-                      ? "bg-[#FEF3C7] text-[#D97706]"
-                      : "bg-red-50 text-red-600"
+                  stockStatus === "off"
+                    ? "bg-border-soft text-text-secondary"
+                    : stockStatus === "ok"
+                      ? "bg-primary-light text-primary"
+                      : stockStatus === "low"
+                        ? "bg-[#FEF3C7] text-[#D97706]"
+                        : "bg-red-50 text-red-600"
                 }`}
               >
-                {stockStatus === "ok"
-                  ? `${product.stock} en stock`
-                  : stockStatus === "low"
-                    ? `Bajo stock (${product.stock})`
-                    : "Agotado"}
+                {stockStatus === "off"
+                  ? "Venta libre"
+                  : stockStatus === "ok"
+                    ? `${product.stock} en stock`
+                    : stockStatus === "low"
+                      ? `Bajo stock (${product.stock})`
+                      : "Agotado"}
               </span>
             </div>
             <p className="text-[12px] text-text-muted mt-0.5">ID: #{product.id}</p>
@@ -345,35 +358,39 @@ function ProductDetail() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
-          <div className="mb-1.5 flex items-center gap-1.5 text-[#C9784A]">
-            <Package className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
-              Stock Disponible
-            </span>
-          </div>
-          <p className="text-[22px] font-extrabold leading-tight text-text-primary font-display">
-            {product.stock} <span className="text-[13px] font-medium text-text-muted">uds</span>
-          </p>
-          <p className="text-[12px] text-text-muted font-medium mt-1 truncate">
-            Valor costo: {formatMXN(product.stock * product.cost)}
-          </p>
-        </div>
+        {tracked && (
+          <>
+            <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
+              <div className="mb-1.5 flex items-center gap-1.5 text-[#C9784A]">
+                <Package className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                  Stock Disponible
+                </span>
+              </div>
+              <p className="text-[22px] font-extrabold leading-tight text-text-primary font-display">
+                {product.stock} <span className="text-[13px] font-medium text-text-muted">uds</span>
+              </p>
+              <p className="text-[12px] text-text-muted font-medium mt-1 truncate">
+                Valor costo: {formatMXN(product.stock * product.cost)}
+              </p>
+            </div>
 
-        <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
-          <div className="mb-1.5 flex items-center gap-1.5 text-sky-600">
-            <DollarSign className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
-              Valor Venta Stock
-            </span>
-          </div>
-          <p className="text-[22px] font-extrabold leading-tight text-sky-600 font-display">
-            {formatMXN(product.stock * product.publicPrice)}
-          </p>
-          <p className="text-[12px] text-text-muted font-medium mt-1 truncate">
-            Valor PDV: {formatMXN(product.stock * product.distributorPrice)}
-          </p>
-        </div>
+            <div className="rounded-2xl border border-black/[0.05] bg-white p-4.5 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_8px_24px_-4px_rgba(15,23,42,0.03)]">
+              <div className="mb-1.5 flex items-center gap-1.5 text-sky-600">
+                <DollarSign className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                  Valor Venta Stock
+                </span>
+              </div>
+              <p className="text-[22px] font-extrabold leading-tight text-sky-600 font-display">
+                {formatMXN(product.stock * product.publicPrice)}
+              </p>
+              <p className="text-[12px] text-text-muted font-medium mt-1 truncate">
+                Valor PDV: {formatMXN(product.stock * product.distributorPrice)}
+              </p>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Pricing & Cost breakdown Card */}
@@ -701,6 +718,7 @@ function ProductDetail() {
                     />
                   </div>
 
+                  <StockToggle checked={editTrackStock} onChange={setEditTrackStock} />
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[12px] font-bold text-text-muted uppercase">
@@ -717,19 +735,21 @@ function ProductDetail() {
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-[12px] font-bold text-text-muted uppercase">
-                        Stock actual
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        required
-                        value={editStock}
-                        onChange={(e) => setEditStock(e.target.value)}
-                        className="mt-1.5 h-11 w-full rounded-xl border border-border px-3.5 text-[14px] font-medium outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
-                      />
-                    </div>
+                    {editTrackStock && (
+                      <div>
+                        <label className="block text-[12px] font-bold text-text-muted uppercase">
+                          Stock actual
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          required
+                          value={editStock}
+                          onChange={(e) => setEditStock(e.target.value)}
+                          className="mt-1.5 h-11 w-full rounded-xl border border-border px-3.5 text-[14px] font-medium outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">

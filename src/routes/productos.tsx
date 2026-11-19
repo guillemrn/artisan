@@ -11,7 +11,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useArtisan } from "@/lib/artisan-store";
-import { formatMXN, formatMXNc, type Product } from "@/lib/artisan-data";
+import { formatMXN, formatMXNc, tracksStock, type Product } from "@/lib/artisan-data";
+import { StockToggle } from "@/components/products/StockToggle";
 import { ModalSuccessState } from "@/components/ui/ModalSuccessState";
 import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
 import { ProductCreationFlow } from "@/components/products/ProductCreationFlow";
@@ -33,6 +34,7 @@ function Productos() {
   const [editDistPrice, setEditDistPrice] = useState("");
   const [editPubPrice, setEditPubPrice] = useState("");
   const [editStock, setEditStock] = useState("");
+  const [editTrackStock, setEditTrackStock] = useState(false);
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
   const [editedProductSuccess, setEditedProductSuccess] = useState<Product | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
@@ -41,11 +43,11 @@ function Productos() {
 
   // Stats calculation
   const totalStockVal = useMemo(() => {
-    return products.reduce((acc, p) => acc + p.stock * p.cost, 0);
+    return products.filter(tracksStock).reduce((acc, p) => acc + p.stock * p.cost, 0);
   }, [products]);
 
   const potentialRevenue = useMemo(() => {
-    return products.reduce((acc, p) => acc + p.stock * p.publicPrice, 0);
+    return products.filter(tracksStock).reduce((acc, p) => acc + p.stock * p.publicPrice, 0);
   }, [products]);
 
   const handleCloseAddModal = () => {
@@ -67,6 +69,7 @@ function Productos() {
     setEditDistPrice(String(p.distributorPrice));
     setEditPubPrice(String(p.publicPrice));
     setEditStock(String(p.stock));
+    setEditTrackStock(tracksStock(p));
     setEditedProductSuccess(null);
     setIsSubmittingEdit(false);
     setEditError(null);
@@ -93,7 +96,10 @@ function Productos() {
         cost: parseNonNegativeNumber(editCost, "El costo"),
         distributorPrice: parseNonNegativeNumber(editDistPrice, "El precio distribuidor"),
         publicPrice: parseNonNegativeNumber(editPubPrice, "El precio público"),
-        stock: Math.floor(parseNonNegativeNumber(editStock, "El inventario")),
+        stock: editTrackStock
+          ? Math.floor(parseNonNegativeNumber(editStock, "El inventario"))
+          : editingProduct.stock,
+        trackStock: editTrackStock,
         costing: editingProduct.costing,
       };
 
@@ -178,8 +184,10 @@ function Productos() {
 
       <ul className="mt-4 grid gap-3.5 pb-24 md:grid-cols-2 xl:grid-cols-3">
         {filtered.map((p) => {
-          let stockStatus: "ok" | "low" | "none" = "ok";
-          if (p.stock === 0) stockStatus = "none";
+          const tracked = tracksStock(p);
+          let stockStatus: "ok" | "low" | "none" | "off" = "ok";
+          if (!tracked) stockStatus = "off";
+          else if (p.stock === 0) stockStatus = "none";
           else if (p.stock <= 5) stockStatus = "low";
 
           return (
@@ -209,24 +217,30 @@ function Productos() {
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                  <p className="text-[12px] text-text-muted mt-0.5">Stock: {p.stock} unidades</p>
+                  <p className="text-[12px] text-text-muted mt-0.5">
+                    {tracked ? `Stock: ${p.stock} unidades` : "Sin inventario"}
+                  </p>
                 </div>
                 <Link
                   to="/productos/$productId"
                   params={{ productId: p.id }}
                   className={`rounded-full text-[10px] font-bold px-2.5 py-0.5 ${
-                    stockStatus === "ok"
-                      ? "bg-primary-light text-primary"
-                      : stockStatus === "low"
-                        ? "bg-[#FEF3C7] text-[#D97706]"
-                        : "bg-red-50 text-red-600"
+                    stockStatus === "off"
+                      ? "bg-border-soft text-text-secondary"
+                      : stockStatus === "ok"
+                        ? "bg-primary-light text-primary"
+                        : stockStatus === "low"
+                          ? "bg-[#FEF3C7] text-[#D97706]"
+                          : "bg-red-50 text-red-600"
                   }`}
                 >
-                  {stockStatus === "ok"
-                    ? "En Stock"
-                    : stockStatus === "low"
-                      ? "Bajo Stock"
-                      : "Agotado"}
+                  {stockStatus === "off"
+                    ? "Venta libre"
+                    : stockStatus === "ok"
+                      ? "En Stock"
+                      : stockStatus === "low"
+                        ? "Bajo Stock"
+                        : "Agotado"}
                 </Link>
               </div>
 
@@ -255,9 +269,7 @@ function Productos() {
         })}
       </ul>
 
-      {showAddForm && (
-        <ProductCreationFlow onClose={handleCloseAddModal} onCreate={addProduct} />
-      )}
+      {showAddForm && <ProductCreationFlow onClose={handleCloseAddModal} onCreate={addProduct} />}
 
       {/* Slide-up Edit Product Modal */}
       {editingProduct && (
@@ -309,6 +321,11 @@ function Productos() {
                     />
                   </div>
 
+                  <StockToggle
+                    checked={editTrackStock}
+                    onChange={setEditTrackStock}
+                    disabled={isSubmittingEdit}
+                  />
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-[12px] font-semibold text-text-secondary block mb-1">
@@ -331,22 +348,24 @@ function Productos() {
                         </p>
                       )}
                     </div>
-                    <div>
-                      <label className="text-[12px] font-semibold text-text-secondary block mb-1">
-                        Inventario / Stock
-                      </label>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        min="0"
-                        required
-                        disabled={isSubmittingEdit}
-                        value={editStock}
-                        onChange={(e) => setEditStock(e.target.value)}
-                        className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60 ring-2 ring-primary/20"
-                      />
-                    </div>
+                    {editTrackStock && (
+                      <div>
+                        <label className="text-[12px] font-semibold text-text-secondary block mb-1">
+                          Inventario / Stock
+                        </label>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          min="0"
+                          required
+                          disabled={isSubmittingEdit}
+                          value={editStock}
+                          onChange={(e) => setEditStock(e.target.value)}
+                          className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60 ring-2 ring-primary/20"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">

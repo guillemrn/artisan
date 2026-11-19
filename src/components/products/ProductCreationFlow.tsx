@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { StockToggle } from "@/components/products/StockToggle";
 import {
   AlertCircle,
   ArrowLeft,
@@ -62,6 +63,7 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [stock, setStock] = useState("");
+  const [trackStock, setTrackStock] = useState(false);
   const [costMethod, setCostMethod] = useState<CostMethod | null>(null);
   const [knownCost, setKnownCost] = useState("");
   const [yieldQuantity, setYieldQuantity] = useState("");
@@ -121,7 +123,7 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
     setError(null);
     if (step === 1) {
       if (!name.trim()) throw new Error("Escribe el nombre del producto.");
-      if (!Number.isFinite(Number(stock)) || Number(stock) < 0) {
+      if (trackStock && (!Number.isFinite(Number(stock)) || Number(stock) < 0)) {
         throw new Error("El inventario inicial debe ser cero o mayor.");
       }
     }
@@ -170,11 +172,12 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
-    const costing = costMethod === "calculate" ? costingResult ?? undefined : undefined;
+    const costing = costMethod === "calculate" ? (costingResult ?? undefined) : undefined;
     const product: Product = {
       id: slug || `producto-${Date.now()}`,
       name: trimmedName,
-      stock: Math.floor(Number(stock)),
+      stock: trackStock ? Math.floor(Number(stock) || 0) : 0,
+      trackStock,
       cost: productCost,
       distributorPrice: dist,
       publicPrice: publicValue,
@@ -186,7 +189,9 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
       await onCreate(product, costing);
       setCreatedProduct(product);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "No se pudo guardar el producto.");
+      setError(
+        submitError instanceof Error ? submitError.message : "No se pudo guardar el producto.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -207,6 +212,8 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
                 </strong>
                 .
               </span>
+            ) : createdProduct.trackStock === false ? (
+              "Ya lo puedes vender. No lleva inventario: vende sin límite."
             ) : (
               "El producto quedó listo para vender y controlar en inventario."
             )
@@ -224,7 +231,11 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
   }
 
   return (
-    <ModalFrame onClose={onClose} canClose={!isSubmitting} wide={step === 2 && costMethod === "calculate"}>
+    <ModalFrame
+      onClose={onClose}
+      canClose={!isSubmitting}
+      wide={step === 2 && costMethod === "calculate"}
+    >
       <div className="border-b border-border px-5 pb-4 pt-5 sm:px-6">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -262,7 +273,10 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
 
       <div className="max-h-[calc(100dvh-13rem)] overflow-y-auto px-5 py-5 sm:max-h-[68vh] sm:px-6">
         {error && (
-          <div className="mb-4 flex items-start gap-2 rounded-xl bg-red-50 px-3.5 py-3 text-[13px] leading-relaxed text-danger" role="alert">
+          <div
+            className="mb-4 flex items-start gap-2 rounded-xl bg-red-50 px-3.5 py-3 text-[13px] leading-relaxed text-danger"
+            role="alert"
+          >
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <p>{error}</p>
           </div>
@@ -279,18 +293,24 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
                 className="form-input"
               />
             </Field>
-            <Field label="Inventario inicial" hint="Cuántas presentaciones tienes listas para vender.">
-              <input
-                type="number"
-                inputMode="numeric"
-                min="0"
-                step="1"
-                value={stock}
-                onChange={(event) => setStock(event.target.value)}
-                placeholder="0"
-                className="form-input"
-              />
-            </Field>
+            <StockToggle checked={trackStock} onChange={setTrackStock} />
+            {trackStock && (
+              <Field
+                label="Inventario inicial"
+                hint="Cuántas presentaciones tienes listas para vender."
+              >
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="1"
+                  value={stock}
+                  onChange={(event) => setStock(event.target.value)}
+                  placeholder="0"
+                  className="form-input"
+                />
+              </Field>
+            )}
           </div>
         )}
 
@@ -301,7 +321,8 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
                 ¿Ya conoces el costo de una presentación?
               </p>
               <p className="mt-1 max-w-[62ch] text-[13px] leading-relaxed text-text-muted">
-                Una presentación es exactamente lo que entregas al cliente, por ejemplo un paquete de 4 pitas.
+                Una presentación es exactamente lo que entregas al cliente, por ejemplo un paquete
+                de 4 pitas.
               </p>
             </div>
 
@@ -368,9 +389,12 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
                     <p className="text-[12px] text-text-muted sm:col-span-2">
                       Este lote produce aproximadamente{" "}
                       <strong className="font-bold text-text-primary">
-                        {(numberValue(yieldQuantity) / numberValue(unitsPerProduct)).toLocaleString("es-MX", {
-                          maximumFractionDigits: 2,
-                        })}
+                        {(numberValue(yieldQuantity) / numberValue(unitsPerProduct)).toLocaleString(
+                          "es-MX",
+                          {
+                            maximumFractionDigits: 2,
+                          },
+                        )}
                       </strong>{" "}
                       presentaciones.
                     </p>
@@ -380,23 +404,27 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
                 <div>
                   <div className="flex flex-wrap items-end justify-between gap-3">
                     <div>
-                      <h3 className="text-[15px] font-bold text-text-primary">Insumos y gastos del lote</h3>
+                      <h3 className="text-[15px] font-bold text-text-primary">
+                        Insumos y gastos del lote
+                      </h3>
                       <p className="mt-1 text-[12px] text-text-muted">
                         Registra la compra completa y cuánto utilizas en esta producción.
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {(["ingredient", "packaging", "production"] as CostingCategory[]).map((category) => (
-                        <button
-                          key={category}
-                          type="button"
-                          onClick={() => addItem(category)}
-                          className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-[12px] font-bold text-text-secondary transition hover:border-primary/30 hover:text-primary"
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                          {COSTING_CATEGORY_LABELS[category]}
-                        </button>
-                      ))}
+                      {(["ingredient", "packaging", "production"] as CostingCategory[]).map(
+                        (category) => (
+                          <button
+                            key={category}
+                            type="button"
+                            onClick={() => addItem(category)}
+                            className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-[12px] font-bold text-text-secondary transition hover:border-primary/30 hover:text-primary"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            {COSTING_CATEGORY_LABELS[category]}
+                          </button>
+                        ),
+                      )}
                     </div>
                   </div>
 
@@ -406,7 +434,9 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
                         key={item.id}
                         item={item}
                         onChange={(patch) => updateItem(item.id, patch)}
-                        onRemove={() => setItems((current) => current.filter((entry) => entry.id !== item.id))}
+                        onRemove={() =>
+                          setItems((current) => current.filter((entry) => entry.id !== item.id))
+                        }
                       />
                     ))}
                   </div>
@@ -546,7 +576,9 @@ function Field({
   return (
     <label className="block">
       <span className="block text-[12px] font-bold text-text-secondary">{label}</span>
-      {hint && <span className="mt-0.5 block text-[11px] leading-relaxed text-text-muted">{hint}</span>}
+      {hint && (
+        <span className="mt-0.5 block text-[11px] leading-relaxed text-text-muted">{hint}</span>
+      )}
       <span className="mt-1.5 block">{children}</span>
     </label>
   );
@@ -575,12 +607,16 @@ function MethodButton({
           : "border-border bg-white text-text-secondary hover:border-primary/30"
       }`}
     >
-      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${selected ? "bg-white" : "bg-muted"}`}>
+      <span
+        className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${selected ? "bg-white" : "bg-muted"}`}
+      >
         <Icon className="h-4 w-4" />
       </span>
       <span>
         <span className="block text-[13px] font-bold text-text-primary">{title}</span>
-        <span className="mt-1 block text-[12px] leading-relaxed text-text-muted">{description}</span>
+        <span className="mt-1 block text-[12px] leading-relaxed text-text-muted">
+          {description}
+        </span>
       </span>
     </button>
   );
@@ -597,7 +633,9 @@ function MoneyInput({
 }) {
   return (
     <span className="relative block">
-      <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] font-bold text-text-muted">$</span>
+      <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] font-bold text-text-muted">
+        $
+      </span>
       <input
         type="number"
         inputMode="decimal"
@@ -649,7 +687,9 @@ function CostingItemRow({
             className="form-input h-10 cursor-pointer"
           >
             {Object.entries(COSTING_CATEGORY_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
+              <option key={value} value={value}>
+                {label}
+              </option>
             ))}
           </select>
         </Field>
@@ -683,7 +723,8 @@ function CostingItemRow({
             />
           </Field>
           <p className="pb-2 text-[12px] leading-relaxed text-text-muted">
-            Úsalo para gas, electricidad, mano de obra u otros gastos que aplican completos a esta producción.
+            Úsalo para gas, electricidad, mano de obra u otros gastos que aplican completos a esta
+            producción.
           </p>
         </div>
       ) : (
@@ -702,7 +743,9 @@ function CostingItemRow({
                 min="0"
                 step="0.01"
                 value={item.purchaseQuantity || ""}
-                onChange={(event) => onChange({ purchaseQuantity: numberValue(event.target.value) })}
+                onChange={(event) =>
+                  onChange({ purchaseQuantity: numberValue(event.target.value) })
+                }
                 placeholder="2"
                 className="form-input tabular-nums"
               />
@@ -713,7 +756,11 @@ function CostingItemRow({
                 onChange={(event) => onChange({ purchaseUnit: event.target.value as CostingUnit })}
                 className="form-input cursor-pointer px-2"
               >
-                {units.map((unit) => <option key={unit} value={unit}>{COSTING_UNIT_LABELS[unit]}</option>)}
+                {units.map((unit) => (
+                  <option key={unit} value={unit}>
+                    {COSTING_UNIT_LABELS[unit]}
+                  </option>
+                ))}
               </select>
             </Field>
           </div>
@@ -735,7 +782,11 @@ function CostingItemRow({
                 onChange={(event) => onChange({ usageUnit: event.target.value as CostingUnit })}
                 className="form-input cursor-pointer px-2"
               >
-                {usageUnits.map((unit) => <option key={unit} value={unit}>{COSTING_UNIT_LABELS[unit]}</option>)}
+                {usageUnits.map((unit) => (
+                  <option key={unit} value={unit}>
+                    {COSTING_UNIT_LABELS[unit]}
+                  </option>
+                ))}
               </select>
             </Field>
           </div>
@@ -765,10 +816,20 @@ function CostSummary({ costing }: { costing: ProductCosting | null }) {
   );
 }
 
-function SummaryCell({ label, value, emphasized = false }: { label: string; value: string; emphasized?: boolean }) {
+function SummaryCell({
+  label,
+  value,
+  emphasized = false,
+}: {
+  label: string;
+  value: string;
+  emphasized?: boolean;
+}) {
   return (
     <div className={emphasized ? "bg-[#EDF6F1] p-4" : "bg-white p-4"}>
-      <p className={`text-[11px] font-semibold ${emphasized ? "text-primary" : "text-text-muted"}`}>{label}</p>
+      <p className={`text-[11px] font-semibold ${emphasized ? "text-primary" : "text-text-muted"}`}>
+        {label}
+      </p>
       <p className="mt-1 text-[18px] font-extrabold tabular-nums text-text-primary">{value}</p>
     </div>
   );

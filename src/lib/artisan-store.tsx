@@ -9,6 +9,7 @@ import {
   type SaleItem,
   type Client,
   type Product,
+  tracksStock,
 } from "./artisan-data";
 import {
   artisanQueryKeys,
@@ -68,7 +69,7 @@ const EMPTY_PRODUCTS: Product[] = [];
 function applyStockDeduction(products: Product[], sale: Sale): Product[] {
   return products.map((p) => {
     const item = sale.items.find((i) => i.productId === p.id);
-    if (!item) return p;
+    if (!item || !tracksStock(p)) return p;
     return { ...p, stock: Math.max(0, p.stock - item.qty - (item.returnQty ?? 0)) };
   });
 }
@@ -324,6 +325,22 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
             }
           : product;
 
+        // La función de alta no conoce track_stock: lo fijamos después si el producto lleva inventario.
+        const trackStock = tracksStock(product);
+        if (trackStock) {
+          const { error: trackError } = await supabase
+            .from("products")
+            .update({ track_stock: true })
+            .eq("id", savedProduct.id);
+          if (trackError) {
+            console.error("Error enabling stock tracking:", trackError);
+            throw new Error(
+              `El producto se creó, pero no se pudo activar el inventario: ${trackError.message}`,
+            );
+          }
+        }
+        savedProduct.trackStock = trackStock;
+
         persist({ sales, clients, products: [...products, savedProduct] });
       },
       deleteProduct: async (id) => {
@@ -366,6 +383,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
             distributor_price: p.distributorPrice,
             public_price: p.publicPrice,
             stock: p.stock,
+            track_stock: tracksStock(p),
           })
           .eq("id", p.id)
           .eq("user_id", session.user.id);

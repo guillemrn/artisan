@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Package, Receipt, Search, Store, User } from "lucide-react";
 import { useArtisan } from "@/lib/artisan-store";
-import { formatMXN } from "@/lib/artisan-data";
+import { formatMXN, tracksStock } from "@/lib/artisan-data";
 import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
 
 type SearchParams = { q?: string };
@@ -178,7 +178,9 @@ function Buscar() {
                   <Package className="h-5 w-5 text-primary shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="truncate text-[14px] font-semibold">{p.name}</p>
-                    <p className="text-[12px] text-text-muted">Stock: {p.stock}</p>
+                    <p className="text-[12px] text-text-muted">
+                      {tracksStock(p) ? `Stock: ${p.stock}` : "Venta libre"}
+                    </p>
                   </div>
                   <span className="text-[14px] font-bold shrink-0">{formatMXN(p.publicPrice)}</span>
                 </Link>

@@ -7,8 +7,14 @@ export type Product = {
   distributorPrice: number;
   publicPrice: number;
   stock: number;
+  /** Si es false, se vende sin límite y no se descuenta stock. Sin definir = true (datos previos). */
+  trackStock?: boolean;
   costing?: ProductCosting;
 };
+
+export function tracksStock(product: Pick<Product, "trackStock">): boolean {
+  return product.trackStock !== false;
+}
 
 export type Client = {
   id: string;

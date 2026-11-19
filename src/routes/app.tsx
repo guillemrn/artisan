@@ -25,6 +25,7 @@ import {
   USER_NAME,
   formatMXN,
   formatMXNc,
+  tracksStock,
   getSaleDashboardDate,
   getSalePaymentDate,
   type Sale,
@@ -120,6 +121,9 @@ function Home() {
   const { sales, products, clients, updateSaleStatus, updateProduct, isLoading, loadError } =
     useArtisan();
 
+  // Solo los productos que llevan inventario aparecen en "Agregar inventario".
+  const stockProducts = useMemo(() => products.filter(tracksStock), [products]);
+
   // State for filters
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("Hoy");
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
@@ -167,7 +171,7 @@ function Home() {
     try {
       let updatedCount = 0;
       let itemsUpdatedCount = 0;
-      for (const p of products) {
+      for (const p of stockProducts) {
         const addedQty = parseInt(addStockValues[p.id] || "0", 10);
         if (addedQty > 0) {
           await updateProduct({ ...p, stock: p.stock + addedQty });
@@ -660,7 +664,9 @@ function Home() {
               if (range) setDateRange(range);
             }}
           />
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+          <div
+            className={`grid gap-2 sm:flex sm:items-center ${stockProducts.length > 0 ? "grid-cols-2" : "grid-cols-1"}`}
+          >
             <FilterDropdown
               open={filtersOpen}
               onOpenChange={setFiltersOpen}
@@ -674,14 +680,16 @@ function Home() {
               onProductChange={setProductFilter}
               onClientChange={setClientFilter}
             />
-            <button
-              type="button"
-              onClick={() => setIsAddStockModalOpen(true)}
-              className="inline-flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 text-[14px] font-semibold text-text-primary transition hover:border-text-primary hover:bg-surface-2 sm:w-auto sm:px-4"
-            >
-              <PackageIcon className="h-4 w-4 shrink-0" />
-              <span className="truncate">Agregar inventario</span>
-            </button>
+            {stockProducts.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsAddStockModalOpen(true)}
+                className="inline-flex h-11 w-full min-w-0 items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 text-[14px] font-semibold text-text-primary transition hover:border-text-primary hover:bg-surface-2 sm:w-auto sm:px-4"
+              >
+                <PackageIcon className="h-4 w-4 shrink-0" />
+                <span className="truncate">Agregar inventario</span>
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -1299,7 +1307,7 @@ function Home() {
               </DialogHeader>
 
               <div className="flex-1 overflow-y-auto py-4 space-y-3 pr-1">
-                {products.map((p) => {
+                {stockProducts.map((p) => {
                   const addedVal = addStockValues[p.id] ?? "";
                   return (
                     <div

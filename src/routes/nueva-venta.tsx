@@ -20,7 +20,13 @@ import {
   UserPlus,
 } from "lucide-react";
 import { AddClientSheet } from "@/components/artisan/AddClientSheet";
-import { formatMXN, formatMXNc, type Client, type PaymentMethod } from "@/lib/artisan-data";
+import {
+  formatMXN,
+  formatMXNc,
+  tracksStock,
+  type Client,
+  type PaymentMethod,
+} from "@/lib/artisan-data";
 import { buildSaleItems, useArtisan } from "@/lib/artisan-store";
 import { useAuth } from "@/core/auth/auth-context";
 import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
@@ -508,7 +514,8 @@ function StepProducts({
               const returnQty = returns[product.id] ?? 0;
               const selected = qty + returnQty > 0;
               const stockUsed = qty + returnQty;
-              const atStockLimit = stockUsed >= product.stock;
+              const limited = tracksStock(product);
+              const atStockLimit = limited && stockUsed >= product.stock;
               const price =
                 priceMode === "distributor" ? product.distributorPrice : product.publicPrice;
 
@@ -536,13 +543,15 @@ function StepProducts({
                           {formatMXN(price)}
                         </p>
                       </div>
-                      <p
-                        className={`mt-0.5 text-xs ${product.stock === 0 ? "font-bold text-danger" : "text-text-muted"}`}
-                      >
-                        {product.stock === 0
-                          ? "Agotado"
-                          : `${product.stock - stockUsed} de ${product.stock} disponibles`}
-                      </p>
+                      {limited ? (
+                        <p
+                          className={`mt-0.5 text-xs ${product.stock === 0 ? "font-bold text-danger" : "text-text-muted"}`}
+                        >
+                          {product.stock === 0
+                            ? "Agotado"
+                            : `${product.stock - stockUsed} de ${product.stock} disponibles`}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
 
