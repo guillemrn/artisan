@@ -60,16 +60,16 @@ const FEATURES = [
     img: "/landing/por-cobrar.webp",
     alt: "Lista de ventas por cobrar en Artisan con el total pendiente",
     w: 780,
-    h: 704,
+    h: 924,
   },
   {
     icon: ShareNetworkIcon,
     title: "Ticket por WhatsApp.",
     copy: "Claro, con folio y forma de pago. Tu cliente lo recibe al instante.",
-    img: "/landing/ticket.webp",
-    alt: "Ticket de venta de Artisan listo para compartir",
-    w: 648,
-    h: 1170,
+    img: "/landing/ticket-whatsapp.webp",
+    alt: "Ticket de venta en Artisan con el botón para mandarlo por WhatsApp",
+    w: 780,
+    h: 1688,
   },
 ];
 
@@ -204,8 +204,8 @@ function LandingPage() {
                 src="/landing/ticket.webp"
                 alt=""
                 aria-hidden
-                width={648}
-                height={1170}
+                width={636}
+                height={1104}
                 className="landing-ticket absolute -right-1 bottom-10 w-[40%] max-w-[180px] border border-text-primary bg-surface sm:-right-6"
               />
             </div>

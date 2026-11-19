@@ -58,8 +58,8 @@ export function AuthShell({
           src="/landing/ticket.webp"
           alt=""
           aria-hidden
-          width={648}
-          height={1170}
+          width={636}
+          height={1104}
           className="landing-ticket absolute bottom-10 right-[250px] w-[150px] bg-surface xl:right-[280px] xl:w-[170px]"
         />
       </aside>
