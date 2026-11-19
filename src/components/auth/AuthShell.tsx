@@ -1,65 +1,117 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeftIcon } from "@phosphor-icons/react";
 
 import { Logo } from "@/components/ui/logo";
 
-export function AuthShell({ children }: { children: ReactNode }) {
+const BENEFITS = [
+  "Registra ventas desde el celular",
+  "Cobra lo pendiente sin perder notas",
+  "Manda el ticket por WhatsApp",
+];
+
+/**
+ * Login "con producto" (propuesta B): sigue vendiendo mientras te registras.
+ * Escritorio: panel negro con el producto real a la izquierda y el formulario a la derecha.
+ * Móvil: banda negra arriba con el titular (y el celular asomándose al crear cuenta).
+ */
+export function AuthShell({
+  children,
+  headline,
+  showProductPeek = false,
+}: {
+  children: ReactNode;
+  headline: ReactNode;
+  showProductPeek?: boolean;
+}) {
   return (
-    <main className="min-h-dvh bg-[#f1eee6] text-text-primary lg:grid lg:grid-cols-[minmax(390px,0.82fr)_minmax(560px,1.18fr)]">
-      <aside className="relative hidden min-h-dvh overflow-hidden bg-[#173d2d] px-12 py-10 text-white lg:flex lg:flex-col xl:px-16 xl:py-12">
+    <main className="min-h-dvh bg-surface text-text-primary lg:grid lg:grid-cols-[minmax(420px,1.1fr)_minmax(480px,1fr)]">
+      {/* Panel de producto (escritorio) */}
+      <aside className="relative hidden min-h-dvh overflow-hidden bg-rail px-12 py-10 text-rail-foreground lg:flex lg:flex-col xl:px-16">
         <Link to="/" aria-label="Ir al inicio de Artisan" className="relative z-10 w-fit">
-          <Logo variant="full" className="h-10 w-auto brightness-0 invert" />
+          <Logo className="h-8 w-auto" />
         </Link>
-
-        <div className="relative z-10 my-auto max-w-[500px] py-16">
-          <h1 className="font-display text-[52px] font-bold leading-[1.04] text-white xl:text-[60px]">
-            Ventas, pedidos y cobros sin perder el hilo.
-          </h1>
-          <p className="mt-7 max-w-[440px] text-[17px] leading-7 text-[#d7e4dc]">
-            Vuelve a un espacio claro para llevar el trabajo diario de tu negocio.
+        <div className="relative z-10 mt-16 max-w-[460px]">
+          <p className="landing-in font-display text-[56px] font-black leading-[0.92] tracking-[-0.035em] xl:text-[64px]">
+            Tus ventas,
+            <br />
+            <span className="text-cta">sin libreta.</span>
           </p>
+          <ul className="landing-in landing-delay-1 mt-8 space-y-3 text-[16px] text-rail-muted">
+            {BENEFITS.map((b) => (
+              <li key={b} className="flex items-center gap-3">
+                <span className="h-2 w-2 shrink-0 bg-cta" aria-hidden />
+                {b}
+              </li>
+            ))}
+          </ul>
         </div>
-
-        <div className="relative z-10 flex items-center justify-between border-t border-white/15 pt-6 text-[13px] text-[#c6d8cd]">
-          <span>Artisan</span>
-          <span>Tu operación, en orden.</span>
-        </div>
-
         <img
-          src="/isotipo.png"
+          src="/landing/dash-mobile.webp"
           alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute -bottom-20 -right-20 h-[360px] w-[360px] object-contain opacity-[0.07] brightness-0 invert"
+          aria-hidden
+          width={780}
+          height={1688}
+          className="landing-phone absolute -bottom-32 right-12 w-[250px] rounded-[28px] border-[8px] border-rail-active xl:w-[280px]"
+        />
+        <img
+          src="/landing/ticket.webp"
+          alt=""
+          aria-hidden
+          width={648}
+          height={1170}
+          className="landing-ticket absolute bottom-10 right-[250px] w-[150px] bg-surface xl:right-[280px] xl:w-[170px]"
         />
       </aside>
 
-      <section className="flex min-h-dvh min-w-0 flex-col bg-white">
-        <header className="flex min-h-20 items-center justify-between border-b border-border px-5 sm:px-8 lg:justify-end lg:px-12">
-          <Link to="/" aria-label="Ir al inicio de Artisan" className="lg:hidden">
-            <Logo variant="full" className="h-8 w-auto" />
+      <section className="flex min-h-dvh min-w-0 flex-col">
+        {/* Banda negra (móvil) */}
+        <div className="relative overflow-hidden bg-rail px-5 pb-10 pt-5 text-rail-foreground lg:hidden">
+          <Link to="/" aria-label="Ir al inicio de Artisan" className="relative z-10 block w-fit">
+            <Logo className="h-7 w-auto" />
           </Link>
+          <div
+            className={`relative z-10 mt-5 font-display text-[32px] font-black leading-[0.95] tracking-[-0.03em] ${
+              showProductPeek ? "max-w-[215px]" : ""
+            }`}
+          >
+            {headline}
+          </div>
+          {showProductPeek && (
+            <img
+              src="/landing/dash-mobile.webp"
+              alt=""
+              aria-hidden
+              width={780}
+              height={1688}
+              className="landing-phone absolute -right-10 top-14 w-[180px] -rotate-6 rounded-[18px] border-[6px] border-rail-active"
+            />
+          )}
+        </div>
+
+        {/* Volver (escritorio) */}
+        <header className="hidden min-h-16 items-center justify-end px-12 lg:flex">
           <Link
             to="/"
-            className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-[13px] font-semibold text-text-secondary transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            className="inline-flex min-h-11 items-center gap-2 rounded-md px-2 text-[14px] font-semibold text-text-secondary transition-colors hover:text-text-primary"
           >
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
             Volver al sitio
           </Link>
         </header>
 
-        <div className="auth-shell-content flex flex-1 items-start px-5 py-10 sm:px-10 sm:py-14 lg:items-center lg:px-14">
-          <div className="mx-auto w-full max-w-[440px]">{children}</div>
+        <div className="auth-shell-content relative -mt-4 flex flex-1 items-start rounded-t-2xl bg-surface px-5 pb-10 pt-5 sm:px-10 lg:mt-0 lg:items-center lg:rounded-none lg:px-14 lg:pt-0">
+          <div className="mx-auto w-full max-w-[400px]">{children}</div>
         </div>
 
-        <footer className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 border-t border-border px-5 py-5 text-[12px] font-semibold text-text-muted sm:px-8 lg:justify-end lg:px-12">
-          <Link to="/privacidad" className="transition-colors hover:text-primary">
+        <footer className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 border-t border-border-soft px-5 py-5 text-[12px] font-semibold text-text-muted sm:px-8 lg:justify-end lg:px-12">
+          <Link to="/privacidad" className="transition-colors hover:text-text-primary">
             Privacidad
           </Link>
-          <Link to="/terminos" className="transition-colors hover:text-primary">
+          <Link to="/terminos" className="transition-colors hover:text-text-primary">
             Términos
           </Link>
-          <Link to="/cookies" className="transition-colors hover:text-primary">
+          <Link to="/cookies" className="transition-colors hover:text-text-primary">
             Cookies
           </Link>
           <span className="font-normal">© {new Date().getFullYear()} Artisan</span>

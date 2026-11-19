@@ -45,8 +45,8 @@ const TRADES = [
 const FEATURES = [
   {
     icon: ChartBarIcon,
-    title: "Sabe cuánto te queda.",
-    copy: "Cobrado, costo y ganancia del día, sin hacer cuentas.",
+    title: "Cuánto te queda, sin hacer cuentas.",
+    copy: "Lo cobrado, lo que te costó y tu ganancia del día, en una sola vista.",
     img: "/landing/dash-desktop.webp",
     alt: "Inicio de Artisan: ganancia bruta del día, cuánto te queda de lo cobrado y lo que falta por cobrar",
     w: 2880,

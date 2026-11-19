@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { EyeIcon, EyeSlashIcon } from "@phosphor-icons/react";
 
 type PasswordInputProps = {
   id: string;
@@ -50,15 +50,15 @@ export function PasswordInput({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder="••••••••••••"
-          className="h-12 w-full rounded-xl border border-[#dfe4e0] bg-white px-4 pr-12 text-[16px] text-text-primary outline-none transition-[border-color,box-shadow] placeholder:text-[#8b958f] focus:border-primary focus:ring-4 focus:ring-primary/10"
+          className="h-12 w-full rounded-md border border-border bg-surface px-3.5 pr-12 text-[16px] text-text-primary outline-none transition-[border-color,box-shadow] placeholder:text-text-muted focus:border-text-primary focus:ring-3 focus:ring-cta/25 aria-[invalid=true]:border-danger"
         />
         <button
           type="button"
           onClick={onToggle}
           aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
-          className="absolute right-0 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-lg text-text-muted transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="absolute right-0 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-md text-text-muted transition-colors hover:text-text-primary"
         >
-          {visible ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+          {visible ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
         </button>
       </div>
     </div>

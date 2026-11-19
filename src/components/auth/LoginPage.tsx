@@ -1,15 +1,13 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
-  AlertCircle,
-  ChevronLeft,
-  Loader2,
-  MailCheck,
-  Phone,
-  Store,
-  Tag,
-  User as UserIcon,
-} from "lucide-react";
+  ArrowRightIcon,
+  CaretLeftIcon,
+  CircleNotchIcon,
+  EnvelopeSimpleIcon,
+  LockSimpleIcon,
+  WarningCircleIcon,
+} from "@phosphor-icons/react";
 
 import { AuthShell } from "@/components/auth/AuthShell";
 import { PasswordInput } from "@/components/auth/PasswordInput";
@@ -17,6 +15,7 @@ import { PasswordRequirements } from "@/components/auth/PasswordRequirements";
 import { useAuth } from "@/core/auth/auth-context";
 import { isStrongPassword, PASSWORD_MIN_LENGTH } from "@/lib/password-security";
 import { cn } from "@/lib/utils";
+import { buttonClass } from "@/components/ui/button-styles";
 
 type AuthMode = "login" | "signup" | "reset";
 
@@ -28,7 +27,6 @@ export function LoginPage() {
       ? "signup"
       : "login",
   );
-  const [signUpStep, setSignUpStep] = useState(1);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
@@ -45,34 +43,30 @@ export function LoginPage() {
 
   const switchMode = (nextMode: AuthMode) => {
     setMode(nextMode);
-    setSignUpStep(1);
     setAwaitingConfirmation(false);
     setResetSent(false);
     setErrorMsg(null);
     setShowPassword(false);
   };
 
-  const handleNextStep = (event: React.FormEvent) => {
-    event.preventDefault();
-    setErrorMsg(null);
-
-    if (!email.trim() || !password) {
-      setErrorMsg("Completa tu correo y contraseña para continuar.");
-      return;
-    }
-
-    if (!isStrongPassword(password)) {
-      setErrorMsg("Completa todos los requisitos de seguridad de la contraseña.");
-      return;
-    }
-
-    setSignUpStep(2);
-  };
-
   const handleSignUpSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (isSubmitting) return;
     setErrorMsg(null);
+
+    if (!fullName.trim() || !businessName.trim()) {
+      setErrorMsg("Escribe tu nombre y el de tu negocio.");
+      return;
+    }
+    if (!email.trim() || !password) {
+      setErrorMsg("Completa tu correo y contraseña para continuar.");
+      return;
+    }
+    if (!isStrongPassword(password)) {
+      setErrorMsg("Tu contraseña aún no cumple los requisitos de abajo.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -143,39 +137,55 @@ export function LoginPage() {
     }
   };
 
-  const copy = authCopy(mode, signUpStep, awaitingConfirmation, resetSent);
+  const copy = authCopy(mode, awaitingConfirmation, resetSent);
+  const headline =
+    mode === "signup" ? (
+      <>
+        Tu primera venta, <span className="text-cta">en un minuto.</span>
+      </>
+    ) : mode === "reset" ? (
+      <>
+        Recupera <span className="text-cta">tu acceso.</span>
+      </>
+    ) : (
+      <>
+        Qué gusto verte,
+        <br />
+        <span className="text-cta">vamos a vender.</span>
+      </>
+    );
 
   return (
-    <AuthShell>
-      <div className="space-y-8">
+    <AuthShell headline={headline} showProductPeek={mode === "signup" && !awaitingConfirmation}>
+      <div className="space-y-5">
         {mode !== "reset" && !awaitingConfirmation ? (
-          <div className="grid grid-cols-2 rounded-xl bg-[#f0f3f1] p-1" aria-label="Tipo de acceso">
-            <button
-              type="button"
-              onClick={() => switchMode("login")}
-              className={cn(
-                "h-10 rounded-lg text-[13px] font-bold transition-[background-color,color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                mode === "login"
-                  ? "bg-white text-text-primary shadow-sm"
-                  : "text-text-secondary hover:text-text-primary",
-              )}
-              aria-pressed={mode === "login"}
-            >
-              Iniciar sesión
-            </button>
-            <button
-              type="button"
-              onClick={() => switchMode("signup")}
-              className={cn(
-                "h-10 rounded-lg text-[13px] font-bold transition-[background-color,color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                mode === "signup"
-                  ? "bg-white text-text-primary shadow-sm"
-                  : "text-text-secondary hover:text-text-primary",
-              )}
-              aria-pressed={mode === "signup"}
-            >
-              Crear cuenta
-            </button>
+          <div
+            role="tablist"
+            aria-label="Tipo de acceso"
+            className="grid grid-cols-2 gap-1 rounded-md border border-border p-1"
+          >
+            {(
+              [
+                ["signup", "Crear cuenta"],
+                ["login", "Entrar"],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={mode === key}
+                onClick={() => switchMode(key)}
+                className={cn(
+                  "h-10 rounded-sm text-[14px] font-semibold transition-colors duration-150",
+                  mode === key
+                    ? "bg-text-primary text-primary-foreground"
+                    : "text-text-secondary hover:text-text-primary",
+                )}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         ) : null}
 
@@ -184,47 +194,32 @@ export function LoginPage() {
             <button
               type="button"
               onClick={() => switchMode("login")}
-              className="mb-6 inline-flex min-h-11 items-center gap-1.5 rounded-lg pr-3 text-[13px] font-semibold text-text-secondary transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="mb-3 inline-flex min-h-10 items-center gap-1.5 pr-3 text-[14px] font-semibold text-text-secondary transition-colors hover:text-text-primary"
             >
-              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              <CaretLeftIcon className="h-4 w-4" aria-hidden="true" />
               Volver
             </button>
           ) : null}
-          <h1 className="font-display text-[32px] font-bold leading-[1.12] text-text-primary sm:text-[36px]">
+          <h1 className="font-display text-[28px] font-black leading-tight tracking-[-0.02em] text-text-primary sm:text-[34px]">
             {copy.title}
           </h1>
-          <p className="mt-3 max-w-[42ch] text-[15px] leading-6 text-text-secondary">
-            {copy.description}
-          </p>
+          {copy.description ? (
+            <p className="mt-1.5 text-[15px] text-text-secondary">{copy.description}</p>
+          ) : null}
         </div>
-
-        {mode === "signup" && !awaitingConfirmation ? (
-          <div aria-label={`Paso ${signUpStep} de 2`}>
-            <div className="mb-2 flex items-center justify-between text-[12px] font-semibold text-text-secondary">
-              <span>{signUpStep === 1 ? "Datos de acceso" : "Tu negocio"}</span>
-              <span>Paso {signUpStep} de 2</span>
-            </div>
-            <div className="h-1 overflow-hidden rounded-full bg-[#e7ece9]">
-              <div
-                className="h-full rounded-full bg-primary transition-[width] duration-300"
-                style={{ width: signUpStep === 1 ? "50%" : "100%" }}
-              />
-            </div>
-          </div>
-        ) : null}
 
         {errorMsg ? (
           <div
             role="alert"
-            className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-[13px] leading-5 text-red-800"
+            className="flex items-start gap-2.5 rounded-md bg-danger-bg px-3.5 py-3 text-[14px] leading-5 text-danger"
           >
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <WarningCircleIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <span>{errorMsg}</span>
           </div>
         ) : null}
 
         {mode === "login" ? (
-          <form onSubmit={handleLoginSubmit} className="space-y-5" noValidate={false}>
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
             <EmailField email={email} setEmail={setEmail} invalid={Boolean(errorMsg)} />
             <PasswordInput
               id="login-password"
@@ -239,21 +234,25 @@ export function LoginPage() {
                 <button
                   type="button"
                   onClick={() => switchMode("reset")}
-                  className="min-h-8 rounded-md px-1 text-[12px] font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="min-h-8 px-1 text-[13px] font-semibold text-accent-text hover:underline"
                 >
-                  ¿Olvidaste tu contraseña?
+                  ¿La olvidaste?
                 </button>
               }
             />
-            <PrimaryButton loading={isSubmitting} disabled={loading} loadingLabel="Ingresando…">
-              Iniciar sesión
-            </PrimaryButton>
+            <SubmitButton loading={isSubmitting} disabled={loading} loadingLabel="Entrando…">
+              Entrar
+            </SubmitButton>
+            <p className="flex items-start gap-2 rounded-md bg-surface-2 px-3.5 py-3 text-[13px] text-text-secondary">
+              <LockSimpleIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              Tus datos son solo tuyos: nadie más ve tus ventas ni tus clientes.
+            </p>
           </form>
         ) : null}
 
         {mode === "signup" && awaitingConfirmation ? (
           <StatusState
-            icon={<MailCheck className="h-6 w-6" />}
+            icon={<EnvelopeSimpleIcon className="h-6 w-6" />}
             detail={
               <>
                 Enviamos el enlace a{" "}
@@ -265,17 +264,33 @@ export function LoginPage() {
             <button
               type="button"
               onClick={() => switchMode("login")}
-              className="mt-7 h-12 w-full rounded-xl border border-[#dfe4e0] bg-white px-5 text-[14px] font-bold text-text-primary transition-colors hover:bg-[#f6f8f7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              className="mt-6 h-12 w-full rounded-md border border-border px-5 text-[15px] font-semibold text-text-primary transition-colors hover:border-text-primary"
             >
-              Volver al inicio de sesión
+              Ir a Entrar
             </button>
           </StatusState>
         ) : null}
 
-        {mode === "signup" && !awaitingConfirmation && signUpStep === 1 ? (
-          <form onSubmit={handleNextStep} className="space-y-5">
+        {mode === "signup" && !awaitingConfirmation ? (
+          <form onSubmit={handleSignUpSubmit} className="space-y-4">
+            <TextField
+              id="full-name"
+              label="Tu nombre"
+              value={fullName}
+              onChange={setFullName}
+              autoComplete="name"
+              placeholder="María López"
+            />
+            <TextField
+              id="business-name"
+              label="Nombre del negocio"
+              value={businessName}
+              onChange={setBusinessName}
+              autoComplete="organization"
+              placeholder="Taller Ámbar"
+            />
             <EmailField email={email} setEmail={setEmail} invalid={Boolean(errorMsg)} />
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <PasswordInput
                 id="signup-password"
                 label="Contraseña"
@@ -288,117 +303,45 @@ export function LoginPage() {
                 invalid={Boolean(errorMsg) && !isStrongPassword(password)}
                 minLength={PASSWORD_MIN_LENGTH}
               />
-              <PasswordRequirements id="signup-password-requirements" password={password} />
-            </div>
-            <PrimaryButton>Continuar</PrimaryButton>
-          </form>
-        ) : null}
-
-        {mode === "signup" && !awaitingConfirmation && signUpStep === 2 ? (
-          <form onSubmit={handleSignUpSubmit} className="space-y-5">
-            <button
-              type="button"
-              onClick={() => {
-                setSignUpStep(1);
-                setErrorMsg(null);
-              }}
-              className="inline-flex min-h-10 items-center gap-1 rounded-lg pr-3 text-[12px] font-semibold text-text-secondary transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-              Cambiar datos de acceso
-            </button>
-
-            <LabeledIconField
-              id="full-name"
-              label="Nombre completo"
-              icon={<UserIcon className="h-4.5 w-4.5" />}
-            >
-              <input
-                id="full-name"
-                name="full-name"
-                type="text"
-                required
-                maxLength={100}
-                autoComplete="name"
-                placeholder="María López"
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                className={fieldClassName}
-              />
-            </LabeledIconField>
-
-            <LabeledIconField
-              id="business-name"
-              label="Nombre del negocio"
-              icon={<Store className="h-4.5 w-4.5" />}
-            >
-              <input
-                id="business-name"
-                name="business-name"
-                type="text"
-                required
-                maxLength={100}
-                autoComplete="organization"
-                placeholder="Mi emprendimiento"
-                value={businessName}
-                onChange={(event) => setBusinessName(event.target.value)}
-                className={fieldClassName}
-              />
-            </LabeledIconField>
-
-            <div className="grid gap-5 sm:grid-cols-2">
-              <LabeledIconField
-                id="phone"
-                label="Teléfono (opcional)"
-                icon={<Phone className="h-4.5 w-4.5" />}
-              >
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  inputMode="tel"
-                  maxLength={20}
-                  autoComplete="tel"
-                  placeholder="55 1234 5678"
-                  value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
-                  className={fieldClassName}
-                />
-              </LabeledIconField>
-
-              <LabeledIconField
-                id="business-type"
-                label="Categoría"
-                icon={<Tag className="h-4.5 w-4.5" />}
-              >
-                <select
-                  id="business-type"
-                  name="business-type"
-                  value={businessType}
-                  onChange={(event) => setBusinessType(event.target.value)}
-                  className={cn(fieldClassName, "appearance-none bg-white")}
-                >
-                  <option value="Panadería">Panadería</option>
-                  <option value="Repostería">Repostería</option>
-                  <option value="Conservas">Conservas / Salsas</option>
-                  <option value="Bebidas">Bebidas</option>
-                  <option value="Artesanías">Artesanías</option>
-                  <option value="Otros">Otros</option>
-                </select>
-              </LabeledIconField>
+              {password ? (
+                <PasswordRequirements id="signup-password-requirements" password={password} />
+              ) : null}
             </div>
 
-            <PrimaryButton loading={isSubmitting} loadingLabel="Creando cuenta…">
-              Crear cuenta
-            </PrimaryButton>
+            <fieldset>
+              <legend className="mb-2 text-[13px] font-bold text-text-primary">¿Qué vendes?</legend>
+              <div className="flex flex-wrap gap-2">
+                {BUSINESS_TYPES.map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    aria-pressed={businessType === type}
+                    onClick={() => setBusinessType(type)}
+                    className={cn(
+                      "h-10 rounded-md px-3.5 text-[14px] font-semibold transition-[background-color,border-color,transform] duration-150 active:scale-[0.97]",
+                      businessType === type
+                        ? "bg-text-primary text-primary-foreground"
+                        : "border border-border text-text-primary hover:border-text-primary",
+                    )}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+
+            <SubmitButton loading={isSubmitting} loadingLabel="Creando tu cuenta…" variant="cta">
+              Crear mi cuenta gratis
+              <ArrowRightIcon className="h-5 w-5" weight="bold" aria-hidden="true" />
+            </SubmitButton>
 
             <p className="text-center text-[12px] leading-5 text-text-muted">
-              Al crear tu cuenta aceptas los{" "}
-              <Link to="/terminos" className="font-semibold text-primary hover:underline">
+              Sin tarjeta · Al crear tu cuenta aceptas los{" "}
+              <Link to="/terminos" className="font-semibold text-accent-text hover:underline">
                 Términos
               </Link>{" "}
               y el{" "}
-              <Link to="/privacidad" className="font-semibold text-primary hover:underline">
+              <Link to="/privacidad" className="font-semibold text-accent-text hover:underline">
                 Aviso de privacidad
               </Link>
               .
@@ -407,17 +350,17 @@ export function LoginPage() {
         ) : null}
 
         {mode === "reset" && !resetSent ? (
-          <form onSubmit={handleResetSubmit} className="space-y-5">
+          <form onSubmit={handleResetSubmit} className="space-y-4">
             <EmailField email={email} setEmail={setEmail} invalid={Boolean(errorMsg)} />
-            <PrimaryButton loading={isSubmitting} loadingLabel="Enviando…">
+            <SubmitButton loading={isSubmitting} loadingLabel="Enviando…">
               Enviar enlace
-            </PrimaryButton>
+            </SubmitButton>
           </form>
         ) : null}
 
         {mode === "reset" && resetSent ? (
           <StatusState
-            icon={<MailCheck className="h-6 w-6" />}
+            icon={<EnvelopeSimpleIcon className="h-6 w-6" />}
             detail={
               <>
                 Si existe una cuenta con{" "}
@@ -429,21 +372,70 @@ export function LoginPage() {
             <button
               type="button"
               onClick={() => switchMode("login")}
-              className="mt-7 h-12 w-full rounded-xl border border-[#dfe4e0] bg-white px-5 text-[14px] font-bold text-text-primary transition-colors hover:bg-[#f6f8f7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              className="mt-6 h-12 w-full rounded-md border border-border px-5 text-[15px] font-semibold text-text-primary transition-colors hover:border-text-primary"
             >
-              Volver al inicio de sesión
+              Ir a Entrar
             </button>
           </StatusState>
         ) : null}
 
         {isDemo ? (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-[13px] leading-5 text-amber-900">
-            <strong className="block">Demostración local</strong>
-            <span>Usa demo@artisan.app para explorar la aplicación.</span>
-          </div>
+          <p className="rounded-md bg-info-bg px-3.5 py-3 text-[13px] leading-5 text-info">
+            <strong>Demostración local:</strong> usa demo@artisan.app para explorar la app.
+          </p>
         ) : null}
       </div>
     </AuthShell>
+  );
+}
+
+const BUSINESS_TYPES = [
+  "Panadería",
+  "Repostería",
+  "Salsas y conservas",
+  "Bebidas",
+  "Velas y jabones",
+  "Joyería",
+  "Artesanías",
+  "Otros",
+];
+
+const inputClassName =
+  "h-12 w-full rounded-md border border-border bg-surface px-3.5 text-[16px] text-text-primary outline-none transition-[border-color,box-shadow] placeholder:text-text-muted focus:border-text-primary focus:ring-3 focus:ring-cta/25 aria-[invalid=true]:border-danger";
+
+function TextField({
+  id,
+  label,
+  value,
+  onChange,
+  autoComplete,
+  placeholder,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  autoComplete: string;
+  placeholder: string;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="mb-2 block text-[13px] font-bold text-text-primary">
+        {label}
+      </label>
+      <input
+        id={id}
+        name={id}
+        type="text"
+        required
+        maxLength={100}
+        autoComplete={autoComplete}
+        placeholder={placeholder}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className={inputClassName}
+      />
+    </div>
   );
 }
 
@@ -459,7 +451,7 @@ function EmailField({
   return (
     <div>
       <label htmlFor="auth-email" className="mb-2 block text-[13px] font-bold text-text-primary">
-        Correo electrónico
+        Correo
       </label>
       <input
         id="auth-email"
@@ -473,32 +465,34 @@ function EmailField({
         placeholder="nombre@negocio.com"
         value={email}
         onChange={(event) => setEmail(event.target.value)}
-        className="h-12 w-full rounded-xl border border-[#dfe4e0] bg-white px-4 text-[16px] text-text-primary outline-none transition-[border-color,box-shadow] placeholder:text-[#8b958f] focus:border-primary focus:ring-4 focus:ring-primary/10"
+        className={inputClassName}
       />
     </div>
   );
 }
 
-function PrimaryButton({
+function SubmitButton({
   children,
   loading = false,
   disabled = false,
   loadingLabel = "Guardando…",
+  variant = "primary",
 }: {
   children: React.ReactNode;
   loading?: boolean;
   disabled?: boolean;
   loadingLabel?: string;
+  variant?: "primary" | "cta";
 }) {
   return (
     <button
       type="submit"
       disabled={loading || disabled}
-      className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-[15px] font-bold text-white shadow-fab transition-[background-color,transform,box-shadow] hover:bg-[#1f5b41] hover:shadow-card-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+      className={buttonClass({ variant, size: "lg", block: true })}
     >
       {loading ? (
         <>
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          <CircleNotchIcon className="h-5 w-5 animate-spin" aria-hidden="true" />
           {loadingLabel}
         </>
       ) : (
@@ -519,79 +513,33 @@ function StatusState({
 }) {
   return (
     <div>
-      <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary-light text-primary">
-        {icon}
-      </div>
+      <div className="grid h-12 w-12 place-items-center bg-cta text-cta-foreground">{icon}</div>
       <p className="mt-5 text-[14px] leading-6 text-text-secondary">{detail}</p>
       {children}
     </div>
   );
 }
 
-function LabeledIconField({
-  id,
-  label,
-  icon,
-  children,
-}: {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label htmlFor={id} className="mb-2 block text-[13px] font-bold text-text-primary">
-        {label}
-      </label>
-      <div className="relative">
-        <span
-          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted"
-          aria-hidden="true"
-        >
-          {icon}
-        </span>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-const fieldClassName =
-  "h-12 w-full rounded-xl border border-[#dfe4e0] bg-white py-2 pl-11 pr-4 text-[16px] text-text-primary outline-none transition-[border-color,box-shadow] placeholder:text-[#8b958f] focus:border-primary focus:ring-4 focus:ring-primary/10";
-
-function authCopy(mode: AuthMode, step: number, awaitingConfirmation: boolean, resetSent: boolean) {
+function authCopy(mode: AuthMode, awaitingConfirmation: boolean, resetSent: boolean) {
   if (awaitingConfirmation) {
     return {
       title: "Confirma tu correo",
-      description: "Tu cuenta está lista. Falta verificar que el correo te pertenece.",
+      description: "Tu cuenta está lista. Solo falta verificar tu correo.",
     };
   }
-
   if (mode === "reset" && resetSent) {
-    return {
-      title: "Revisa tu correo",
-      description: "Te enviamos las instrucciones para recuperar tu acceso.",
-    };
+    return { title: "Revisa tu correo", description: "Te enviamos cómo recuperar tu acceso." };
   }
-
   if (mode === "reset") {
     return {
-      title: "Recupera tu acceso",
-      description: "Escribe tu correo y te enviaremos un enlace seguro.",
+      title: "¿Olvidaste tu contraseña?",
+      description: "Escribe tu correo y te mandamos un enlace seguro.",
     };
   }
-
   if (mode === "signup") {
-    return step === 1
-      ? { title: "Crea tu cuenta", description: "Empieza con tus datos de acceso." }
-      : { title: "Configura tu negocio", description: "Esta información personaliza tu espacio." };
+    return { title: "Crea tu cuenta gratis", description: "" };
   }
-
-  return {
-    title: "Vuelve a tu negocio",
-    description: "Ingresa para continuar donde lo dejaste.",
-  };
+  return { title: "Entra a tu negocio", description: "" };
 }
 
 function authErrorMessage(error: unknown, fallback: string) {

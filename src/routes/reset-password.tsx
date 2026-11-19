@@ -51,7 +51,9 @@ function ResetPasswordPage() {
       await signOut();
       setIsComplete(true);
     } catch {
-      setErrorMessage("No pudimos actualizar la contraseña. Revisa tu conexión e intenta de nuevo.");
+      setErrorMessage(
+        "No pudimos actualizar la contraseña. Revisa tu conexión e intenta de nuevo.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -69,7 +71,13 @@ function ResetPasswordPage() {
       : "Puede haber expirado o haber sido utilizado anteriormente.";
 
   return (
-    <AuthShell>
+    <AuthShell
+      headline={
+        <>
+          Nueva <span className="text-cta">contraseña.</span>
+        </>
+      }
+    >
       <div className="space-y-8">
         <div>
           <h1 className="font-display text-[32px] font-bold leading-[1.12] text-text-primary sm:text-[36px]">
