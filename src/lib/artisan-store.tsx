@@ -434,6 +434,11 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           .eq("user_id", session.user.id);
         if (error) {
           console.error("Error updating stock tracking:", error);
+          if (/track_stock/.test(error.message)) {
+            throw new Error(
+              "Falta aplicar la migración de inventario en Supabase (202611190001_optional_stock_tracking.sql).",
+            );
+          }
           throw new Error(`No se pudo cambiar el inventario: ${error.message}`);
         }
 
