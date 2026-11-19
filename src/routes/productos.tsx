@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { useArtisan } from "@/lib/artisan-store";
 import { formatMXN, formatMXNc, tracksStock, type Product } from "@/lib/artisan-data";
-import { StockToggle } from "@/components/products/StockToggle";
 import { ModalSuccessState } from "@/components/ui/ModalSuccessState";
 import { DataLoadError, DataLoadSkeleton } from "@/components/artisan/DataLoadState";
 import { ProductCreationFlow } from "@/components/products/ProductCreationFlow";
@@ -23,7 +22,8 @@ export const Route = createFileRoute("/productos")({
 });
 
 function Productos() {
-  const { products, addProduct, updateProduct, isLoading, loadError } = useArtisan();
+  const { products, addProduct, updateProduct, inventoryEnabled, isLoading, loadError } =
+    useArtisan();
   const [q, setQ] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -34,7 +34,6 @@ function Productos() {
   const [editDistPrice, setEditDistPrice] = useState("");
   const [editPubPrice, setEditPubPrice] = useState("");
   const [editStock, setEditStock] = useState("");
-  const [editTrackStock, setEditTrackStock] = useState(false);
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
   const [editedProductSuccess, setEditedProductSuccess] = useState<Product | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
@@ -69,7 +68,6 @@ function Productos() {
     setEditDistPrice(String(p.distributorPrice));
     setEditPubPrice(String(p.publicPrice));
     setEditStock(String(p.stock));
-    setEditTrackStock(tracksStock(p));
     setEditedProductSuccess(null);
     setIsSubmittingEdit(false);
     setEditError(null);
@@ -96,10 +94,10 @@ function Productos() {
         cost: parseNonNegativeNumber(editCost, "El costo"),
         distributorPrice: parseNonNegativeNumber(editDistPrice, "El precio distribuidor"),
         publicPrice: parseNonNegativeNumber(editPubPrice, "El precio público"),
-        stock: editTrackStock
+        stock: inventoryEnabled
           ? Math.floor(parseNonNegativeNumber(editStock, "El inventario"))
           : editingProduct.stock,
-        trackStock: editTrackStock,
+        trackStock: editingProduct.trackStock,
         costing: editingProduct.costing,
       };
 
@@ -320,12 +318,6 @@ function Productos() {
                       className="w-full h-11 px-3.5 rounded-xl border border-border text-[14px] outline-none focus:border-primary bg-background disabled:opacity-60"
                     />
                   </div>
-
-                  <StockToggle
-                    checked={editTrackStock}
-                    onChange={setEditTrackStock}
-                    disabled={isSubmittingEdit}
-                  />
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-[12px] font-semibold text-text-secondary block mb-1">
@@ -348,7 +340,7 @@ function Productos() {
                         </p>
                       )}
                     </div>
-                    {editTrackStock && (
+                    {inventoryEnabled && (
                       <div>
                         <label className="text-[12px] font-semibold text-text-secondary block mb-1">
                           Inventario / Stock

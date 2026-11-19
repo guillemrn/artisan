@@ -1,7 +1,7 @@
 import { clsx } from "clsx";
 
 /**
- * Interruptor "Llevar inventario". Apagado: se vende sin límite y no se descuenta stock.
+ * Interruptor general "Llevar inventario" (Ajustes). Apagado: se vende sin límite y no se descuenta stock.
  */
 export function StockToggle({
   checked,
@@ -18,8 +18,8 @@ export function StockToggle({
         <span className="block text-[14px] font-semibold text-text-primary">Llevar inventario</span>
         <span className="mt-0.5 block text-[13px] leading-snug text-text-muted">
           {checked
-            ? "Cada venta descuenta piezas y te avisamos cuando se acaben."
-            : "Vende sin límite. Actívalo si quieres contar cuántas piezas te quedan."}
+            ? "Cada venta descuenta piezas de tus productos. Si uno llega a 0, no se puede vender hasta que agregues más."
+            : "Vendes sin límite y no se descuenta nada. Ideal si produces al día. Actívalo si quieres contar cuántas piezas te quedan."}
         </span>
       </span>
       <button

@@ -22,6 +22,8 @@ import {
 import { toast } from "sonner";
 
 import { USER_NAME } from "@/lib/artisan-data";
+import { useArtisan } from "@/lib/artisan-store";
+import { StockToggle } from "@/components/products/StockToggle";
 import { fetchArtisanData } from "@/lib/artisan-persistence";
 import { useAuth } from "@/core/auth/auth-context";
 import { supabase } from "@/core/supabase/client";
@@ -87,6 +89,8 @@ function Ajustes() {
     message: string;
   } | null>(null);
   const [signOutOpen, setSignOutOpen] = useState(false);
+  const { inventoryEnabled, setInventoryEnabled } = useArtisan();
+  const [savingInventory, setSavingInventory] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
   const displayName = user?.user_metadata?.full_name ?? user?.email ?? USER_NAME;
@@ -253,6 +257,23 @@ function Ajustes() {
     }
   };
 
+  const handleInventoryChange = async (enabled: boolean) => {
+    if (savingInventory) return;
+    setSavingInventory(true);
+    try {
+      await setInventoryEnabled(enabled);
+      toast.success(
+        enabled
+          ? "Inventario activado: cada venta descontará piezas"
+          : "Inventario desactivado: ahora vendes sin límite",
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo cambiar el inventario");
+    } finally {
+      setSavingInventory(false);
+    }
+  };
+
   const handleSignOut = async () => {
     if (signingOut) return;
     setSigningOut(true);
@@ -301,6 +322,23 @@ function Ajustes() {
               Editar
             </button>
           </div>
+        </section>
+
+        <section>
+          <h2 className="mb-2 text-[13px] font-bold text-text-primary">Inventario</h2>
+          <StockToggle
+            checked={inventoryEnabled}
+            onChange={handleInventoryChange}
+            disabled={savingInventory}
+          />
+          {inventoryEnabled && (
+            <p className="mt-2 text-[13px] text-text-muted">
+              Revisa que tus productos tengan existencias.{" "}
+              <Link to="/productos" className="font-semibold text-accent-text hover:underline">
+                Ver productos
+              </Link>
+            </p>
+          )}
         </section>
 
         <SettingsGroup title="Ayuda">

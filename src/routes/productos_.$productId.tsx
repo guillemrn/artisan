@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useArtisan } from "@/lib/artisan-store";
 import { formatMXN, formatMXNc, tracksStock, type Product } from "@/lib/artisan-data";
-import { StockToggle } from "@/components/products/StockToggle";
 import {
   ArrowLeft,
   Pencil,
@@ -30,7 +29,7 @@ export const Route = createFileRoute("/productos_/$productId")({
 
 function ProductDetail() {
   const { productId } = Route.useParams();
-  const { products, sales, updateProduct, isLoading, loadError } = useArtisan();
+  const { products, sales, updateProduct, inventoryEnabled, isLoading, loadError } = useArtisan();
   const navigate = useNavigate();
 
   const [filter, setFilter] = useState<"all" | "month">("all");
@@ -42,7 +41,6 @@ function ProductDetail() {
   const [editDistPrice, setEditDistPrice] = useState("");
   const [editPubPrice, setEditPubPrice] = useState("");
   const [editStock, setEditStock] = useState("");
-  const [editTrackStock, setEditTrackStock] = useState(false);
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
   const [editedProductSuccess, setEditedProductSuccess] = useState<Product | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
@@ -213,7 +211,6 @@ function ProductDetail() {
     setEditDistPrice(String(product.distributorPrice));
     setEditPubPrice(String(product.publicPrice));
     setEditStock(String(product.stock));
-    setEditTrackStock(tracksStock(product));
     setEditedProductSuccess(null);
     setEditError(null);
     setIsSubmittingEdit(false);
@@ -250,10 +247,9 @@ function ProductDetail() {
         cost: parseNonNegativeNumber(editCost, "El costo"),
         distributorPrice: parseNonNegativeNumber(editDistPrice, "El precio distribuidor"),
         publicPrice: parseNonNegativeNumber(editPubPrice, "El precio público"),
-        stock: editTrackStock
+        stock: inventoryEnabled
           ? Math.floor(parseNonNegativeNumber(editStock, "El stock"))
           : product.stock,
-        trackStock: editTrackStock,
       };
 
       await updateProduct(updated);
@@ -718,7 +714,6 @@ function ProductDetail() {
                     />
                   </div>
 
-                  <StockToggle checked={editTrackStock} onChange={setEditTrackStock} />
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[12px] font-bold text-text-muted uppercase">
@@ -735,7 +730,7 @@ function ProductDetail() {
                       />
                     </div>
 
-                    {editTrackStock && (
+                    {inventoryEnabled && (
                       <div>
                         <label className="block text-[12px] font-bold text-text-muted uppercase">
                           Stock actual

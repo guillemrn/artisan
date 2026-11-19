@@ -57,6 +57,9 @@ type Ctx = {
   addProduct: (p: Product, costing?: ProductCosting) => Promise<void>;
   updateProduct: (p: Product) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
+  /** Ajuste general del negocio: si está apagado, se vende sin límite y no se descuenta stock. */
+  inventoryEnabled: boolean;
+  setInventoryEnabled: (enabled: boolean) => Promise<void>;
   isLoading: boolean;
   loadError: string | null;
 };
@@ -115,6 +118,14 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
   const products = data?.products ?? (isDemo ? PRODUCTS : EMPTY_PRODUCTS);
   const loadError =
     error instanceof Error ? error.message : error ? "No se pudieron cargar los datos." : null;
+
+  // Fuente de verdad: user_metadata.inventory_enabled. Cuentas anteriores sin ese dato
+  // heredan lo que ya tenían sus productos (si alguno llevaba inventario, sigue activo).
+  const [inventoryOverride, setInventoryOverride] = useState<boolean | null>(null);
+  const metaInventory = user?.user_metadata?.inventory_enabled;
+  const inventoryEnabled =
+    inventoryOverride ??
+    (typeof metaInventory === "boolean" ? metaInventory : products.some(tracksStock));
 
   const [lastSaleId, setLastSaleId] = useState<string | null>(null);
   const [draft, setDraftState] = useState<DraftSale>(emptyDraft());
@@ -290,7 +301,13 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
       },
       products,
       addProduct: async (p, costing) => {
-        const product = costing ? { ...p, cost: costing.productCost, costing } : p;
+        // El producto sigue el ajuste general de inventario.
+        const base: Product = {
+          ...p,
+          trackStock: inventoryEnabled,
+          stock: inventoryEnabled ? p.stock : 0,
+        };
+        const product = costing ? { ...base, cost: costing.productCost, costing } : base;
         if (isDemo) {
           persist({ sales, clients, products: [...products, product] });
           return;
@@ -399,6 +416,38 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           products: products.map((prod) => (prod.id === p.id ? p : prod)),
         });
       },
+      inventoryEnabled,
+      setInventoryEnabled: async (enabled) => {
+        const nextProducts = products.map((prod) => ({ ...prod, trackStock: enabled }));
+        if (isDemo) {
+          persist({ sales, clients, products: nextProducts });
+          setInventoryOverride(enabled);
+          return;
+        }
+
+        const session = await requireActiveSession();
+
+        // Todos los productos del negocio siguen el ajuste (una sola sentencia).
+        const { error } = await supabase
+          .from("products")
+          .update({ track_stock: enabled })
+          .eq("user_id", session.user.id);
+        if (error) {
+          console.error("Error updating stock tracking:", error);
+          throw new Error(`No se pudo cambiar el inventario: ${error.message}`);
+        }
+
+        const { error: metaError } = await supabase.auth.updateUser({
+          data: { inventory_enabled: enabled },
+        });
+        if (metaError) {
+          console.error("Error saving inventory setting:", metaError);
+          throw new Error(`No se pudo guardar el ajuste: ${metaError.message}`);
+        }
+
+        persist({ sales, clients, products: nextProducts });
+        setInventoryOverride(enabled);
+      },
     }),
     [
       sales,
@@ -406,6 +455,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
       products,
       draft,
       lastSaleId,
+      inventoryEnabled,
       isLoading,
       loadError,
       persist,

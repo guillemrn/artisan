@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { StockToggle } from "@/components/products/StockToggle";
+import { useArtisan } from "@/lib/artisan-store";
 import {
   AlertCircle,
   ArrowLeft,
@@ -60,10 +60,10 @@ function marginFor(price: number, cost: number) {
 }
 
 export function ProductCreationFlow({ onClose, onCreate }: Props) {
+  const { inventoryEnabled } = useArtisan();
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [stock, setStock] = useState("");
-  const [trackStock, setTrackStock] = useState(false);
   const [costMethod, setCostMethod] = useState<CostMethod | null>(null);
   const [knownCost, setKnownCost] = useState("");
   const [yieldQuantity, setYieldQuantity] = useState("");
@@ -123,7 +123,7 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
     setError(null);
     if (step === 1) {
       if (!name.trim()) throw new Error("Escribe el nombre del producto.");
-      if (trackStock && (!Number.isFinite(Number(stock)) || Number(stock) < 0)) {
+      if (inventoryEnabled && (!Number.isFinite(Number(stock)) || Number(stock) < 0)) {
         throw new Error("El inventario inicial debe ser cero o mayor.");
       }
     }
@@ -176,8 +176,7 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
     const product: Product = {
       id: slug || `producto-${Date.now()}`,
       name: trimmedName,
-      stock: trackStock ? Math.floor(Number(stock) || 0) : 0,
-      trackStock,
+      stock: inventoryEnabled ? Math.floor(Number(stock) || 0) : 0,
       cost: productCost,
       distributorPrice: dist,
       publicPrice: publicValue,
@@ -212,7 +211,7 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
                 </strong>
                 .
               </span>
-            ) : createdProduct.trackStock === false ? (
+            ) : !inventoryEnabled ? (
               "Ya lo puedes vender. No lleva inventario: vende sin límite."
             ) : (
               "El producto quedó listo para vender y controlar en inventario."
@@ -293,8 +292,7 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
                 className="form-input"
               />
             </Field>
-            <StockToggle checked={trackStock} onChange={setTrackStock} />
-            {trackStock && (
+            {inventoryEnabled && (
               <Field
                 label="Inventario inicial"
                 hint="Cuántas presentaciones tienes listas para vender."
