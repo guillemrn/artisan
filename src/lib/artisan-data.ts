@@ -23,6 +23,23 @@ export type Client = {
   lastDelivery?: string;
 };
 
+/**
+ * "Público general": venta de mostrador a alguien sin nombre (como el RFC genérico).
+ * Vive como cliente reservado en la base para que register_sale lo acepte, pero no se
+ * muestra en la lista de clientes ni en rankings, y solo admite pago al momento.
+ */
+export const WALK_IN_CLIENT_ID = "publico-general";
+export const WALK_IN_CLIENT: Client = {
+  id: WALK_IN_CLIENT_ID,
+  name: "Público general",
+  channel: "Público",
+};
+export function isWalkInClient(clientId: string | undefined | null): boolean {
+  return clientId === WALK_IN_CLIENT_ID;
+}
+/** Formas de pago que dejan saldo pendiente (no se permiten con Público general). */
+export const DEFERRED_PAYMENTS: PaymentMethod[] = ["Pendiente", "Consignación"];
+
 export type PaymentMethod =
   "Efectivo" | "Transferencia" | "Pendiente" | "Consignación" | "Cortesía";
 export type PriceMode = "distributor" | "public";

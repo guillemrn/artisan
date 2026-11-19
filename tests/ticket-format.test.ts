@@ -1,0 +1,42 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { shortFolio, ticketMessage, ticketState } from "../src/lib/ticket-format.ts";
+import { DEFERRED_PAYMENTS, WALK_IN_CLIENT_ID, isWalkInClient } from "../src/lib/artisan-data.ts";
+import type { Sale } from "../src/lib/artisan-data.ts";
+
+const base: Sale = {
+  id: "TAL-0412",
+  clientId: "almacen-norte",
+  clientName: "Almacen Norte",
+  channel: "PDV",
+  items: [{ productId: "p1", productName: "Vela", qty: 3, unitPrice: 95, cost: 48 }],
+  total: 285,
+  cost: 144,
+  profit: 141,
+  payment: "Efectivo",
+  status: "Entregado",
+  createdAt: "2026-11-19T15:16:00.000Z",
+};
+
+test("folio corto toma el consecutivo", () => {
+  assert.equal(shortFolio("TAL-0412"), "0412");
+});
+
+test("el sello refleja el estado de cobro", () => {
+  assert.equal(ticketState(base), "paid");
+  assert.equal(ticketState({ ...base, payment: "Pendiente", status: "Pendiente" }), "pending");
+  assert.equal(ticketState({ ...base, payment: "Consignación", status: "Pendiente" }), "consignment");
+  assert.equal(ticketState({ ...base, payment: "Cortesía" }), "courtesy");
+});
+
+test("mensaje de WhatsApp saluda al cliente o es genérico en mostrador", () => {
+  assert.match(ticketMessage(base, "Taller Ámbar"), /^¡Gracias, Almacen Norte!.*folio 0412.*pagado en efectivo\. — Taller Ámbar$/);
+  const walkIn = { ...base, clientId: WALK_IN_CLIENT_ID, clientName: "Público general" };
+  assert.match(ticketMessage(walkIn, "Taller Ámbar"), /^¡Gracias por tu compra!/);
+});
+
+test("Público general no admite pagos diferidos", () => {
+  assert.ok(isWalkInClient(WALK_IN_CLIENT_ID));
+  assert.ok(!isWalkInClient("almacen-norte"));
+  assert.deepEqual(DEFERRED_PAYMENTS, ["Pendiente", "Consignación"]);
+});

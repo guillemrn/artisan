@@ -27,6 +27,7 @@ import {
   formatMXN,
   formatMXNc,
   tracksStock,
+  isWalkInClient,
   getSaleDashboardDate,
   getSalePaymentDate,
   type Sale,
@@ -494,6 +495,7 @@ function Home() {
     const map: Record<string, { name: string; packages: number; total: number }> = {};
 
     fullyFilteredSales.forEach((sale) => {
+      if (isWalkInClient(sale.clientId)) return; // mostrador no compite en rankings
       sale.items.forEach((item) => {
         if (productFilter === "Todos" || item.productId === productFilter) {
           const current = map[sale.clientId] ?? {
@@ -610,6 +612,7 @@ function Home() {
   const returnsByClient = useMemo(() => {
     const map: Record<string, ClientReturns> = {};
     fullyFilteredSales.forEach((sale) => {
+      if (isWalkInClient(sale.clientId)) return;
       sale.items.forEach((item) => {
         if (productFilter !== "Todos" && item.productId !== productFilter) return;
         const row = (map[sale.clientId] ??= {

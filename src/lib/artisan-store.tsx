@@ -10,6 +10,8 @@ import {
   type Client,
   type Product,
   tracksStock,
+  WALK_IN_CLIENT,
+  isWalkInClient,
 } from "./artisan-data";
 import {
   artisanQueryKeys,
@@ -114,7 +116,13 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
   });
 
   const sales = data?.sales ?? (isDemo ? SEED_SALES : EMPTY_SALES);
-  const clients = data?.clients ?? (isDemo ? CLIENTS : EMPTY_CLIENTS);
+  const allClients = data?.clients ?? (isDemo ? CLIENTS : EMPTY_CLIENTS);
+  // "Público general" existe en la base pero no se lista como cliente.
+  const clients = useMemo(
+    () => allClients.filter((c) => !isWalkInClient(c.id)),
+    [allClients],
+  );
+  const hasWalkInRow = allClients.some((c) => isWalkInClient(c.id));
   const products = data?.products ?? (isDemo ? PRODUCTS : EMPTY_PRODUCTS);
   const loadError =
     error instanceof Error ? error.message : error ? "No se pudieron cargar los datos." : null;
@@ -188,7 +196,24 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        await requireActiveSession();
+        const session = await requireActiveSession();
+
+        if (isWalkInClient(s.clientId) && !hasWalkInRow) {
+          const { error: walkInError } = await supabase.from("clients").upsert(
+            {
+              id: WALK_IN_CLIENT.id,
+              name: WALK_IN_CLIENT.name,
+              channel: WALK_IN_CLIENT.channel,
+              last_delivery: null,
+              user_id: session.user.id,
+            },
+            { onConflict: "user_id,id", ignoreDuplicates: true },
+          );
+          if (walkInError) {
+            console.error("Error preparing walk-in client:", walkInError);
+            throw new Error(`No se pudo preparar "Público general": ${walkInError.message}`);
+          }
+        }
 
         const { data: registeredRow, error: saleError } = await supabase.rpc(
           "register_sale",
@@ -461,6 +486,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
       draft,
       lastSaleId,
       inventoryEnabled,
+      hasWalkInRow,
       isLoading,
       loadError,
       persist,

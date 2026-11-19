@@ -46,7 +46,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     return pathname === p || pathname.startsWith(`${p}/`) || pathname.startsWith(`${p}_`);
   };
   // En el flujo de venta la barra estorba a los botones de abajo: se oculta.
-  const hideMobileBar = pathname.startsWith("/nueva-venta");
+  const hideMobileBar = pathname.startsWith("/nueva-venta") || pathname.startsWith("/ticket");
   const displayName = user?.user_metadata?.full_name ?? USER_NAME;
   const businessName = user?.user_metadata?.business_name ?? "Mi negocio";
   const initials = displayName.slice(0, 2).toUpperCase();
