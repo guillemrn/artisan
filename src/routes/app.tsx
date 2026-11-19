@@ -46,6 +46,7 @@ import { Metric } from "@/components/ui/metric";
 import { ResultBar } from "@/components/dashboard/ResultBar";
 import { ReturnsByClient, type ClientReturns } from "@/components/dashboard/ReturnsByClient";
 import { WeekCollected } from "@/components/dashboard/WeekCollected";
+import { FirstRun } from "@/components/dashboard/FirstRun";
 import { PeriodPicker, type PeriodKey } from "@/components/dashboard/PeriodPicker";
 import { formatRange, isInRange, type DateRange } from "@/lib/date-range";
 import { toast } from "sonner";
@@ -638,6 +639,18 @@ function Home() {
 
   if (isLoading) {
     return <DataLoadSkeleton variant="dashboard" />;
+  }
+
+  // Primer uso: sin ventas todavía, guía hacia la primera venta en lugar de mostrar todo en $0.
+  if (sales.length === 0) {
+    return (
+      <FirstRun
+        firstName={String(displayName).split(" ")[0]}
+        dateLabel={dateLabel}
+        hasProducts={products.length > 0}
+        hasClients={clients.length > 0}
+      />
+    );
   }
 
   return (
