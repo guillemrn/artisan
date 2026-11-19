@@ -48,9 +48,9 @@ const FEATURES = [
     title: "Sabe cuánto te queda.",
     copy: "Cobrado, costo y ganancia del día, sin hacer cuentas.",
     img: "/landing/dash-desktop.webp",
-    alt: "Inicio de Artisan con la ganancia bruta del día y su desglose",
-    w: 2704,
-    h: 918,
+    alt: "Inicio de Artisan: ganancia bruta del día, cuánto te queda de lo cobrado y lo que falta por cobrar",
+    w: 2880,
+    h: 1022,
     wide: true,
   },
   {
@@ -82,7 +82,7 @@ const FAQS = [
   },
   {
     q: "¿Tengo que capturar todo mi inventario?",
-    a: "No. Empieza con tus productos más vendidos y agrega el resto cuando quieras.",
+    a: "No. El inventario es opcional: puedes vender sin contar existencias y activarlo cuando quieras.",
   },
   {
     q: "¿Hay que descargar algo?",
