@@ -13,18 +13,14 @@ type AuthCtx = {
   loading: boolean;
   /** true when env vars are missing and we're running in local demo mode */
   isDemo: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
+  /** Guarda datos del negocio en user_metadata (onboarding tras Google o correo). */
+  updateProfile: (data: Record<string, string | undefined>) => Promise<{ error: Error | null }>;
   signInWithEmail: (email: string, password: string) => Promise<{ error: any }>;
   signUpWithEmail: (
     email: string,
     password: string,
-    metadata?: {
-      full_name: string;
-      phone?: string;
-      business_name: string;
-      business_type: string;
-      [key: string]: string | undefined;
-    },
+    metadata?: Record<string, string | undefined>,
   ) => Promise<{ error: Error | null; requiresEmailConfirmation: boolean }>;
   requestPasswordReset: (email: string) => Promise<{ error: Error | null }>;
   updatePassword: (password: string) => Promise<{ error: Error | null }>;
@@ -120,12 +116,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!HAS_SUPABASE) {
       // Demo mode — skip OAuth and jump straight in
       setUser(DEMO_USER);
-      return;
+      return { error: null };
     }
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: `${window.location.origin}/app` },
     });
+    return { error };
+  };
+
+  const updateProfile = async (data: Record<string, string | undefined>) => {
+    const clean = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));
+    if (!HAS_SUPABASE) {
+      setUser((current) =>
+        current ? { ...current, user_metadata: { ...current.user_metadata, ...clean } } : current,
+      );
+      return { error: null };
+    }
+    const { data: result, error } = await supabase.auth.updateUser({ data: clean });
+    if (error) return { error };
+    setUser(result.user);
+    return { error: null };
   };
 
   const signInWithEmail = async (email: string, password: string) => {
@@ -151,13 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUpWithEmail = async (
     email: string,
     password: string,
-    metadata?: {
-      full_name: string;
-      phone?: string;
-      business_name: string;
-      business_type: string;
-      [key: string]: string | undefined;
-    },
+    metadata?: Record<string, string | undefined>,
   ) => {
     if (!HAS_SUPABASE) {
       return {
@@ -225,6 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         isDemo: !HAS_SUPABASE,
         signInWithGoogle,
+        updateProfile,
         signInWithEmail,
         signUpWithEmail,
         requestPasswordReset,

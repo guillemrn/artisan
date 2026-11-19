@@ -14,6 +14,7 @@ import { AppShell } from "@/components/artisan/AppShell";
 import { AuthProvider, useAuth } from "@/core/auth/auth-context";
 import { CookieBanner } from "@/components/legal/CookieBanner";
 import { Logo } from "@/components/ui/logo";
+import { BusinessSetup } from "@/components/auth/BusinessSetup";
 
 // ─── Error & 404 ──────────────────────────────────────────────────────────────
 
@@ -125,6 +126,16 @@ function AuthGate() {
     return (
       <>
         <Outlet />
+        <CookieBanner />
+      </>
+    );
+  }
+
+  // Cuenta nueva (Google o correo) sin negocio todavía: un solo paso antes de la app.
+  if (!isDemo && !user?.user_metadata?.business_name) {
+    return (
+      <>
+        <BusinessSetup />
         <CookieBanner />
       </>
     );

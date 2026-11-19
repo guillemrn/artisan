@@ -21,7 +21,9 @@ import { buttonClass } from "@/components/ui/button-styles";
 type AuthMode = "login" | "signup" | "reset";
 
 export function LoginPage() {
-  const { signInWithEmail, signUpWithEmail, requestPasswordReset, loading, isDemo } = useAuth();
+  const { signInWithEmail, signUpWithEmail, signInWithGoogle, requestPasswordReset, loading, isDemo } =
+    useAuth();
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [mode, setMode] = useState<AuthMode>(() =>
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("modo") === "registro"
@@ -34,10 +36,6 @@ export function LoginPage() {
   const [email, setEmail] = useState(isDemo ? "demo@artisan.app" : "");
   const [password, setPassword] = useState(isDemo ? "123456" : "");
   const [showPassword, setShowPassword] = useState(false);
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [businessName, setBusinessName] = useState("");
-  const [businessType, setBusinessType] = useState("Panadería");
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,10 +53,6 @@ export function LoginPage() {
     if (isSubmitting) return;
     setErrorMsg(null);
 
-    if (!fullName.trim() || !businessName.trim()) {
-      setErrorMsg("Escribe tu nombre y el de tu negocio.");
-      return;
-    }
     if (!email.trim() || !password) {
       setErrorMsg("Completa tu correo y contraseña para continuar.");
       return;
@@ -74,13 +68,7 @@ export function LoginPage() {
       const { error, requiresEmailConfirmation } = await signUpWithEmail(
         email.trim().toLowerCase(),
         password,
-        {
-          full_name: fullName.trim(),
-          phone: phone.trim() || undefined,
-          business_name: businessName.trim(),
-          business_type: businessType,
-          ...signupSourceMetadata(),
-        },
+        signupSourceMetadata(),
       );
 
       if (error) {
@@ -112,6 +100,18 @@ export function LoginPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleGoogle = async () => {
+    if (googleLoading) return;
+    setErrorMsg(null);
+    setGoogleLoading(true);
+    const { error } = await signInWithGoogle();
+    if (error) {
+      setErrorMsg(authErrorMessage(error, "No pudimos abrir Google. Intenta con tu correo."));
+      setGoogleLoading(false);
+    }
+    // Si no hay error, el navegador se va a Google; no se reinicia el estado.
   };
 
   const handleResetSubmit = async (event: React.FormEvent) => {
@@ -220,6 +220,15 @@ export function LoginPage() {
           </div>
         ) : null}
 
+        {(mode === "login" || mode === "signup") && !awaitingConfirmation ? (
+          <div className="space-y-4">
+            <GoogleButton loading={googleLoading} onClick={handleGoogle} />
+            <div className="flex items-center gap-3 text-[13px] text-text-muted">
+              <span className="h-px flex-1 bg-border" />o con tu correo<span className="h-px flex-1 bg-border" />
+            </div>
+          </div>
+        ) : null}
+
         {mode === "login" ? (
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <EmailField email={email} setEmail={setEmail} invalid={Boolean(errorMsg)} />
@@ -275,22 +284,6 @@ export function LoginPage() {
 
         {mode === "signup" && !awaitingConfirmation ? (
           <form onSubmit={handleSignUpSubmit} className="space-y-4">
-            <TextField
-              id="full-name"
-              label="Tu nombre"
-              value={fullName}
-              onChange={setFullName}
-              autoComplete="name"
-              placeholder="María López"
-            />
-            <TextField
-              id="business-name"
-              label="Nombre del negocio"
-              value={businessName}
-              onChange={setBusinessName}
-              autoComplete="organization"
-              placeholder="Taller Ámbar"
-            />
             <EmailField email={email} setEmail={setEmail} invalid={Boolean(errorMsg)} />
             <div className="space-y-2.5">
               <PasswordInput
@@ -310,27 +303,6 @@ export function LoginPage() {
               ) : null}
             </div>
 
-            <fieldset>
-              <legend className="mb-2 text-[13px] font-bold text-text-primary">¿Qué vendes?</legend>
-              <div className="flex flex-wrap gap-2">
-                {BUSINESS_TYPES.map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    aria-pressed={businessType === type}
-                    onClick={() => setBusinessType(type)}
-                    className={cn(
-                      "h-10 rounded-md px-3.5 text-[14px] font-semibold transition-[background-color,border-color,transform] duration-150 active:scale-[0.97]",
-                      businessType === type
-                        ? "bg-text-primary text-primary-foreground"
-                        : "border border-border text-text-primary hover:border-text-primary",
-                    )}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
 
             <SubmitButton loading={isSubmitting} loadingLabel="Creando tu cuenta…" variant="cta">
               Crear mi cuenta gratis
@@ -391,55 +363,33 @@ export function LoginPage() {
   );
 }
 
-const BUSINESS_TYPES = [
-  "Panadería",
-  "Repostería",
-  "Salsas y conservas",
-  "Bebidas",
-  "Velas y jabones",
-  "Joyería",
-  "Artesanías",
-  "Otros",
-];
 
 const inputClassName =
   "h-12 w-full rounded-md border border-border bg-surface px-3.5 text-[16px] text-text-primary outline-none transition-[border-color,box-shadow] placeholder:text-text-muted focus:border-text-primary focus:ring-3 focus:ring-cta/25 aria-[invalid=true]:border-danger";
 
-function TextField({
-  id,
-  label,
-  value,
-  onChange,
-  autoComplete,
-  placeholder,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  autoComplete: string;
-  placeholder: string;
-}) {
+function GoogleButton({ loading, onClick }: { loading: boolean; onClick: () => void }) {
   return (
-    <div>
-      <label htmlFor={id} className="mb-2 block text-[13px] font-bold text-text-primary">
-        {label}
-      </label>
-      <input
-        id={id}
-        name={id}
-        type="text"
-        required
-        maxLength={100}
-        autoComplete={autoComplete}
-        placeholder={placeholder}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className={inputClassName}
-      />
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      className={buttonClass({ variant: "secondary", size: "lg", block: true, className: "h-12" })}
+    >
+      {loading ? (
+        <CircleNotchIcon className="h-5 w-5 animate-spin" aria-hidden="true" />
+      ) : (
+        <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden="true">
+          <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
+          <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
+          <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z" />
+          <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z" />
+        </svg>
+      )}
+      {loading ? "Abriendo Google…" : "Continuar con Google"}
+    </button>
   );
 }
+
 
 function EmailField({
   email,
