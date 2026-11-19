@@ -815,281 +815,292 @@ function Home() {
         />
       </section>
 
-      {/* Widgets */}
-      <section aria-label="Widgets" className="grid gap-x-10 gap-y-8 pt-2 lg:grid-cols-2">
-        <WeekCollected
-          days={weekCollected.days}
-          total={weekCollected.total}
-          lastWeekSameDays={weekCollected.lastWeekSameDays}
-          todayLabel={weekCollected.todayLabel}
-        />
-        <ReturnsByClient rows={returnsByClient} />
-      </section>
+      {/*
+        Orden por dispositivo: en el celular se actúa (ventas recientes con Cobrar antes que
+        las gráficas); en escritorio se analiza (gráficas antes y la tabla al final).
+      */}
+      <div className="flex flex-col gap-10">
+        {/* Widgets */}
+        <section aria-label="Widgets" className="order-1 grid gap-x-10 gap-y-8 pt-2 lg:grid-cols-2">
+          <WeekCollected
+            days={weekCollected.days}
+            total={weekCollected.total}
+            lastWeekSameDays={weekCollected.lastWeekSameDays}
+            todayLabel={weekCollected.todayLabel}
+          />
+          <ReturnsByClient rows={returnsByClient} />
+        </section>
 
-      {/* Recientes/Historial list */}
-      <div className="mt-7 space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h2 className="font-display text-[17px] font-bold text-text-primary">
-              Ventas recientes
-            </h2>
-            <p className="text-[13px] text-text-muted">Las últimas 5 con los filtros actuales</p>
-          </div>
-          {/* Filters for Sales History */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative flex-1 sm:flex-initial min-w-[155px]">
-              <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted" />
-              <input
-                type="text"
-                value={historySearch}
-                onChange={(e) => setHistorySearch(e.target.value)}
-                placeholder="Buscar cliente..."
-                className="w-full h-9 pl-8 pr-2.5 rounded-lg border border-border text-[12px] outline-none bg-white focus:border-primary"
-              />
+        {/* Recientes/Historial list */}
+        <div className="order-2 space-y-3 lg:order-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="font-display text-[17px] font-bold text-text-primary">
+                Ventas recientes
+              </h2>
+              <p className="text-[13px] text-text-muted">Las últimas 5 con los filtros actuales</p>
             </div>
-            <select
-              value={historyStatus}
-              onChange={(e) => setHistoryStatus(e.target.value as any)}
-              className="h-9 px-2 rounded-lg border border-border text-[12px] font-semibold bg-white outline-none focus:border-primary"
-            >
-              <option value="Todos">Todos los estados</option>
-              <option value="Entregado">Cobradas</option>
-              <option value="Pendiente">Por cobrar</option>
-            </select>
+            {/* Filters for Sales History */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 sm:flex-initial min-w-[155px]">
+                <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted" />
+                <input
+                  type="text"
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  placeholder="Buscar cliente..."
+                  className="w-full h-9 pl-8 pr-2.5 rounded-lg border border-border text-[12px] outline-none bg-white focus:border-primary"
+                />
+              </div>
+              <select
+                value={historyStatus}
+                onChange={(e) => setHistoryStatus(e.target.value as any)}
+                className="h-9 px-2 rounded-lg border border-border text-[12px] font-semibold bg-white outline-none focus:border-primary"
+              >
+                <option value="Todos">Todos los estados</option>
+                <option value="Entregado">Cobradas</option>
+                <option value="Pendiente">Por cobrar</option>
+              </select>
+            </div>
           </div>
+
+          {historyFilteredSales.length === 0 ? (
+            <div className="mt-8 flex flex-col items-center gap-3 text-text-muted py-8 bg-white rounded-2xl border border-border">
+              <ReceiptIcon className="h-10 w-10 opacity-30" />
+              <p className="text-[14px]">Sin ventas registradas</p>
+            </div>
+          ) : (
+            <>
+              {/* Mobile View: Cards */}
+              <ul className="grid gap-2 md:hidden">
+                {historyFilteredSales.slice(0, 5).map((s) => (
+                  <SaleCardItem
+                    key={s.id}
+                    sale={s}
+                    open={openId === s.id}
+                    onToggle={() => setOpenId(openId === s.id ? null : s.id)}
+                    onCobrar={handleOpenCobrarModal}
+                  />
+                ))}
+              </ul>
+
+              {/* Desktop View: Table */}
+              <div className="hidden md:block overflow-hidden rounded-2xl border border-border bg-white">
+                <table className="w-full text-left border-collapse text-[13px]">
+                  <thead>
+                    <tr className="border-b border-text-primary text-[12px] font-semibold text-text-muted">
+                      <th className="py-3 px-4">Fecha</th>
+                      <th className="py-3 px-4">Cliente / PDV</th>
+                      <th className="py-3 px-4">Canal</th>
+                      <th className="py-3 px-4">Productos / Movimientos</th>
+                      <th className="py-3 px-4">Pago</th>
+                      <th className="py-3 px-4">Estado</th>
+                      <th className="py-3 px-4 text-right">Total</th>
+                      <th className="py-3 px-4 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {historyFilteredSales.slice(0, 5).map((s) => {
+                      const dashboardDate = getSaleDashboardDate(s);
+                      const d = new Date(dashboardDate);
+                      const wasPaidLater = Boolean(s.paidAt && s.paidAt !== s.createdAt);
+                      const dateStr = d.toLocaleDateString("es-MX", {
+                        day: "2-digit",
+                        month: "2-digit",
+                      });
+                      const timeStr = d.toLocaleTimeString("es-MX", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      });
+
+                      return (
+                        <tr key={s.id} className="hover:bg-surface-2 transition">
+                          <td className="py-3 px-4 text-text-muted">
+                            <div>{dateStr}</div>
+                            <div className="text-[11px] opacity-75">{timeStr}</div>
+                            {wasPaidLater && (
+                              <div className="mt-1 text-[10px] font-medium text-text-muted">
+                                Entrega{" "}
+                                {new Date(s.createdAt).toLocaleDateString("es-MX", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                })}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 font-bold text-text-primary">{s.clientName}</td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`rounded-full text-[10px] font-bold px-2 py-0.5 ${
+                                s.channel === "PDV"
+                                  ? "bg-primary-light text-primary"
+                                  : "bg-info-bg text-info"
+                              }`}
+                            >
+                              {s.channel}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="space-y-1">
+                              {s.items.map((i) => (
+                                <div key={i.productId} className="text-[12px] leading-tight">
+                                  {i.qty > 0 && (
+                                    <div>
+                                      <span className="font-medium text-text-muted">
+                                        Entregado:
+                                      </span>{" "}
+                                      {i.productName}{" "}
+                                      <span className="text-text-muted">x{i.qty}</span>
+                                    </div>
+                                  )}
+                                  {(i.returnQty ?? 0) > 0 && (
+                                    <div className="text-warning font-medium">
+                                      <span>Cambio:</span> {i.productName}{" "}
+                                      <span className="opacity-80">x{i.returnQty}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-text-secondary font-medium">{s.payment}</td>
+                          <td className="py-3 px-4">
+                            {s.status === "Entregado" ? (
+                              <span className="inline-flex items-center gap-1 rounded-sm bg-success-bg text-success text-[10px] font-bold px-2.5 py-1">
+                                <CheckCircleIcon className="h-3.5 w-3.5" /> Cobrada
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-sm bg-warning-bg text-warning text-[10px] font-bold px-2.5 py-1">
+                                <ClockIcon className="h-3.5 w-3.5" /> Por cobrar
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-right font-bold tabular-nums text-text-primary">
+                            {formatMXN(s.total)}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex justify-end gap-1.5">
+                              {s.status === "Pendiente" && (
+                                <button
+                                  onClick={() => handleOpenCobrarModal(s)}
+                                  className="bg-primary hover:bg-primary/85 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition cursor-pointer"
+                                >
+                                  Cobrar
+                                </button>
+                              )}
+                              <Link
+                                to="/ticket/$saleId"
+                                params={{ saleId: s.id }}
+                                className="border border-border bg-white hover:bg-muted text-text-secondary text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition inline-flex items-center gap-1"
+                              >
+                                <ReceiptIcon className="h-3 w-3" /> Ticket
+                              </Link>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {historyFilteredSales.length > 5 && (
+                <Link
+                  to="/ventas"
+                  className="mt-1 inline-flex items-center gap-1.5 text-[14px] font-semibold text-accent-text hover:underline"
+                >
+                  Ver todas las ventas ({historyFilteredSales.length})
+                  <ArrowRightIcon className="h-4 w-4" />
+                </Link>
+              )}
+            </>
+          )}
         </div>
 
-        {historyFilteredSales.length === 0 ? (
-          <div className="mt-8 flex flex-col items-center gap-3 text-text-muted py-8 bg-white rounded-2xl border border-border">
-            <ReceiptIcon className="h-10 w-10 opacity-30" />
-            <p className="text-[14px]">Sin ventas registradas</p>
-          </div>
-        ) : (
-          <>
-            {/* Mobile View: Cards */}
-            <ul className="grid gap-2 md:hidden">
-              {historyFilteredSales.slice(0, 5).map((s) => (
-                <SaleCardItem
-                  key={s.id}
-                  sale={s}
-                  open={openId === s.id}
-                  onToggle={() => setOpenId(openId === s.id ? null : s.id)}
-                  onCobrar={handleOpenCobrarModal}
-                />
-              ))}
-            </ul>
+        <section
+          aria-label="Más detalle"
+          className="order-3 grid gap-x-8 gap-y-6 md:grid-cols-2 lg:order-2"
+        >
+          <ChartPanel
+            title="Unidades por producto"
+            subtitle="El más vendido, en naranja"
+            empty={productChartData.length === 0}
+          >
+            <BarChart
+              layout="vertical"
+              data={productChartData}
+              margin={{ left: 4, right: 8, top: 0, bottom: 0 }}
+            >
+              <CartesianGrid horizontal={false} stroke="#EDEFF2" />
+              <XAxis
+                type="number"
+                tickLine={false}
+                axisLine={false}
+                tick={CHART_TICK}
+                allowDecimals={false}
+              />
+              <YAxis
+                dataKey="name"
+                type="category"
+                tickLine={false}
+                axisLine={false}
+                width={108}
+                tick={CHART_TICK}
+                tickFormatter={(value) => (value.length > 16 ? `${value.slice(0, 14)}…` : value)}
+              />
+              <RechartsTooltip
+                cursor={{ fill: "#F5F6F8" }}
+                contentStyle={CHART_TOOLTIP}
+                formatter={(value, name) =>
+                  name === "venta" ? formatMXNc(Number(value)) : `${value} unidades`
+                }
+              />
+              <Bar dataKey="paquetes" radius={[0, 2, 2, 0]} maxBarSize={22}>
+                {productChartData.map((_entry, index) => (
+                  <Cell key={`product-cell-${index}`} fill={index === 0 ? "#FF4F00" : "#111111"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ChartPanel>
 
-            {/* Desktop View: Table */}
-            <div className="hidden md:block overflow-hidden rounded-2xl border border-border bg-white">
-              <table className="w-full text-left border-collapse text-[13px]">
-                <thead>
-                  <tr className="border-b border-text-primary text-[12px] font-semibold text-text-muted">
-                    <th className="py-3 px-4">Fecha</th>
-                    <th className="py-3 px-4">Cliente / PDV</th>
-                    <th className="py-3 px-4">Canal</th>
-                    <th className="py-3 px-4">Productos / Movimientos</th>
-                    <th className="py-3 px-4">Pago</th>
-                    <th className="py-3 px-4">Estado</th>
-                    <th className="py-3 px-4 text-right">Total</th>
-                    <th className="py-3 px-4 text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {historyFilteredSales.slice(0, 5).map((s) => {
-                    const dashboardDate = getSaleDashboardDate(s);
-                    const d = new Date(dashboardDate);
-                    const wasPaidLater = Boolean(s.paidAt && s.paidAt !== s.createdAt);
-                    const dateStr = d.toLocaleDateString("es-MX", {
-                      day: "2-digit",
-                      month: "2-digit",
-                    });
-                    const timeStr = d.toLocaleTimeString("es-MX", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    });
-
-                    return (
-                      <tr key={s.id} className="hover:bg-surface-2 transition">
-                        <td className="py-3 px-4 text-text-muted">
-                          <div>{dateStr}</div>
-                          <div className="text-[11px] opacity-75">{timeStr}</div>
-                          {wasPaidLater && (
-                            <div className="mt-1 text-[10px] font-medium text-text-muted">
-                              Entrega{" "}
-                              {new Date(s.createdAt).toLocaleDateString("es-MX", {
-                                day: "2-digit",
-                                month: "2-digit",
-                              })}
-                            </div>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 font-bold text-text-primary">{s.clientName}</td>
-                        <td className="py-3 px-4">
-                          <span
-                            className={`rounded-full text-[10px] font-bold px-2 py-0.5 ${
-                              s.channel === "PDV"
-                                ? "bg-primary-light text-primary"
-                                : "bg-info-bg text-info"
-                            }`}
-                          >
-                            {s.channel}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="space-y-1">
-                            {s.items.map((i) => (
-                              <div key={i.productId} className="text-[12px] leading-tight">
-                                {i.qty > 0 && (
-                                  <div>
-                                    <span className="font-medium text-text-muted">Entregado:</span>{" "}
-                                    {i.productName}{" "}
-                                    <span className="text-text-muted">x{i.qty}</span>
-                                  </div>
-                                )}
-                                {(i.returnQty ?? 0) > 0 && (
-                                  <div className="text-warning font-medium">
-                                    <span>Cambio:</span> {i.productName}{" "}
-                                    <span className="opacity-80">x{i.returnQty}</span>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-text-secondary font-medium">{s.payment}</td>
-                        <td className="py-3 px-4">
-                          {s.status === "Entregado" ? (
-                            <span className="inline-flex items-center gap-1 rounded-sm bg-success-bg text-success text-[10px] font-bold px-2.5 py-1">
-                              <CheckCircleIcon className="h-3.5 w-3.5" /> Cobrada
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 rounded-sm bg-warning-bg text-warning text-[10px] font-bold px-2.5 py-1">
-                              <ClockIcon className="h-3.5 w-3.5" /> Por cobrar
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-right font-bold tabular-nums text-text-primary">
-                          {formatMXN(s.total)}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex justify-end gap-1.5">
-                            {s.status === "Pendiente" && (
-                              <button
-                                onClick={() => handleOpenCobrarModal(s)}
-                                className="bg-primary hover:bg-primary/85 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition cursor-pointer"
-                              >
-                                Cobrar
-                              </button>
-                            )}
-                            <Link
-                              to="/ticket/$saleId"
-                              params={{ saleId: s.id }}
-                              className="border border-border bg-white hover:bg-muted text-text-secondary text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition inline-flex items-center gap-1"
-                            >
-                              <ReceiptIcon className="h-3 w-3" /> Ticket
-                            </Link>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            {historyFilteredSales.length > 5 && (
-              <Link
-                to="/ventas"
-                className="mt-1 inline-flex items-center gap-1.5 text-[14px] font-semibold text-accent-text hover:underline"
-              >
-                Ver todas las ventas ({historyFilteredSales.length})
-                <ArrowRightIcon className="h-4 w-4" />
-              </Link>
-            )}
-          </>
-        )}
+          <ChartPanel
+            title="Clientes con más movimiento"
+            subtitle="Unidades entregadas · top 5"
+            empty={clientChartData.length === 0}
+          >
+            <BarChart
+              layout="vertical"
+              data={clientChartData}
+              margin={{ left: 4, right: 8, top: 0, bottom: 0 }}
+            >
+              <CartesianGrid horizontal={false} stroke="#EDEFF2" />
+              <XAxis
+                type="number"
+                tickLine={false}
+                axisLine={false}
+                tick={CHART_TICK}
+                allowDecimals={false}
+              />
+              <YAxis
+                dataKey="name"
+                type="category"
+                tickLine={false}
+                axisLine={false}
+                width={108}
+                tick={CHART_TICK}
+                tickFormatter={(value) => (value.length > 16 ? `${value.slice(0, 14)}…` : value)}
+              />
+              <RechartsTooltip
+                cursor={{ fill: "#F5F6F8" }}
+                contentStyle={CHART_TOOLTIP}
+                formatter={(value, name) =>
+                  name === "venta" ? formatMXNc(Number(value)) : `${value} unidades`
+                }
+              />
+              <Bar dataKey="paquetes" fill="#111111" radius={[0, 2, 2, 0]} maxBarSize={22} />
+            </BarChart>
+          </ChartPanel>
+        </section>
       </div>
-
-      <section aria-label="Más detalle" className="grid gap-x-8 gap-y-6 pt-4 md:grid-cols-2">
-        <ChartPanel
-          title="Unidades por producto"
-          subtitle="El más vendido, en naranja"
-          empty={productChartData.length === 0}
-        >
-          <BarChart
-            layout="vertical"
-            data={productChartData}
-            margin={{ left: 4, right: 8, top: 0, bottom: 0 }}
-          >
-            <CartesianGrid horizontal={false} stroke="#EDEFF2" />
-            <XAxis
-              type="number"
-              tickLine={false}
-              axisLine={false}
-              tick={CHART_TICK}
-              allowDecimals={false}
-            />
-            <YAxis
-              dataKey="name"
-              type="category"
-              tickLine={false}
-              axisLine={false}
-              width={108}
-              tick={CHART_TICK}
-              tickFormatter={(value) => (value.length > 16 ? `${value.slice(0, 14)}…` : value)}
-            />
-            <RechartsTooltip
-              cursor={{ fill: "#F5F6F8" }}
-              contentStyle={CHART_TOOLTIP}
-              formatter={(value, name) =>
-                name === "venta" ? formatMXNc(Number(value)) : `${value} unidades`
-              }
-            />
-            <Bar dataKey="paquetes" radius={[0, 2, 2, 0]} maxBarSize={22}>
-              {productChartData.map((_entry, index) => (
-                <Cell key={`product-cell-${index}`} fill={index === 0 ? "#FF4F00" : "#111111"} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ChartPanel>
-
-        <ChartPanel
-          title="Clientes con más movimiento"
-          subtitle="Unidades entregadas · top 5"
-          empty={clientChartData.length === 0}
-        >
-          <BarChart
-            layout="vertical"
-            data={clientChartData}
-            margin={{ left: 4, right: 8, top: 0, bottom: 0 }}
-          >
-            <CartesianGrid horizontal={false} stroke="#EDEFF2" />
-            <XAxis
-              type="number"
-              tickLine={false}
-              axisLine={false}
-              tick={CHART_TICK}
-              allowDecimals={false}
-            />
-            <YAxis
-              dataKey="name"
-              type="category"
-              tickLine={false}
-              axisLine={false}
-              width={108}
-              tick={CHART_TICK}
-              tickFormatter={(value) => (value.length > 16 ? `${value.slice(0, 14)}…` : value)}
-            />
-            <RechartsTooltip
-              cursor={{ fill: "#F5F6F8" }}
-              contentStyle={CHART_TOOLTIP}
-              formatter={(value, name) =>
-                name === "venta" ? formatMXNc(Number(value)) : `${value} unidades`
-              }
-            />
-            <Bar dataKey="paquetes" fill="#111111" radius={[0, 2, 2, 0]} maxBarSize={22} />
-          </BarChart>
-        </ChartPanel>
-      </section>
 
       {showOnboarding && (
         <OnboardingModal
