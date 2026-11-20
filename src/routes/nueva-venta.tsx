@@ -46,6 +46,7 @@ export const Route = createFileRoute("/nueva-venta")({
 
 type SaleItem = ReturnType<typeof buildSaleItems>[number];
 type Step = 1 | 2 | 3;
+type CostCoverage = "all" | "some" | "none";
 
 const STEPS = [
   { number: 1, label: "Cliente" },
@@ -84,6 +85,16 @@ function NuevaVenta() {
   const soldCount = items.reduce((sum, item) => sum + item.qty, 0);
   const returnsCount = items.reduce((sum, item) => sum + (item.returnQty ?? 0), 0);
   const { total, cost, profit } = calculateSaleFinancials(items, draft.payment);
+  // Productos creados sin costo: no inventamos ganancia con ellos.
+  const noCostIds = new Set(allProducts.filter((p) => p.needsCost).map((p) => p.id));
+  const sold = items.filter((item) => item.qty > 0);
+  const withCost = sold.filter((item) => !noCostIds.has(item.productId));
+  const costCoverage: CostCoverage =
+    withCost.length === sold.length ? "all" : withCost.length === 0 ? "none" : "some";
+  const knownProfit =
+    draft.payment === "Cortesía" || costCoverage === "all"
+      ? profit
+      : withCost.reduce((sum, item) => sum + item.qty * (item.unitPrice - item.cost), 0);
   const hasItems = items.length > 0;
   const walkIn = isWalkInClient(draft.client?.id);
 
@@ -228,7 +239,7 @@ function NuevaVenta() {
               <h2 id="cobro-title" className="sr-only">
                 Cobro
               </h2>
-              <SaleNote client={draft.client} items={items} total={total} profit={profit} />
+              <SaleNote client={draft.client} items={items} total={total} profit={knownProfit} coverage={costCoverage} />
               <PaymentPicker payment={draft.payment} setPayment={setPayment} walkIn={walkIn} />
             </section>
           )}
@@ -250,7 +261,7 @@ function NuevaVenta() {
             </div>
             {draft.client && hasItems ? (
               <div className="space-y-5 px-5 py-5">
-                <SaleNote client={draft.client} items={items} total={total} profit={profit} compact />
+                <SaleNote client={draft.client} items={items} total={total} profit={knownProfit} coverage={costCoverage} compact />
                 <PaymentPicker
                   payment={draft.payment}
                   setPayment={setPayment}
@@ -546,11 +557,14 @@ function StepProducts({
     .sort((a, b) => Number(inCart(b.id)) - Number(inCart(a.id)));
   const exact = allProducts.some((p) => !p.archived && p.name.trim().toLowerCase() === q);
 
+  const [creating, setCreating] = useState(false);
   const addQuickProduct = async (product: Product, qty: number) => {
     await addProduct(product);
     setQty(product.id, qty);
     setQuery("");
+    setCreating(false);
   };
+  const showQuick = creating || (q !== "" && !exact);
 
   return (
     <section aria-labelledby="products-title">
@@ -589,7 +603,8 @@ function StepProducts({
         Para <span className="font-bold text-text-primary">{client.name}</span> · Cambiar
       </button>
 
-      <label className="relative mt-4 block">
+      <div className="mt-4 flex gap-2">
+      <label className="relative block flex-1">
         <span className="sr-only">Buscar producto</span>
         <MagnifyingGlassIcon
           weight="bold"
@@ -602,6 +617,30 @@ function StepProducts({
           className="h-12 w-full rounded-md border border-border bg-surface pl-10 pr-3 text-[16px] outline-none transition focus:border-text-primary focus:ring-3 focus:ring-cta/25"
         />
       </label>
+        <button
+          type="button"
+          onClick={() => setCreating(true)}
+          aria-expanded={showQuick}
+          className={buttonClass({ variant: "secondary", size: "md", className: "h-12 shrink-0" })}
+        >
+          <PlusIcon weight="bold" className="h-4 w-4" />
+          <span className="hidden sm:inline">Producto nuevo</span>
+          <span className="sm:hidden">Nuevo</span>
+        </button>
+      </div>
+
+      {showQuick && (
+        <QuickProduct
+          key={creating && !q ? "new" : q}
+          name={query.trim()}
+          priceMode={priceMode}
+          onAdd={addQuickProduct}
+          onCancel={() => {
+            setCreating(false);
+            setQuery("");
+          }}
+        />
+      )}
 
       {filtered.length > 0 ? (
         <ul className="mt-4 divide-y divide-border-soft border-y border-border xl:grid xl:grid-cols-2 xl:gap-x-8 xl:divide-y-0 xl:border-0">
@@ -696,9 +735,6 @@ function StepProducts({
         </p>
       ) : null}
 
-      {q && !exact && (
-        <QuickProduct key={q} name={query.trim()} priceMode={priceMode} onAdd={addQuickProduct} />
-      )}
     </section>
   );
 }
@@ -792,14 +828,19 @@ function QuickClient({ name, onCreated }: { name: string; onCreated: (client: Cl
 }
 
 function QuickProduct({
-  name,
+  name: initialName,
   priceMode,
   onAdd,
+  onCancel,
 }: {
   name: string;
   priceMode: PriceMode;
   onAdd: (product: Product, qty: number) => Promise<void>;
+  onCancel: () => void;
 }) {
+  // Desde el botón "Producto nuevo" llega sin nombre: se escribe aquí mismo.
+  const askName = initialName === "";
+  const [name, setName] = useState(initialName);
   const [price, setPrice] = useState("");
   const [qty, setQtyLocal] = useState(1);
   const [cost, setCost] = useState("");
@@ -811,6 +852,10 @@ function QuickProduct({
     if (saving) return;
     const p = parseMoney(price);
     const c = parseMoney(cost);
+    if (!name.trim()) {
+      setError("Escribe el nombre del producto.");
+      return;
+    }
     if (p === null || Number.isNaN(p) || p <= 0) {
       setError("Escribe el precio de cada uno.");
       return;
@@ -823,7 +868,7 @@ function QuickProduct({
     setError(null);
     const product: Product = {
       id: `${slugify(name) || "producto"}-${uid()}`,
-      name,
+      name: name.trim(),
       cost: c ?? 0,
       publicPrice: p,
       distributorPrice: p,
@@ -846,9 +891,31 @@ function QuickProduct({
   return (
     <div className="mt-4 space-y-4 rounded-md border border-primary p-4 animate-in fade-in duration-200">
       <div className="flex items-center justify-between gap-3">
-        <p className="truncate text-[18px] font-black">{name}</p>
-        <span className="shrink-0 text-[12px] font-semibold text-text-muted">Producto nuevo</span>
+        {askName ? (
+          <p className="text-[18px] font-black">Producto nuevo</p>
+        ) : (
+          <p className="truncate text-[18px] font-black">{name}</p>
+        )}
+        <button
+          type="button"
+          onClick={onCancel}
+          className="shrink-0 text-[13px] font-semibold text-text-muted hover:text-text-primary"
+        >
+          Cancelar
+        </button>
       </div>
+      {askName && (
+        <label className="block space-y-1.5">
+          <span className="text-[13px] font-bold">¿Qué vendiste?</span>
+          <input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Pan de muerto, salsa macha…"
+            className="h-12 w-full rounded-md border border-border bg-surface px-3 text-[16px] outline-none focus:border-text-primary focus:ring-3 focus:ring-cta/25"
+          />
+        </label>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <label className="space-y-1.5">
           <span className="text-[13px] font-bold">
@@ -858,7 +925,7 @@ function QuickProduct({
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">$</span>
             <input
               inputMode="decimal"
-              autoFocus
+              autoFocus={!askName}
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               placeholder="0"
@@ -981,12 +1048,14 @@ function SaleNote({
   items,
   total,
   profit,
+  coverage,
   compact,
 }: {
   client: Client;
   items: SaleItem[];
   total: number;
   profit: number;
+  coverage: CostCoverage;
   compact?: boolean;
 }) {
   return (
@@ -1024,10 +1093,18 @@ function SaleNote({
           {formatMXNc(total)}
         </span>
       </div>
-      <div className="mt-3 flex items-center justify-between gap-3 rounded-md bg-surface-2 px-3 py-2.5 text-[14px]">
-        <span className="text-text-secondary">Te deja (ganancia bruta)</span>
-        <span className="font-black text-accent-text tabular-nums">{formatMXNc(profit)}</span>
-      </div>
+      {coverage === "none" ? (
+        <p className="mt-3 rounded-md bg-surface-2 px-3 py-2.5 text-[13px] text-text-secondary">
+          Sin costo todavía: agrégalo en Productos y te digo cuánto te deja.
+        </p>
+      ) : (
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-md bg-surface-2 px-3 py-2.5 text-[14px]">
+          <span className="text-text-secondary">
+            {coverage === "some" ? "Te deja (de lo que tiene costo)" : "Te deja (ganancia bruta)"}
+          </span>
+          <span className="font-black text-accent-text tabular-nums">{formatMXNc(profit)}</span>
+        </div>
+      )}
     </div>
   );
 }
