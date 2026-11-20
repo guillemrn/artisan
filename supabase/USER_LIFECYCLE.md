@@ -1,6 +1,6 @@
 # User lifecycle notifications
 
-Artisan records these milestones once per user:
+Grofit records these milestones once per user:
 
 - `user_confirmed`: the account owner confirmed their email.
 - `first_product_created`: the user created their first product.
@@ -14,7 +14,7 @@ Create a dedicated Resend API key and add these Edge Function secrets in Supabas
 
 ```text
 RESEND_API_KEY=re_...
-RESEND_FROM_EMAIL=Artisan <notificaciones@guillermoml.com>
+RESEND_FROM_EMAIL=Grofit <notificaciones@guillermoml.com>
 ADMIN_NOTIFICATION_EMAIL=hola@guillermoml.com
 LIFECYCLE_WEBHOOK_SECRET=<a long random value>
 ```

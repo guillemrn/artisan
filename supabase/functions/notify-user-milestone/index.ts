@@ -85,13 +85,25 @@ Deno.serve(async (request) => {
     return Response.json({ ok: true, tracked: true, notification: "skipped" });
   }
 
-  const email = buildNotification(record);
+  // El origen (QR, redes…) y el proveedor se guardan en el hito user_confirmed.
+  let signup: Record<string, unknown> = record.metadata ?? {};
+  if (record.event_name === "first_sale_created") {
+    const { data: confirmed } = await supabase
+      .from("user_milestones")
+      .select("metadata")
+      .eq("user_id", record.user_id)
+      .eq("event_name", "user_confirmed")
+      .maybeSingle();
+    signup = (confirmed?.metadata as Record<string, unknown> | undefined) ?? {};
+  }
+
+  const email = buildNotification(record, signup);
   const resendResponse = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       ...jsonHeaders,
       Authorization: `Bearer ${resendApiKey}`,
-      "Idempotency-Key": `artisan-milestone-${record.id}`,
+      "Idempotency-Key": `grofit-milestone-${record.id}`,
     },
     body: JSON.stringify({
       from: fromEmail,
@@ -152,11 +164,37 @@ function safeEqual(expected: string, supplied: string) {
   return mismatch === 0;
 }
 
-function buildNotification(record: MilestoneRecord) {
+const SOURCE_LABELS: Record<string, string> = {
+  qr: "QR impreso (evento)",
+  redes: "Redes sociales",
+  instagram: "Instagram",
+  directo: "Directo",
+};
+
+function sourceValue(signup: Record<string, unknown>) {
+  const source = stringValue(signup.signup_source);
+  if (!source) return "";
+  const label = SOURCE_LABELS[source] ?? source;
+  const campaign = stringValue(signup.signup_campaign);
+  return campaign ? `${label} · ${campaign}` : label;
+}
+
+function providerValue(signup: Record<string, unknown>) {
+  const provider = stringValue(signup.auth_provider);
+  if (provider === "google") return "Google";
+  if (provider === "email") return "Correo y contraseña";
+  return provider;
+}
+
+function buildNotification(record: MilestoneRecord, signup: Record<string, unknown>) {
   const metadata = record.metadata ?? {};
-  const name = stringValue(metadata.full_name) || "Nuevo usuario";
-  const userEmail = stringValue(metadata.email) || "Correo no disponible";
-  const business = stringValue(metadata.business_name) || "Negocio sin nombre";
+  const name =
+    stringValue(metadata.full_name) || stringValue(signup.full_name) || "Nuevo usuario";
+  const userEmail = stringValue(metadata.email) || stringValue(signup.email) || "Correo no disponible";
+  const business =
+    stringValue(metadata.business_name) ||
+    stringValue(signup.business_name) ||
+    "Aún sin nombre de negocio";
   const occurredAt = new Intl.DateTimeFormat("es-MX", {
     dateStyle: "long",
     timeStyle: "short",
@@ -164,23 +202,27 @@ function buildNotification(record: MilestoneRecord) {
   }).format(new Date(record.occurred_at));
 
   const isAhaMoment = record.event_name === "first_sale_created";
-  const title = isAhaMoment ? "Un usuario llegó al aha moment" : "Nuevo usuario confirmado";
+  const eyebrow = isAhaMoment ? "Primera venta" : "Nuevo registro";
+  const title = isAhaMoment ? "Alguien registró su primera venta" : "Alguien se unió a Grofit";
   const subject = isAhaMoment
-    ? `Aha moment en Artisan: ${business}`
-    : `Nuevo usuario en Artisan: ${business}`;
+    ? `Primera venta en Grofit: ${business}`
+    : `Nuevo usuario en Grofit: ${stringValue(metadata.full_name) || userEmail}`;
 
   const details = isAhaMoment
     ? [
         ["Venta", stringValue(metadata.sale_id)],
-        ["Total", currencyValue(metadata.total)],
-        ["Ganancia", currencyValue(metadata.profit)],
+        ["Ganancia bruta", currencyValue(metadata.profit)],
         ["Canal", stringValue(metadata.channel)],
         ["Pago", stringValue(metadata.payment)],
-        ["Tiempo hasta el aha moment", durationValue(metadata.confirmed_at, record.occurred_at)],
+        ["Tiempo hasta su primera venta", durationValue(metadata.confirmed_at, record.occurred_at)],
+        ["Llegó por", sourceValue(signup)],
+        ["Entró con", providerValue(signup)],
       ]
     : [
-        ["Categoría", stringValue(metadata.business_type)],
-        ["Confirmación", occurredAt],
+        ["Qué vende", stringValue(metadata.business_type)],
+        ["Llegó por", sourceValue(signup)],
+        ["Entró con", providerValue(signup)],
+        ["Confirmó", occurredAt],
       ];
 
   const rows = [["Usuario", name], ["Correo", userEmail], ["Negocio", business], ...details].filter(
@@ -190,11 +232,18 @@ function buildNotification(record: MilestoneRecord) {
   const htmlRows = rows
     .map(
       ([label, value]) =>
-        `<tr><td style="padding:8px 16px 8px 0;color:#66716b;font-size:14px;vertical-align:top">${escapeHtml(label)}</td><td style="padding:8px 0;color:#17211c;font-size:14px;font-weight:600">${escapeHtml(value)}</td></tr>`,
+        `<tr><td style="padding:11px 16px 11px 0;border-bottom:1px solid #edeff2;color:#646b76;font-size:14px;vertical-align:top;white-space:nowrap">${escapeHtml(label)}</td><td style="padding:11px 0;border-bottom:1px solid #edeff2;color:#111111;font-size:14px;font-weight:700;text-align:right">${escapeHtml(value)}</td></tr>`,
     )
     .join("");
 
-  const html = `<!doctype html><html lang="es"><body style="margin:0;background:#f4f6f5;font-family:Inter,Arial,sans-serif;color:#17211c"><div style="max-width:600px;margin:0 auto;padding:40px 20px"><div style="background:#173d2d;border-radius:12px 12px 0 0;padding:24px 28px;color:#fff;font-size:20px;font-weight:700">Artisan</div><div style="background:#fff;border:1px solid #e2e7e4;border-top:0;border-radius:0 0 12px 12px;padding:30px 28px"><p style="margin:0 0 8px;color:#256d4d;font-size:13px;font-weight:700;text-transform:uppercase">${isAhaMoment ? "Activación" : "Registro"}</p><h1 style="margin:0 0 22px;font-size:26px;line-height:1.2">${escapeHtml(title)}</h1><table role="presentation" style="width:100%;border-collapse:collapse">${htmlRows}</table></div></div></body></html>`;
+  const amount = isAhaMoment ? currencyValue(metadata.total) : "";
+  const hero = amount
+    ? `<p style="margin:18px 0 0;color:#646b76;font-size:13px">Vendió</p><p style="margin:2px 0 0;color:#ff4f00;font-size:44px;font-weight:900;line-height:1;letter-spacing:-1px">${escapeHtml(amount)}</p>`
+    : "";
+
+  const logo = `<table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td valign="bottom" style="padding:0"><table role="presentation" cellspacing="0" cellpadding="0" border="0" width="22"><tr><td style="width:14px;height:8px;font-size:0;line-height:0">&nbsp;</td><td style="width:8px;height:8px;background:#ffffff;font-size:0;line-height:0">&nbsp;</td></tr><tr><td style="width:14px;height:14px;background:#ff4f00;font-size:0;line-height:0">&nbsp;</td><td style="width:8px;height:14px;font-size:0;line-height:0">&nbsp;</td></tr></table></td><td style="padding-left:8px;color:#ffffff;font-size:21px;font-weight:900;letter-spacing:-0.5px">Grofit</td></tr></table>`;
+
+  const html = `<!doctype html><html lang="es"><body style="margin:0;padding:0;background:#ecedf0;font-family:Helvetica,Arial,sans-serif;color:#111111"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#ecedf0"><tr><td align="center" style="padding:32px 12px 40px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px"><tr><td style="background:#111111;padding:22px 28px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td>${logo}</td><td align="right" style="color:#9aa1ac;font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase">${eyebrow}</td></tr></table></td></tr><tr><td style="background:#ffffff;padding:30px 28px 26px"><h1 style="margin:0;color:#111111;font-size:26px;font-weight:900;line-height:30px;letter-spacing:-0.5px">${escapeHtml(title)}<span style="color:#ff4f00">.</span></h1>${hero}<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:22px;border-top:2px solid #111111;border-collapse:collapse">${htmlRows}</table></td></tr><tr><td style="padding:16px 28px 0;color:#646b76;font-size:12px;line-height:18px">Aviso interno de Grofit · ${escapeHtml(occurredAt)}</td></tr></table></td></tr></table></body></html>`;
   const text = `${title}\n\n${rows.map(([label, value]) => `${label}: ${value}`).join("\n")}`;
 
   return { subject, html, text };
