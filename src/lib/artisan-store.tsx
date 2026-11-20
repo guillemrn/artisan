@@ -21,6 +21,7 @@ import {
   type ArtisanData,
 } from "./artisan-persistence";
 import { buildRegisterSalePayload } from "./artisan-sale-registration";
+import { applyCostToSales } from "./artisan-sale-calculations";
 import type { ProductCosting } from "./product-costing";
 
 import { useAuth } from "@/core/auth/auth-context";
@@ -442,12 +443,17 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         persist({ sales, clients, products: allProducts.filter((p) => p.id !== id) });
       },
       updateProduct: async (p) => {
+        // ¿Se acaba de capturar el costo de un producto que se vendió sin costo?
+        const previous = allProducts.find((prod) => prod.id === p.id);
+        const costJustAdded = Boolean(previous?.needsCost) && !p.needsCost && p.cost > 0;
+        const recalculated = costJustAdded ? applyCostToSales(sales, p.id, p.cost) : [];
+        const nextSales = recalculated.length
+          ? sales.map((sale) => recalculated.find((r) => r.id === sale.id) ?? sale)
+          : sales;
+        const nextProducts = allProducts.map((prod) => (prod.id === p.id ? p : prod));
+
         if (isDemo) {
-          persist({
-            sales,
-            clients,
-            products: allProducts.map((prod) => (prod.id === p.id ? p : prod)),
-          });
+          persist({ sales: nextSales, clients, products: nextProducts });
           return;
         }
 
@@ -473,11 +479,23 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           throw new Error(`Error al actualizar el producto: ${error.message}`);
         }
 
-        persist({
-          sales,
-          clients,
-          products: allProducts.map((prod) => (prod.id === p.id ? p : prod)),
-        });
+        // Las ventas que ya tenían este producto con costo 0 se actualizan para que
+        // el inicio muestre la ganancia real.
+        for (const sale of recalculated) {
+          const { error: saleError } = await supabase
+            .from("sales")
+            .update({ items: sale.items, cost: sale.cost, profit: sale.profit })
+            .eq("id", sale.id)
+            .eq("user_id", session.user.id);
+          if (saleError) {
+            console.error("Error recalculating sale cost:", saleError);
+            throw new Error(
+              `El costo se guardó, pero no se pudieron actualizar tus ventas anteriores: ${saleError.message}`,
+            );
+          }
+        }
+
+        persist({ sales: nextSales, clients, products: nextProducts });
       },
       inventoryEnabled,
       setInventoryEnabled: async (enabled) => {

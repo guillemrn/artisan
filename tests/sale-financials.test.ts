@@ -31,3 +31,20 @@ test("a standalone replacement has no sale profit and retains its merma cost", (
     margin: 0,
   });
 });
+
+test("al poner el costo a un producto vendido sin costo, sus ventas se recalculan", async () => {
+  const { applyCostToSales } = await import("../src/lib/artisan-sale-calculations.ts");
+  const sales = [
+    { id: "a", total: 144, cost: 50, profit: 94, items: [
+      { productId: "conchas", productName: "Conchas", qty: 10, unitPrice: 12, cost: 5 },
+      { productId: "bolillo", productName: "Bolillo", qty: 6, unitPrice: 4, cost: 0 },
+    ] },
+    { id: "b", total: 95, cost: 48, profit: 47, items: [
+      { productId: "vela", productName: "Vela", qty: 1, unitPrice: 95, cost: 48 },
+    ] },
+  ];
+  const changed = applyCostToSales(sales, "bolillo", 1.5);
+  assert.equal(changed.length, 1);
+  assert.equal(changed[0].cost, 59);
+  assert.equal(changed[0].profit, 85);
+});

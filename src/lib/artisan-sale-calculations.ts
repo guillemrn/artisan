@@ -21,3 +21,25 @@ export function calculateSaleFinancials(items: SaleItem[], payment: PaymentMetho
 
   return { total, cost, mermaCost, profit, margin };
 }
+
+/**
+ * Cuando un producto creado sin costo recibe su costo, las ventas que ya lo tenían
+ * (con costo 0) se recalculan para que el inicio muestre la ganancia real.
+ * Devuelve solo las ventas que cambiaron.
+ */
+export function applyCostToSales<T extends { items: SaleItem[]; total: number; cost: number; profit: number }>(
+  sales: T[],
+  productId: string,
+  unitCost: number,
+): T[] {
+  const changed: T[] = [];
+  for (const sale of sales) {
+    if (!sale.items.some((item) => item.productId === productId && item.cost === 0)) continue;
+    const items = sale.items.map((item) =>
+      item.productId === productId && item.cost === 0 ? { ...item, cost: unitCost } : item,
+    );
+    const cost = items.reduce((sum, item) => sum + getSaleItemCost(item), 0);
+    changed.push({ ...sale, items, cost, profit: sale.total - cost });
+  }
+  return changed;
+}

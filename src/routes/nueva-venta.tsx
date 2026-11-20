@@ -853,6 +853,7 @@ function QuickProduct({
   const askName = initialName === "";
   const [name, setName] = useState(initialName);
   const [price, setPrice] = useState("");
+  const [wholesale, setWholesale] = useState("");
   const [qty, setQtyLocal] = useState(1);
   const [cost, setCost] = useState("");
   const [save, setSave] = useState(true);
@@ -862,17 +863,18 @@ function QuickProduct({
   const add = async () => {
     if (saving) return;
     const p = parseMoney(price);
+    const w = parseMoney(wholesale);
     const c = parseMoney(cost);
     if (!name.trim()) {
       setError("Escribe el nombre del producto.");
       return;
     }
     if (p === null || Number.isNaN(p) || p <= 0) {
-      setError("Escribe el precio de cada uno.");
+      setError("Escribe el precio al público.");
       return;
     }
-    if (Number.isNaN(c)) {
-      setError("El costo debe ser un número.");
+    if (Number.isNaN(w) || Number.isNaN(c)) {
+      setError("Los precios y el costo deben ser números.");
       return;
     }
     setSaving(true);
@@ -882,7 +884,7 @@ function QuickProduct({
       name: name.trim(),
       cost: c ?? 0,
       publicPrice: p,
-      distributorPrice: p,
+      distributorPrice: w ?? p,
       stock: 0,
       trackStock: false,
       archived: !save,
@@ -898,6 +900,28 @@ function QuickProduct({
 
   const inputClass =
     "h-12 w-full rounded-md border border-border bg-surface pl-7 pr-3 text-[16px] tabular-nums outline-none focus:border-text-primary focus:ring-3 focus:ring-cta/25";
+  const moneyField = (
+    label: string,
+    value: string,
+    onChange: (v: string) => void,
+    placeholder: string,
+    focus: boolean,
+  ) => (
+    <label className="space-y-1.5">
+      <span className="text-[13px] font-bold">{label}</span>
+      <span className="relative block">
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">$</span>
+        <input
+          inputMode="decimal"
+          autoFocus={focus}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={inputClass}
+        />
+      </span>
+    </label>
+  );
 
   return (
     <div className="mt-4 space-y-4 rounded-md border border-primary p-4 animate-in fade-in duration-200">
@@ -928,22 +952,20 @@ function QuickProduct({
         </label>
       )}
       <div className="grid grid-cols-2 gap-3">
-        <label className="space-y-1.5">
-          <span className="text-[13px] font-bold">
-            Precio c/u{priceMode === "distributor" ? " (mayoreo)" : ""}
-          </span>
-          <span className="relative block">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">$</span>
-            <input
-              inputMode="decimal"
-              autoFocus={!askName}
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="0"
-              className={inputClass}
-            />
-          </span>
-        </label>
+        {moneyField("Precio público", price, setPrice, "0", !askName && priceMode === "public")}
+        {moneyField(
+          "Precio mayoreo",
+          wholesale,
+          setWholesale,
+          "Igual al público",
+          !askName && priceMode === "distributor",
+        )}
+      </div>
+      <p className="-mt-2 text-[12px] text-text-muted">
+        En esta venta se usa el precio {priceMode === "distributor" ? "de mayoreo" : "al público"}. Lo cambias
+        arriba con Público / Mayoreo.
+      </p>
+      <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <span className="text-[13px] font-bold">Cantidad</span>
           <div className="flex h-12 items-center rounded-md border border-border">
@@ -966,23 +988,9 @@ function QuickProduct({
             </button>
           </div>
         </div>
+        {moneyField("Costo c/u (opcional)", cost, setCost, "0", false)}
       </div>
-      <label className="block space-y-1.5">
-        <span className="text-[13px] font-bold">
-          ¿Cuánto te cuesta cada uno? <span className="font-normal text-text-muted">(opcional)</span>
-        </span>
-        <span className="relative block">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">$</span>
-          <input
-            inputMode="decimal"
-            value={cost}
-            onChange={(e) => setCost(e.target.value)}
-            placeholder="0"
-            className={inputClass}
-          />
-        </span>
-        <span className="block text-[12px] text-text-muted">Con el costo te digo cuánto te dejó la venta.</span>
-      </label>
+      <p className="-mt-2 text-[12px] text-text-muted">Con el costo te digo cuánto te dejó la venta.</p>
       <label className="flex min-h-11 cursor-pointer items-center gap-3">
         <input
           type="checkbox"

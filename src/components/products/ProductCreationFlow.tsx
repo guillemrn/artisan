@@ -59,12 +59,17 @@ function marginFor(price: number, cost: number) {
   return ((price - cost) / price) * 100;
 }
 
+/** La calculadora de costo queda apagada por ahora (se retoma después del lanzamiento). */
+const SHOW_COST_CALCULATOR = false;
+
 export function ProductCreationFlow({ onClose, onCreate }: Props) {
   const { inventoryEnabled } = useArtisan();
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [stock, setStock] = useState("");
-  const [costMethod, setCostMethod] = useState<CostMethod | null>(null);
+  const [costMethod, setCostMethod] = useState<CostMethod | null>(
+    SHOW_COST_CALCULATOR ? null : "known",
+  );
   const [knownCost, setKnownCost] = useState("");
   const [yieldQuantity, setYieldQuantity] = useState("");
   const [unitsPerProduct, setUnitsPerProduct] = useState("");
@@ -245,7 +250,10 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
             </h2>
             <p className="mt-1 text-[13px] leading-relaxed text-text-muted">
               {step === 1 && "Empieza por lo que vendes y cuánto tienes disponible."}
-              {step === 2 && "Usa un costo conocido o calcúlalo a partir de tu producción."}
+              {step === 2 &&
+                (SHOW_COST_CALCULATOR
+                  ? "Usa un costo conocido o calcúlalo a partir de tu producción."
+                  : "Lo que te cuesta hacer una presentación.")}
               {step === 3 && "Revisa el costo y decide cuánto cobrarás en cada canal."}
             </p>
           </div>
@@ -316,7 +324,9 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
           <div className="space-y-5">
             <div>
               <p className="text-[15px] font-bold text-text-primary">
-                ¿Ya conoces el costo de una presentación?
+                {SHOW_COST_CALCULATOR
+                  ? "¿Ya conoces el costo de una presentación?"
+                  : "¿Cuánto te cuesta una presentación?"}
               </p>
               <p className="mt-1 max-w-[62ch] text-[13px] leading-relaxed text-text-muted">
                 Una presentación es exactamente lo que entregas al cliente, por ejemplo un paquete
@@ -324,6 +334,7 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
               </p>
             </div>
 
+            {SHOW_COST_CALCULATOR && (
             <div className="grid gap-3 sm:grid-cols-2">
               <MethodButton
                 selected={costMethod === "known"}
@@ -347,6 +358,7 @@ export function ProductCreationFlow({ onClose, onCreate }: Props) {
                 }}
               />
             </div>
+            )}
 
             {costMethod === "known" && (
               <div className="max-w-sm pt-1">
