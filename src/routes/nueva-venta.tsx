@@ -557,14 +557,17 @@ function StepProducts({
     .sort((a, b) => Number(inCart(b.id)) - Number(inCart(a.id)));
   const exact = allProducts.some((p) => !p.archived && p.name.trim().toLowerCase() === q);
 
-  const [creating, setCreating] = useState(false);
+  // null = cerrada; "" = abierta desde el botón (pide nombre); texto = abierta con ese nombre.
+  const [creating, setCreating] = useState<string | null>(null);
   const addQuickProduct = async (product: Product, qty: number) => {
     await addProduct(product);
     setQty(product.id, qty);
     setQuery("");
-    setCreating(false);
+    setCreating(null);
   };
-  const showQuick = creating || (q !== "" && !exact);
+  const showQuick = creating !== null;
+  // Mientras escribe no se roba el foco: solo se ofrece crear lo que escribió.
+  const offerCreate = !showQuick && q.length >= 2 && !exact;
 
   return (
     <section aria-labelledby="products-title">
@@ -619,7 +622,7 @@ function StepProducts({
       </label>
         <button
           type="button"
-          onClick={() => setCreating(true)}
+          onClick={() => setCreating(query.trim())}
           aria-expanded={showQuick}
           className={buttonClass({ variant: "secondary", size: "md", className: "h-12 shrink-0" })}
         >
@@ -629,16 +632,24 @@ function StepProducts({
         </button>
       </div>
 
+      {offerCreate && (
+        <button
+          type="button"
+          onClick={() => setCreating(query.trim())}
+          className="mt-3 flex min-h-12 w-full items-center gap-2 rounded-md border border-dashed border-text-primary px-4 text-left text-[15px] font-semibold transition hover:bg-surface-2"
+        >
+          <PlusIcon weight="bold" className="h-4 w-4 shrink-0" />
+          <span className="truncate">Crear «{query.trim()}» y agregarlo a la venta</span>
+        </button>
+      )}
+
       {showQuick && (
         <QuickProduct
-          key={creating && !q ? "new" : q}
-          name={query.trim()}
+          key={creating || "new"}
+          name={creating ?? ""}
           priceMode={priceMode}
           onAdd={addQuickProduct}
-          onCancel={() => {
-            setCreating(false);
-            setQuery("");
-          }}
+          onCancel={() => setCreating(null)}
         />
       )}
 
