@@ -12,4 +12,4 @@ Disallow: /historial
 Disallow: /actividad
 Disallow: /reset-password
 
-Sitemap: https://artisan.guillermoml.com/sitemap.xml
+Sitemap: https://getgrofit.com/sitemap.xml

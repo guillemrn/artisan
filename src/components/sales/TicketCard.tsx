@@ -117,7 +117,7 @@ export const TicketCard = forwardRef<
       </div>
       <div className="flex items-center justify-center gap-1.5 border-t border-dashed border-border px-3 py-2.5 text-[11px] text-text-muted">
         <span className="h-2 w-2 bg-cta" aria-hidden="true" />
-        Hecho con Grofit · artisan.guillermoml.com
+        Hecho con Grofit · getgrofit.com
       </div>
     </div>
   );
