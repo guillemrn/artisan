@@ -58,3 +58,29 @@ test("momento ajá: primera venta, acumulado del día y mejor de la semana", asy
   const owed = { ...s3, payment: "Pendiente" as const, status: "Pendiente" as const };
   assert.match(savedMoment(owed, [owed, s2, s1], now).detail, /^Te deben \$150 /);
 });
+
+test("momento ajá sin costo: muestra lo cobrado, nunca una ganancia falsa", async () => {
+  const { savedMoment } = await import("../src/lib/ticket-format.ts");
+  const now = new Date("2026-11-19T20:00:00.000Z");
+  const quick = {
+    ...base,
+    id: "TAL-0001",
+    createdAt: "2026-11-19T16:00:00.000Z",
+    items: [
+      { productId: "conchas", productName: "Conchas", qty: 10, unitPrice: 12, cost: 5 },
+      { productId: "bolillo", productName: "Bolillo", qty: 6, unitPrice: 4, cost: 0 },
+    ],
+    total: 144,
+    cost: 50,
+    profit: 94,
+  };
+  const partial = savedMoment(quick, [quick], now, new Set(["bolillo"]));
+  assert.equal(partial.amount, 70);
+  assert.ok(partial.missingCost);
+  assert.match(partial.detail, /^de lo que tiene costo/);
+
+  const none = savedMoment(quick, [quick], now, new Set(["bolillo", "conchas"]));
+  assert.equal(none.label, "Cobraste");
+  assert.equal(none.amount, 144);
+  assert.match(none.detail, /16 piezas/);
+});

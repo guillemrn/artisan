@@ -9,6 +9,10 @@ export type Product = {
   stock: number;
   /** Si es false, se vende sin límite y no se descuenta stock. Sin definir = true (datos previos). */
   trackStock?: boolean;
+  /** Creado al vender como "solo esta venta": existe para la venta, pero no sale en el catálogo. */
+  archived?: boolean;
+  /** Se creó sin costo (al vender). Su ganancia no es real hasta que se capture el costo. */
+  needsCost?: boolean;
   costing?: ProductCosting;
 };
 

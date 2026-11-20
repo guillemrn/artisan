@@ -31,7 +31,7 @@ type Feedback = "shared" | "downloaded" | "copied" | null;
 
 function Ticket() {
   const { saleId } = Route.useParams();
-  const { getSale, resetDraft, isLoading, loadError, lastSaleId, sales } = useArtisan();
+  const { getSale, resetDraft, isLoading, loadError, lastSaleId, sales, allProducts } = useArtisan();
   const { user } = useAuth();
   const navigate = useNavigate();
   const sale = getSale(saleId);
@@ -70,7 +70,8 @@ function Ticket() {
 
   const fileName = `ticket-${shortFolio(sale.id)}.png`;
   const message = ticketMessage(sale, businessName);
-  const moment = justSaved ? savedMoment(sale, sales) : null;
+  const missingCostIds = new Set(allProducts.filter((p) => p.needsCost).map((p) => p.id));
+  const moment = justSaved ? savedMoment(sale, sales, new Date(), missingCostIds) : null;
 
   const renderImage = async () => {
     if (!ticketRef.current) return null;
@@ -213,14 +214,25 @@ function Ticket() {
 
         <aside className="hidden lg:block">
           {moment ? (
-            <SavedBanner profit={sale.profit} moment={moment!} />
+            <SavedBanner moment={moment} />
           ) : (
             <div>
               <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-text-muted">
                 {sale.clientName}
               </p>
-              <p className="mt-1 text-[28px] font-black leading-none">Te dejó {formatMXN(sale.profit)}</p>
-              <p className="mt-1 text-[14px] text-text-muted">de ganancia bruta</p>
+              {(() => {
+                const m = savedMoment(sale, sales, new Date(), missingCostIds);
+                return (
+                  <>
+                    <p className="mt-1 text-[28px] font-black leading-none">
+                      {m.label === "Esta venta te dejó" ? "Te dejó" : m.label} {formatMXN(m.amount)}
+                    </p>
+                    <p className="mt-1 text-[14px] text-text-muted">
+                      {m.missingCost && m.label === "Esta venta te dejó" ? "de lo que tiene costo" : "de ganancia bruta"}
+                    </p>
+                  </>
+                );
+              })()}
             </div>
           )}
           <div className="mt-6 space-y-2.5">
@@ -257,7 +269,6 @@ function Ticket() {
 
       {moment && momentOpen && (
         <MomentScreen
-          profit={sale.profit}
           moment={moment}
           busy={busy === "share"}
           onWhatsApp={sendWhatsApp}
@@ -298,8 +309,8 @@ function Ticket() {
 }
 
 /** Momento "ajá" en escritorio: panel junto al ticket. */
-function SavedBanner({ profit, moment }: { profit: number; moment: SavedMoment }) {
-  const shown = useCountUp(profit, 900);
+function SavedBanner({ moment }: { moment: SavedMoment }) {
+  const shown = useCountUp(moment.amount, 900);
   return (
     <div>
       <p className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-text-muted">
@@ -307,30 +318,30 @@ function SavedBanner({ profit, moment }: { profit: number; moment: SavedMoment }
         {moment.eyebrow}
       </p>
       <p className="mt-1.5 text-[34px] font-black leading-none tracking-[-0.02em]">
-        Te dejó <span className="text-accent-text tabular-nums">{formatMXN(Math.round(shown))}</span>
+        {moment.label === "Esta venta te dejó" ? "Te dejó" : moment.label}{" "}
+        <span className="text-accent-text tabular-nums">{formatMXN(Math.round(shown))}</span>
       </p>
       <p className="mt-1.5 text-[14px] text-text-muted">{moment.detail}</p>
+      {moment.missingCost ? <CostNudge /> : null}
     </div>
   );
 }
 
 /** Momento "ajá" en celular: pantalla completa oscura, el cuadro naranja "cae" y el número cuenta. */
 function MomentScreen({
-  profit,
   moment,
   busy,
   onWhatsApp,
   onSeeTicket,
   onAnotherSale,
 }: {
-  profit: number;
   moment: SavedMoment;
   busy: boolean;
   onWhatsApp: () => void;
   onSeeTicket: () => void;
   onAnotherSale: () => void;
 }) {
-  const shown = useCountUp(profit, 1100);
+  const shown = useCountUp(moment.amount, 1100);
   return (
     <div
       role="dialog"
@@ -350,11 +361,12 @@ function MomentScreen({
       <h2 id="moment-title" className="mt-6 text-[36px] font-black leading-none tracking-[-0.02em]">
         Venta guardada.
       </h2>
-      <p className="mt-4 text-[16px] text-rail-muted">Esta venta te dejó</p>
+      <p className="mt-4 text-[16px] text-rail-muted">{moment.label}</p>
       <p className="text-[64px] font-black leading-none tracking-[-0.03em] text-cta tabular-nums">
         {formatMXN(Math.round(shown))}
       </p>
       <p className="mt-3 text-[14px] text-rail-muted">{moment.detail}</p>
+      {moment.missingCost ? <CostNudge dark /> : null}
 
       <div className="mt-auto space-y-2.5">
         <button
@@ -409,5 +421,21 @@ function FeedbackLine({ feedback }: { feedback: Feedback }) {
         </span>
       )}
     </p>
+  );
+}
+
+/** Invitación a capturar el costo cuando algún producto vendido no lo tiene. */
+function CostNudge({ dark }: { dark?: boolean }) {
+  return (
+    <Link
+      to="/productos"
+      className={`mt-5 flex items-center gap-3 rounded-md border px-3.5 py-3 text-[14px] leading-snug ${
+        dark ? "border-rail-active text-rail-foreground" : "border-border text-text-primary"
+      }`}
+    >
+      <span className="h-2.5 w-2.5 shrink-0 bg-cta" aria-hidden="true" />
+      <span className="flex-1">Dime cuánto te cuesta cada producto y te digo cuánto te quedó.</span>
+      <span className={`shrink-0 font-bold ${dark ? "text-cta" : "text-accent-text"}`}>Agregar costo</span>
+    </Link>
   );
 }

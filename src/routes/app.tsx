@@ -657,12 +657,7 @@ function Home() {
   // Primer uso: sin ventas todavía, guía hacia la primera venta en lugar de mostrar todo en $0.
   if (sales.length === 0) {
     return (
-      <FirstRun
-        firstName={firstName}
-        dateLabel={dateLabel}
-        hasProducts={products.length > 0}
-        hasClients={clients.length > 0}
-      />
+      <FirstRun firstName={firstName} dateLabel={dateLabel} />
     );
   }
 

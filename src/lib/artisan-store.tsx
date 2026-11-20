@@ -56,6 +56,8 @@ type Ctx = {
   addClient: (c: Client) => Promise<void>;
   deleteClient: (id: string) => Promise<void>;
   products: Product[];
+  /** Incluye los archivados ("solo esta venta"); para armar ventas y tickets. */
+  allProducts: Product[];
   addProduct: (p: Product, costing?: ProductCosting) => Promise<void>;
   updateProduct: (p: Product) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
@@ -123,7 +125,9 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
     [allClients],
   );
   const hasWalkInRow = allClients.some((c) => isWalkInClient(c.id));
-  const products = data?.products ?? (isDemo ? PRODUCTS : EMPTY_PRODUCTS);
+  const allProducts = data?.products ?? (isDemo ? PRODUCTS : EMPTY_PRODUCTS);
+  // Los productos de "solo esta venta" existen (la venta los necesita) pero no salen en el catálogo.
+  const products = useMemo(() => allProducts.filter((p) => !p.archived), [allProducts]);
   const loadError =
     error instanceof Error ? error.message : error ? "No se pudieron cargar los datos." : null;
 
@@ -184,7 +188,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
       getSale: (id) => sales.find((s) => s.id === id),
       addSale: async (s) => {
         const nextClients = updateClientLastDelivery(clients, s.clientId);
-        const nextProducts = applyStockDeduction(products, s);
+        const nextProducts = applyStockDeduction(allProducts, s);
 
         if (isDemo) {
           persist({
@@ -248,7 +252,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
               sale.id === id ? { ...sale, status, payment, paidAt } : sale,
             ),
             clients,
-            products,
+            products: allProducts,
           });
           return;
         }
@@ -271,7 +275,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
             sale.id === id ? { ...sale, status, payment, paidAt } : sale,
           ),
           clients,
-          products,
+          products: allProducts,
         });
       },
       draft,
@@ -280,7 +284,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
       clients,
       addClient: async (c) => {
         if (isDemo) {
-          persist({ sales, clients: [c, ...clients], products });
+          persist({ sales, clients: [c, ...clients], products: allProducts });
           return;
         }
 
@@ -302,11 +306,11 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           throw new Error(`Error al agregar el cliente: ${error.message}`);
         }
 
-        persist({ sales, clients: [c, ...clients], products });
+        persist({ sales, clients: [c, ...clients], products: allProducts });
       },
       deleteClient: async (id) => {
         if (isDemo) {
-          persist({ sales, clients: clients.filter((c) => c.id !== id), products });
+          persist({ sales, clients: clients.filter((c) => c.id !== id), products: allProducts });
           return;
         }
 
@@ -322,19 +326,21 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           throw new Error(`Error al eliminar el cliente: ${error.message}`);
         }
 
-        persist({ sales, clients: clients.filter((c) => c.id !== id), products });
+        persist({ sales, clients: clients.filter((c) => c.id !== id), products: allProducts });
       },
       products,
+      allProducts,
       addProduct: async (p, costing) => {
         // El producto sigue el ajuste general de inventario.
+        const track = p.trackStock ?? inventoryEnabled;
         const base: Product = {
           ...p,
-          trackStock: inventoryEnabled,
-          stock: inventoryEnabled ? p.stock : 0,
+          trackStock: track,
+          stock: track ? p.stock : 0,
         };
         const product = costing ? { ...base, cost: costing.productCost, costing } : base;
         if (isDemo) {
-          persist({ sales, clients, products: [...products, product] });
+          persist({ sales, clients, products: [...allProducts, product] });
           return;
         }
 
@@ -367,27 +373,57 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
             }
           : product;
 
-        // La función de alta no conoce track_stock: lo fijamos después si el producto lleva inventario.
+        // La función de alta no conoce track_stock, archived ni needs_cost: se fijan después.
         const trackStock = tracksStock(product);
-        if (trackStock) {
-          const { error: trackError } = await supabase
-            .from("products")
-            .update({ track_stock: true })
-            .eq("id", savedProduct.id);
-          if (trackError) {
-            console.error("Error enabling stock tracking:", trackError);
+        const extra: Record<string, boolean> = { track_stock: trackStock };
+        if (product.archived) extra.archived = true;
+        if (product.needsCost) extra.needs_cost = true;
+        const { error: extraError } = await supabase
+          .from("products")
+          .update(extra)
+          .eq("id", savedProduct.id);
+        if (extraError) {
+          console.error("Error updating product flags:", extraError);
+          if (/archived|needs_cost/.test(extraError.message)) {
             throw new Error(
-              `El producto se creó, pero no se pudo activar el inventario: ${trackError.message}`,
+              "Falta aplicar la migración de productos rápidos en Supabase (202611200003_quick_products.sql).",
             );
           }
+          throw new Error(`El producto se creó, pero no se pudo terminar de guardar: ${extraError.message}`);
         }
+        savedProduct.archived = product.archived;
+        savedProduct.needsCost = product.needsCost;
         savedProduct.trackStock = trackStock;
 
-        persist({ sales, clients, products: [...products, savedProduct] });
+        persist({ sales, clients, products: [...allProducts, savedProduct] });
       },
       deleteProduct: async (id) => {
+        // Si ya se vendió, se archiva (las ventas siguen mostrándolo); si no, se borra.
+        const usedInSales = sales.some((sale) => sale.items.some((item) => item.productId === id));
+        if (usedInSales) {
+          const target = allProducts.find((prod) => prod.id === id);
+          if (!target) return;
+          const archivedProduct = { ...target, archived: true };
+          if (isDemo) {
+            persist({ sales, clients, products: allProducts.map((prod) => (prod.id === id ? archivedProduct : prod)) });
+            return;
+          }
+          const session = await requireActiveSession();
+          const { error } = await supabase
+            .from("products")
+            .update({ archived: true })
+            .eq("id", id)
+            .eq("user_id", session.user.id);
+          if (error) {
+            console.error("Error archiving product:", error);
+            throw new Error(`Error al eliminar el producto: ${error.message}`);
+          }
+          persist({ sales, clients, products: allProducts.map((prod) => (prod.id === id ? archivedProduct : prod)) });
+          return;
+        }
+
         if (isDemo) {
-          persist({ sales, clients, products: products.filter((p) => p.id !== id) });
+          persist({ sales, clients, products: allProducts.filter((p) => p.id !== id) });
           return;
         }
 
@@ -403,14 +439,14 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
           throw new Error(`Error al eliminar el producto: ${error.message}`);
         }
 
-        persist({ sales, clients, products: products.filter((p) => p.id !== id) });
+        persist({ sales, clients, products: allProducts.filter((p) => p.id !== id) });
       },
       updateProduct: async (p) => {
         if (isDemo) {
           persist({
             sales,
             clients,
-            products: products.map((prod) => (prod.id === p.id ? p : prod)),
+            products: allProducts.map((prod) => (prod.id === p.id ? p : prod)),
           });
           return;
         }
@@ -426,6 +462,8 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
             public_price: p.publicPrice,
             stock: p.stock,
             track_stock: tracksStock(p),
+            needs_cost: Boolean(p.needsCost),
+            archived: Boolean(p.archived),
           })
           .eq("id", p.id)
           .eq("user_id", session.user.id);
@@ -438,12 +476,15 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         persist({
           sales,
           clients,
-          products: products.map((prod) => (prod.id === p.id ? p : prod)),
+          products: allProducts.map((prod) => (prod.id === p.id ? p : prod)),
         });
       },
       inventoryEnabled,
       setInventoryEnabled: async (enabled) => {
-        const nextProducts = products.map((prod) => ({ ...prod, trackStock: enabled }));
+        // Los de "solo esta venta" nunca llevan inventario.
+        const nextProducts = allProducts.map((prod) =>
+          prod.archived ? prod : { ...prod, trackStock: enabled },
+        );
         if (isDemo) {
           persist({ sales, clients, products: nextProducts });
           setInventoryOverride(enabled);
@@ -456,7 +497,8 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
         const { error } = await supabase
           .from("products")
           .update({ track_stock: enabled })
-          .eq("user_id", session.user.id);
+          .eq("user_id", session.user.id)
+          .eq("archived", false);
         if (error) {
           console.error("Error updating stock tracking:", error);
           if (/track_stock/.test(error.message)) {
@@ -483,6 +525,7 @@ export function ArtisanProvider({ children }: { children: ReactNode }) {
       sales,
       clients,
       products,
+      allProducts,
       draft,
       lastSaleId,
       inventoryEnabled,

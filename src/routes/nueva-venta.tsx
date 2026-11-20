@@ -30,6 +30,7 @@ import {
   type Client,
   type PaymentMethod,
   type PriceMode,
+  type Product,
 } from "@/lib/artisan-data";
 import { buildSaleItems, useArtisan } from "@/lib/artisan-store";
 import { useAuth } from "@/core/auth/auth-context";
@@ -67,7 +68,7 @@ function NuevaVenta() {
   const { user } = useAuth();
   const isDesktop = useMediaQuery("(min-width: 1280px)");
   const [stepState, setStep] = useState<Step>(1);
-  const { draft, setDraft, resetDraft, addSale, products, sales, isLoading, loadError } =
+  const { draft, setDraft, resetDraft, addSale, allProducts, sales, isLoading, loadError } =
     useArtisan();
   const navigate = useNavigate();
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -77,8 +78,8 @@ function NuevaVenta() {
   const step: Step = !draft.client ? 1 : isDesktop && stepState === 3 ? 2 : stepState;
 
   const items = useMemo(
-    () => buildSaleItems(draft.quantities, draft.returns || {}, draft.priceMode, products),
-    [draft.quantities, draft.returns, draft.priceMode, products],
+    () => buildSaleItems(draft.quantities, draft.returns || {}, draft.priceMode, allProducts),
+    [draft.quantities, draft.returns, draft.priceMode, allProducts],
   );
   const soldCount = items.reduce((sum, item) => sum + item.qty, 0);
   const returnsCount = items.reduce((sum, item) => sum + (item.returnQty ?? 0), 0);
@@ -458,18 +459,8 @@ function StepClient({ onPick, selectedId }: { onPick: (client: Client) => void; 
         ))}
       </ul>
 
-      {filtered.length === 0 && q && (
-        <div className="py-10 text-center">
-          <p className="text-[15px] font-bold">No encontramos “{query.trim()}”</p>
-          <button
-            type="button"
-            onClick={() => setShowAddForm(true)}
-            className={buttonClass({ variant: "primary", size: "md", className: "mt-4" })}
-          >
-            <UserPlusIcon weight="bold" className="h-4 w-4" />
-            Agregarlo como cliente
-          </button>
-        </div>
+      {q && !clients.some((c) => c.name.trim().toLowerCase() === q) && (
+        <QuickClient key={q} name={query.trim()} onCreated={onPick} />
       )}
 
       <AddClientSheet
@@ -541,11 +532,25 @@ function StepProducts({
   setReturnQty: (id: string, qty: number) => void;
   onChangeClient: () => void;
 }) {
-  const { products } = useArtisan();
+  const { products, allProducts, addProduct } = useArtisan();
   const [query, setQuery] = useState("");
-  const filtered = products.filter((product) =>
-    product.name.toLowerCase().includes(query.trim().toLowerCase()),
+  const q = query.trim().toLowerCase();
+  // Catálogo + los productos de "solo esta venta" que ya van en la venta.
+  const inSale = allProducts.filter(
+    (p) => p.archived && (quantities[p.id] ?? 0) + (returns[p.id] ?? 0) > 0,
   );
+  const inCart = (id: string) => (quantities[id] ?? 0) + (returns[id] ?? 0) > 0;
+  // Lo que ya va en la venta, arriba; el resto del catálogo después.
+  const filtered = [...inSale, ...products]
+    .filter((product) => product.name.toLowerCase().includes(q))
+    .sort((a, b) => Number(inCart(b.id)) - Number(inCart(a.id)));
+  const exact = allProducts.some((p) => !p.archived && p.name.trim().toLowerCase() === q);
+
+  const addQuickProduct = async (product: Product, qty: number) => {
+    await addProduct(product);
+    setQty(product.id, qty);
+    setQuery("");
+  };
 
   return (
     <section aria-labelledby="products-title">
@@ -593,7 +598,7 @@ function StepProducts({
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Buscar producto"
+          placeholder={products.length ? "Busca o escribe lo que vendiste" : "Escribe lo que vendiste: Conchas, Salsa macha…"}
           className="h-12 w-full rounded-md border border-border bg-surface pl-10 pr-3 text-[16px] outline-none transition focus:border-text-primary focus:ring-3 focus:ring-cta/25"
         />
       </label>
@@ -685,12 +690,241 @@ function StepProducts({
             );
           })}
         </ul>
-      ) : (
-        <p className="py-10 text-center text-[14px] text-text-muted">
-          No encontramos ese producto. Prueba con otro nombre.
+      ) : !q ? (
+        <p className="py-8 text-[14px] leading-relaxed text-text-muted">
+          Todavía no tienes productos guardados. Escribe arriba lo que vendiste y lo agregas aquí mismo.
         </p>
+      ) : null}
+
+      {q && !exact && (
+        <QuickProduct key={q} name={query.trim()} priceMode={priceMode} onAdd={addQuickProduct} />
       )}
     </section>
+  );
+}
+
+/* ───────────── Crear al vuelo ───────────── */
+
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40);
+
+const uid = () => Math.random().toString(36).slice(2, 7);
+
+function parseMoney(value: string): number | null {
+  if (!value.trim()) return null;
+  const n = Number(value.replace(",", "."));
+  return Number.isFinite(n) && n >= 0 ? n : NaN;
+}
+
+function QuickClient({ name, onCreated }: { name: string; onCreated: (client: Client) => void }) {
+  const { addClient } = useArtisan();
+  const [channel, setChannel] = useState<Client["channel"]>("Público");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const create = async () => {
+    if (saving) return;
+    setSaving(true);
+    setError(null);
+    const client: Client = {
+      id: `${slugify(name) || "cliente"}-${uid()}`,
+      name,
+      channel,
+      lastDelivery: "Nueva incorporación",
+    };
+    try {
+      await addClient(client);
+      onCreated(client);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo agregar el cliente.");
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 space-y-3 rounded-md border border-border bg-surface-2 p-4 animate-in fade-in duration-200">
+      <p className="text-[15px] font-bold">Agregar «{name}»</p>
+      <div role="radiogroup" aria-label="Tipo de cliente" className="flex flex-wrap gap-2">
+        {(
+          [
+            ["Público", "Cliente final"],
+            ["PDV", "Tienda que revende"],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            type="button"
+            role="radio"
+            aria-checked={channel === value}
+            key={value}
+            onClick={() => setChannel(value)}
+            className={`h-10 rounded-md px-3.5 text-[14px] font-semibold transition active:scale-[0.97] ${
+              channel === value ? "bg-primary text-primary-foreground" : "border border-border bg-surface"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <p className="text-[13px] text-text-muted">
+        {channel === "PDV"
+          ? "Usa tu precio de mayoreo y puede quedarte a deber o tener consignación."
+          : "Usa tu precio al público."}
+      </p>
+      {error && <p className="text-[13px] font-semibold text-danger">{error}</p>}
+      <button
+        type="button"
+        onClick={create}
+        disabled={saving}
+        className={buttonClass({ variant: "primary", size: "md", block: true })}
+      >
+        {saving ? <SpinnerGapIcon weight="bold" className="h-4 w-4 animate-spin" /> : null}
+        {saving ? "Agregando…" : "Agregar y seguir"}
+        {!saving && <ArrowRightIcon weight="bold" className="h-4 w-4" />}
+      </button>
+    </div>
+  );
+}
+
+function QuickProduct({
+  name,
+  priceMode,
+  onAdd,
+}: {
+  name: string;
+  priceMode: PriceMode;
+  onAdd: (product: Product, qty: number) => Promise<void>;
+}) {
+  const [price, setPrice] = useState("");
+  const [qty, setQtyLocal] = useState(1);
+  const [cost, setCost] = useState("");
+  const [save, setSave] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const add = async () => {
+    if (saving) return;
+    const p = parseMoney(price);
+    const c = parseMoney(cost);
+    if (p === null || Number.isNaN(p) || p <= 0) {
+      setError("Escribe el precio de cada uno.");
+      return;
+    }
+    if (Number.isNaN(c)) {
+      setError("El costo debe ser un número.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    const product: Product = {
+      id: `${slugify(name) || "producto"}-${uid()}`,
+      name,
+      cost: c ?? 0,
+      publicPrice: p,
+      distributorPrice: p,
+      stock: 0,
+      trackStock: false,
+      archived: !save,
+      needsCost: c === null,
+    };
+    try {
+      await onAdd(product, qty);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo agregar el producto.");
+      setSaving(false);
+    }
+  };
+
+  const inputClass =
+    "h-12 w-full rounded-md border border-border bg-surface pl-7 pr-3 text-[16px] tabular-nums outline-none focus:border-text-primary focus:ring-3 focus:ring-cta/25";
+
+  return (
+    <div className="mt-4 space-y-4 rounded-md border border-primary p-4 animate-in fade-in duration-200">
+      <div className="flex items-center justify-between gap-3">
+        <p className="truncate text-[18px] font-black">{name}</p>
+        <span className="shrink-0 text-[12px] font-semibold text-text-muted">Producto nuevo</span>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <label className="space-y-1.5">
+          <span className="text-[13px] font-bold">
+            Precio c/u{priceMode === "distributor" ? " (mayoreo)" : ""}
+          </span>
+          <span className="relative block">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">$</span>
+            <input
+              inputMode="decimal"
+              autoFocus
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="0"
+              className={inputClass}
+            />
+          </span>
+        </label>
+        <div className="space-y-1.5">
+          <span className="text-[13px] font-bold">Cantidad</span>
+          <div className="flex h-12 items-center rounded-md border border-border">
+            <button
+              type="button"
+              aria-label="Quitar uno"
+              onClick={() => setQtyLocal((n) => Math.max(1, n - 1))}
+              className="grid h-full w-11 place-items-center"
+            >
+              <MinusIcon weight="bold" className="h-4 w-4" />
+            </button>
+            <span className="flex-1 text-center text-[17px] font-black tabular-nums">{qty}</span>
+            <button
+              type="button"
+              aria-label="Agregar uno"
+              onClick={() => setQtyLocal((n) => n + 1)}
+              className="grid h-full w-11 place-items-center rounded-r-md bg-primary text-primary-foreground"
+            >
+              <PlusIcon weight="bold" className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+      <label className="block space-y-1.5">
+        <span className="text-[13px] font-bold">
+          ¿Cuánto te cuesta cada uno? <span className="font-normal text-text-muted">(opcional)</span>
+        </span>
+        <span className="relative block">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">$</span>
+          <input
+            inputMode="decimal"
+            value={cost}
+            onChange={(e) => setCost(e.target.value)}
+            placeholder="0"
+            className={inputClass}
+          />
+        </span>
+        <span className="block text-[12px] text-text-muted">Con el costo te digo cuánto te dejó la venta.</span>
+      </label>
+      <label className="flex min-h-11 cursor-pointer items-center gap-3">
+        <input
+          type="checkbox"
+          checked={save}
+          onChange={(e) => setSave(e.target.checked)}
+          className="h-5 w-5 accent-[var(--color-primary)]"
+        />
+        <span className="text-[15px] font-semibold">Guardar en mis productos</span>
+      </label>
+      {error && <p className="text-[13px] font-semibold text-danger">{error}</p>}
+      <button
+        type="button"
+        onClick={add}
+        disabled={saving}
+        className={buttonClass({ variant: "primary", size: "md", block: true })}
+      >
+        {saving ? <SpinnerGapIcon weight="bold" className="h-4 w-4 animate-spin" /> : null}
+        {saving ? "Agregando…" : "Agregar a la venta"}
+      </button>
+    </div>
   );
 }
 

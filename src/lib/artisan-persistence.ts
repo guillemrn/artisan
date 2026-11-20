@@ -181,6 +181,8 @@ export async function fetchArtisanData(expectedUserId?: string): Promise<Artisan
     publicPrice: Number(p.public_price),
     stock: p.stock,
     trackStock: p.track_stock ?? true,
+    archived: Boolean((p as { archived?: boolean }).archived),
+    needsCost: Boolean((p as { needs_cost?: boolean }).needs_cost),
     costing: costingByProduct.get(p.id),
   }));
 

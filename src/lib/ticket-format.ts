@@ -55,17 +55,32 @@ export function ticketMessage(sale: Sale, businessName: string) {
   return `${greet} Aquí está tu ticket de ${formatMXNc(sale.total)} (folio ${shortFolio(sale.id)})${how}. — ${businessName}`;
 }
 
-export type SavedMoment = { eyebrow: string; detail: string; firstSale: boolean };
+export type SavedMoment = {
+  eyebrow: string;
+  /** Texto sobre la cifra: "Esta venta te dejó" o "Cobraste". */
+  label: string;
+  amount: number;
+  detail: string;
+  firstSale: boolean;
+  /** Algún producto vendido no tiene costo: invitar a capturarlo. */
+  missingCost: boolean;
+};
 
 function sameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
 /**
- * Textos del momento "ajá" al guardar una venta. El número grande siempre es lo que
- * te dejó; el encabezado y la línea de abajo cambian para que no se vuelva rutina.
+ * Textos del momento "ajá" al guardar una venta. La cifra grande es lo que te dejó;
+ * si ningún producto tiene costo, es lo cobrado (nunca una ganancia que no existe).
+ * Con costo parcial, solo cuenta lo que sí tiene costo.
  */
-export function savedMoment(sale: Sale, allSales: Sale[], now = new Date()): SavedMoment {
+export function savedMoment(
+  sale: Sale,
+  allSales: Sale[],
+  now = new Date(),
+  missingCostIds: ReadonlySet<string> = new Set(),
+): SavedMoment {
   const others = allSales.filter((s) => s.id !== sale.id);
   const firstSale = others.length === 0;
   const state = ticketState(sale);
@@ -74,26 +89,42 @@ export function savedMoment(sale: Sale, allSales: Sale[], now = new Date()): Sav
   const bestOfWeek =
     !firstSale && weekOthers.length >= 2 && weekOthers.every((s) => sale.profit > s.profit);
 
+  const sold = sale.items.filter((item) => item.qty > 0);
+  const withCost = sold.filter((item) => !missingCostIds.has(item.productId));
+  const missingCost = withCost.length < sold.length;
+  const noneHasCost = sold.length > 0 && withCost.length === 0;
+  const knownProfit =
+    state === "courtesy"
+      ? sale.profit
+      : withCost.reduce((sum, item) => sum + item.qty * (item.unitPrice - item.cost), 0);
+
   const eyebrow = firstSale
     ? "Tu primera venta en Grofit"
-    : bestOfWeek
+    : bestOfWeek && !missingCost
       ? "Tu mejor venta de la semana"
       : `Ticket ${shortFolio(sale.id)}`;
 
   const who = isWalkInClient(sale.clientId) ? "" : ` a ${sale.clientName}`;
+  const pieces = sold.reduce((sum, item) => sum + item.qty, 0);
+  const label = noneHasCost && state !== "courtesy" ? (state === "paid" ? "Cobraste" : "Vendiste") : "Esta venta te dejó";
+  const amount = noneHasCost && state !== "courtesy" ? sale.total : missingCost ? knownProfit : sale.profit;
+
   let detail: string;
   if (state === "pending" || state === "consignment") {
     detail = `Te deben ${formatMXN(sale.total)} · lo verás en Por cobrar`;
   } else if (state === "courtesy") {
     detail = "Cortesía · no se cobró";
+  } else if (noneHasCost) {
+    detail = `${who ? `${who.trim()} · ` : ""}${pieces} ${pieces === 1 ? "pieza" : "piezas"}`;
   } else {
     const collectedToday = allSales
       .filter((s) => ticketState(s) === "paid" && sameDay(new Date(s.paidAt ?? s.createdAt), now))
       .reduce((sum, s) => sum + s.total, 0);
+    const prefix = missingCost ? "de lo que tiene costo" : "de ganancia bruta";
     detail =
       firstSale || collectedToday <= sale.total
-        ? `de ganancia bruta · cobraste ${formatMXN(sale.total)}${who}`
-        : `de ganancia bruta · llevas ${formatMXN(collectedToday)} cobrados hoy`;
+        ? `${prefix} · cobraste ${formatMXN(sale.total)}${who}`
+        : `${prefix} · llevas ${formatMXN(collectedToday)} cobrados hoy`;
   }
-  return { eyebrow, detail, firstSale };
+  return { eyebrow, label, amount, detail, firstSale, missingCost };
 }
